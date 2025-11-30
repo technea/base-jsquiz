@@ -25,8 +25,8 @@ export async function GET() {
       splashImageUrl: "https://base-jsquiz.vercel.app/splash-pro.png",
       splashBackgroundColor: "#0f172a",
       webhookUrl: "https://base-jsquiz.vercel.app/api/webhook",
-      subtitle: "Test JavaScript Knowledge",
-      description: "A 10-level JavaScript quiz. Pass each level with 7 out of 10 correct answers to unlock the next level.",
+      subtitle: "Test Your Skills",
+      description: "10 levels of JavaScript quizzes to master your coding knowledge",
       screenshotUrls: [
         "https://base-jsquiz.vercel.app/og-pro.png",
         "https://base-jsquiz.vercel.app/splash-pro.png"
@@ -42,7 +42,7 @@ export async function GET() {
       heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       tagline: "Master JavaScript",
       ogTitle: "JavaScript Quiz Miniapp",
-      ogDescription: "Test your JavaScript knowledge across 10 levels.",
+      ogDescription: "Master JavaScript in 10 levels",
       ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       noindex: false
     }
