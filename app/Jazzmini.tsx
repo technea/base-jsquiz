@@ -322,18 +322,46 @@ export default function JSQuizApp() {
               <CheckCircle className="w-20 h-20 mx-auto text-green-400" />
               <h2 className="text-4xl font-bold text-white">Level {currentLevel} Passed!</h2>
               <p className="text-lg text-gray-300">Score: {score}/{QUESTIONS_PER_LEVEL}</p>
-              {txStatus && <p className="text-yellow-300">{txStatus}</p>}
-              {currentLevel < TOTAL_LEVELS && <button type="button" onClick={() => startQuiz(currentLevel + 1)} className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white font-semibold">Next Level</button>}
+              
+              {/* Transaction Status */}
+              {txStatus && (
+                <div className="p-4 bg-blue-900 rounded-lg border border-blue-500">
+                  <p className="text-yellow-300 font-semibold">{txStatus}</p>
+                </div>
+              )}
+              
+              {/* Send Transaction Button */}
+              {!txStatus || txStatus.includes('detected') || txStatus.includes('Error') ? (
+                <button 
+                  type="button" 
+                  onClick={() => sendLevelTx()}
+                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-5 h-5" />
+                  Send Transaction
+                </button>
+              ) : null}
+              
+              {/* Next Level Button */}
+              {currentLevel < TOTAL_LEVELS && (
+                <button 
+                  type="button" 
+                  onClick={() => startQuiz(currentLevel + 1)} 
+                  className="w-full px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white font-semibold"
+                >
+                  Next Level
+                </button>
+              )}
             </>
           ) : (
             <>
               <XCircle className="w-20 h-20 mx-auto text-red-400" />
               <h2 className="text-4xl font-bold text-white">Level {currentLevel} Failed</h2>
               <p className="text-lg text-gray-300">You needed {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to pass.</p>
-              <button type="button" onClick={() => startQuiz(currentLevel)} className="px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold">Retry Level</button>
+              <button type="button" onClick={() => startQuiz(currentLevel)} className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold">Retry Level</button>
             </>
           )}
-          <button type="button" onClick={() => setQuizState('start')} className="px-6 py-3 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold">Back to Level Select</button>
+          <button type="button" onClick={() => setQuizState('start')} className="w-full px-6 py-3 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold">Back to Level Select</button>
         </div>
       )}
     </div>
