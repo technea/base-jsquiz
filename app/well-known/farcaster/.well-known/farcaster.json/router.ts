@@ -24,7 +24,27 @@ export async function GET() {
       buttonTitle: "Start Quiz",
       splashImageUrl: "https://base-jsquiz.vercel.app/splash-new.svg",
       splashBackgroundColor: "#1f2937",
-      webhookUrl: "https://base-jsquiz.vercel.app/api/webhook"
+      webhookUrl: "https://base-jsquiz.vercel.app/api/webhook",
+      subtitle: "Test Your JavaScript Knowledge",
+      description: "A 10-level JavaScript quiz challenge. Pass each level with 7/10 correct answers to unlock the next level.",
+      screenshotUrls: [
+        "https://base-jsquiz.vercel.app/og-image-new.svg",
+        "https://base-jsquiz.vercel.app/splash-new.svg"
+      ],
+      primaryCategory: "education",
+      tags: [
+        "javascript",
+        "quiz",
+        "education",
+        "learning",
+        "base"
+      ],
+      heroImageUrl: "https://base-jsquiz.vercel.app/og-image-new.svg",
+      tagline: "Master JavaScript One Level at a Time",
+      ogTitle: "JavaScript Quiz Miniapp",
+      ogDescription: "Test your JavaScript knowledge across 10 levels of increasing difficulty. Challenge yourself and unlock all levels!",
+      ogImageUrl: "https://base-jsquiz.vercel.app/og-image-new.svg",
+      noindex: false
     }
   };
 
