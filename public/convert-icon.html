@@ -1,0 +1,60 @@
+<html>
+<head>
+    <title>SVG to PNG Converter</title>
+</head>
+<body>
+    <svg id="svgElement" width="1024" height="1024" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+      <defs>
+        <linearGradient id="gradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+        </linearGradient>
+        <filter id="shadow">
+          <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      <!-- Background -->
+      <rect width="1024" height="1024" fill="#0f172a"/>
+      <!-- Gradient circle background -->
+      <circle cx="512" cy="512" r="480" fill="url(#gradIcon)" filter="url(#shadow)"/>
+      <!-- Inner circle accent -->
+      <circle cx="512" cy="512" r="440" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+      <!-- Code brackets decoration -->
+      <g fill="none" stroke="#ffffff" stroke-width="12" opacity="0.8" stroke-linecap="round">
+        <path d="M 300 360 L 260 512 L 300 664"/>
+        <path d="M 724 360 L 764 512 L 724 664"/>
+      </g>
+      <!-- JS Text -->
+      <text x="512" y="590" font-size="280" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" letter-spacing="10">JS</text>
+    </svg>
+
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+
+    <script>
+        function svgToPng() {
+            const svg = document.getElementById('svgElement');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const svgString = new XMLSerializer().serializeToString(svg);
+            const img = new Image();
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+                const pngUrl = canvas.toDataURL('image/png');
+                const downloadLink = document.createElement('a');
+                downloadLink.href = pngUrl;
+                downloadLink.download = 'icon-pro.png';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            };
+            
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+        }
+        
+        // Auto-convert when page loads
+        setTimeout(svgToPng, 100);
+    </script>
+</body>
+</html>
