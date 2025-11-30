@@ -17,15 +17,14 @@ import {
 import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap } from 'lucide-react';
 import { QUIZ_DATA } from './quizData';
 
-// Farcaster SDK placeholder - will be initialized when available
-const sdk = {
-  wallet: {
-    sendTransaction: async (params: any) => {
-      console.warn('SDK not initialized. Transaction not sent:', params);
-      return 'mock-tx-hash-' + Math.random().toString(36).slice(2, 9);
-    },
-  },
-} as any;
+// Farcaster SDK import with fallback
+let sdk: any = null;
+try {
+  const farcasterSdk = require('@farcaster/miniapp-sdk');
+  sdk = farcasterSdk.sdk;
+} catch (e) {
+  console.warn('Farcaster SDK not available, using web3 provider fallback');
+}
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
@@ -130,15 +129,38 @@ export default function JSQuizApp() {
   const sendLevelTx = useCallback(async () => {
     try {
       setTxStatus(`Sending transaction for Level ${currentLevel}...`);
-      // Use the correct Farcaster Miniapp SDK method for sending transactions
-      const txHash = await sdk.wallet.sendTransaction({
-        to: "YOUR_RECIPIENT_ADDRESS", // replace with your recipient
-        value: "0.0001",
-      });
-      setTxStatus(`Transaction sent: ${txHash}`);
+      
+      // Try to use window.ethereum (MetaMask/wallet provider)
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        const accounts = await (window as any).ethereum.request({
+          method: 'eth_accounts',
+        });
+        
+        if (!accounts || accounts.length === 0) {
+          setTxStatus('No wallet connected');
+          return;
+        }
+
+        const txHash = await (window as any).ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: accounts[0],
+            to: '0x1234567890123456789012345678901234567890',
+            value: '1000000000000000', // 0.001 ETH in wei
+            data: '0x',
+          }],
+        });
+
+        setTxStatus(`Success! Tx: ${txHash}`);
+        console.log('Transaction sent:', txHash);
+      } else {
+        // Fallback: simulate transaction for demo
+        setTxStatus(`Success! Level ${currentLevel} completed - transaction simulated`);
+        console.log('Wallet not available, transaction simulated');
+      }
     } catch (err: any) {
       setTxStatus("Transaction failed: " + err.message);
-      console.error(err);
+      console.error('Transaction error:', err);
     }
   }, [currentLevel]);
 
