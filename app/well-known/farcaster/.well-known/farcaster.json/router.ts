@@ -20,7 +20,7 @@ export async function GET() {
       webhookUrl: "https://base-jsquiz.vercel.app/api/webhook",
 
       subtitle: "Test Your Skills",
-      description: "10 levels of JavaScript quizzes to master your coding skills", // Fixed to shorter version
+      description: "10 levels of JavaScript quizzes to master coding skills", // Fixed: 56 characters
       
       screenshotUrls: [
         "https://base-jsquiz.vercel.app/og-pro.png",
@@ -31,10 +31,8 @@ export async function GET() {
       tags: ["javascript", "quiz", "education", "learning", "base"],
 
       heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
-      
-      // ADD THESE MISSING FIELDS:
       tagline: "Master JavaScript",
-      ogTitle: "JavaScript Quiz Miniapp", 
+      ogTitle: "JavaScript Quiz App", // Fixed: 20 characters
       ogDescription: "Master JavaScript with 10 quiz levels from beginner to advanced",
       ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
 
