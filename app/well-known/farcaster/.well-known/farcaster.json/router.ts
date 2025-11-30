@@ -6,7 +6,7 @@ export async function GET() {
       signature: "tluJ/iupgN8BPDCk/k6DrzJyql3RJUZJULX7z3fHQY5K2/N3rveIpbXlXFtbM2xdYUyP7Shy/esKER8HftjYJxs="
     },
 
-    miniapp: {
+   frame: { 
       version: "1",
       name: "JavaScript Quiz Miniapp",
       homeUrl: "https://base-jsquiz.vercel.app",
@@ -17,6 +17,7 @@ export async function GET() {
 
       subtitle: "Test Your Skills",
 
+      // Using the descriptive text you provided
       description: "Ten levels of JavaScript quizzes designed to improve your coding skills step by step.",
       
       screenshotUrls: [
@@ -30,7 +31,8 @@ export async function GET() {
       heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       tagline: "Master JavaScript",
 
-      ogTitle: "JavaScript Quiz Miniapp",
+      // Recommended optimization
+      ogTitle: "Master JavaScript: Quiz Miniapp", 
       ogDescription: "Learn JavaScript through ten levels of skill based quizzes.",
       ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
 
