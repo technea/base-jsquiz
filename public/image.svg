@@ -1,0 +1,11 @@
+﻿<svg width='1200' height='630' xmlns='http://www.w3.org/2000/svg'>
+  <defs>
+    <linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' style='stop-color:#1f2937;stop-opacity:1' />
+      <stop offset='100%' style='stop-color:#374151;stop-opacity:1' />
+    </linearGradient>
+  </defs>
+  <rect width='1200' height='630' fill='url(#grad)'/>
+  <text x='600' y='315' font-size='80' font-weight='bold' text-anchor='middle' fill='#3b82f6' font-family='Arial'>JavaScript Quiz</font-family>
+  <text x='600' y='400' font-size='40' text-anchor='middle' fill='#e5e7eb' font-family='Arial'>Master JavaScript One Level at a Time</text>
+</svg>

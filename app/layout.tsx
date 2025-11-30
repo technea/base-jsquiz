@@ -18,14 +18,14 @@ export const metadata: Metadata = {
   other: {
     'fc:miniapp': JSON.stringify({
       version: 'next',
-      imageUrl: 'https://base-jsquiz.vercel.app/image.png',
+      imageUrl: 'https://base-jsquiz.vercel.app/og-image-new.svg',
       button: {
         title: 'Launch Quiz',
         action: {
           type: 'launch_miniapp',
           name: 'JavaScript Quiz Miniapp',
           url: 'https://base-jsquiz.vercel.app',
-          splashImageUrl: 'https://base-jsquiz.vercel.app/splash.png',
+          splashImageUrl: 'https://base-jsquiz.vercel.app/splash-new.svg',
           splashBackgroundColor: '#1f2937',
         },
       },

@@ -18,11 +18,11 @@ export async function GET() {
     frame: {
       version: "1",
       name: "JavaScript Quiz Miniapp",
-      iconUrl: "https://base-jsquiz.vercel.app/icon.png",
+      iconUrl: "https://base-jsquiz.vercel.app/icon-new.svg",
       homeUrl: "https://base-jsquiz.vercel.app",
-      imageUrl: "https://base-jsquiz.vercel.app/image.png",
+      imageUrl: "https://base-jsquiz.vercel.app/og-image-new.svg",
       buttonTitle: "Start Quiz",
-      splashImageUrl: "https://base-jsquiz.vercel.app/splash.png",
+      splashImageUrl: "https://base-jsquiz.vercel.app/splash-new.svg",
       splashBackgroundColor: "#1f2937",
       webhookUrl: "https://base-jsquiz.vercel.app/api/webhook"
     }
