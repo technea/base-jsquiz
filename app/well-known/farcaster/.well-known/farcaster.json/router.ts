@@ -40,9 +40,9 @@ export async function GET() {
         "base"
       ],
       heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
-      tagline: "Master JavaScript One Level at a Time",
+      tagline: "Master JavaScript",
       ogTitle: "JavaScript Quiz Miniapp",
-      ogDescription: "Test your JavaScript knowledge across 10 levels of increasing difficulty. Challenge yourself and unlock all levels!",
+      ogDescription: "Test your JavaScript knowledge across 10 levels.",
       ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       noindex: false
     }
