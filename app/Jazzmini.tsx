@@ -138,7 +138,9 @@ export default function JSQuizApp() {
           });
           
           if (!accounts || accounts.length === 0) {
-            setTxStatus('Wallet not connected - skipping transaction');
+            // No wallet connected - don't auto-advance
+            setTxStatus('Please connect your wallet to send transaction');
+            setAutoProgressing(false);
             return;
           }
 
@@ -158,17 +160,19 @@ export default function JSQuizApp() {
         } catch (walletErr: any) {
           // User rejected or wallet error
           console.log('Wallet error:', walletErr);
-          setTxStatus(`Wallet error: ${walletErr.message || 'User rejected'}`);
+          setTxStatus(`Wallet: ${walletErr.message || 'User rejected transaction'}`);
+          setAutoProgressing(false);
           return null;
         }
       } else {
-        // No wallet available
-        setTxStatus('No wallet detected - transaction skipped');
-        console.log('No wallet provider available');
+        // No wallet available - don't auto-advance
+        setTxStatus('No wallet detected. Connect wallet to send transaction.');
+        setAutoProgressing(false);
         return null;
       }
     } catch (err: any) {
-      setTxStatus("Transaction error: " + err.message);
+      setTxStatus("Error: " + err.message);
+      setAutoProgressing(false);
       console.error('Transaction error:', err);
       return null;
     }
@@ -210,8 +214,9 @@ export default function JSQuizApp() {
   useEffect(() => {
     if (!autoProgressing) return;
     
-    // Check if transaction was successful (contains "Success" or "tx:" or wallet not available)
-    const txSuccessful = txStatus.includes('Success') || txStatus.includes('tx:') || txStatus.includes('simulated');
+    // Only advance if we have a non-empty transaction status showing success
+    const hasTxStatus = txStatus && txStatus.length > 0;
+    const txSuccessful = hasTxStatus && (txStatus.includes('Success') || txStatus.includes('tx:'));
     
     if (txSuccessful && currentLevel < TOTAL_LEVELS) {
       const timer = setTimeout(() => {
@@ -219,7 +224,7 @@ export default function JSQuizApp() {
         setAutoProgressing(false);
       }, 3000); // 3 second delay to show success message
       return () => clearTimeout(timer);
-    } else if (txStatus.includes('failed') || txStatus.includes('Failed')) {
+    } else if (hasTxStatus && txStatus.includes('failed')) {
       // Don't auto-advance if transaction failed
       setAutoProgressing(false);
     }
