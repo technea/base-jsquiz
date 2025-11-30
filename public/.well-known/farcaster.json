@@ -8,7 +8,7 @@
   "version": "1",
   "name": "JavaScript Quiz Miniapp",
   "ogTitle": "JavaScript Quiz Miniapp",
-  "ogDescription": "10 levels of JavaScript quizzes to master your coding knowledge",
+  "ogDescription": "Master JavaScript in 10 quiz levels from beginner to advanced",
   "ogImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
   "iconUrl": "https://base-jsquiz.vercel.app/icon-pro.png",
   "homeUrl": "https://base-jsquiz.vercel.app",
@@ -18,7 +18,7 @@
   "splashBackgroundColor": "#0f172a",
   "webhookUrl": "https://base-jsquiz.vercel.app/api/webhook",
   "subtitle": "Test Your Skills",
-  "description": "10 levels of JavaScript quizzes to master your coding knowledge",
+  "description": "10 levels of JavaScript quizzes to master your coding skills",
   "screenshotUrls": [
     "https://base-jsquiz.vercel.app/og-pro.png",
     "https://base-jsquiz.vercel.app/splash-pro.png"
