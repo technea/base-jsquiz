@@ -6,7 +6,13 @@ export async function GET() {
       signature: "tluJ/iupgN8BPDCk/k6DrzJyql3RJUZJULX7z3fHQY5K2/N3rveIpbXlXFtbM2xdYUyP7Shy/esKER8HftjYJxs="
     },
 
-    frame: { 
+    // ADD THIS: Your Base account address (replace with your actual address)
+    baseBuilder: {
+      ownerAddress: "0x0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93" // ← REPLACE THIS
+    },
+
+    // CHANGE 'frame' to 'miniapp' and remove unsupported properties
+    miniapp: { 
       version: "1",
       name: "JavaScript Quiz Miniapp",
       homeUrl: "https://base-jsquiz.vercel.app",
@@ -32,9 +38,9 @@ export async function GET() {
       ogDescription: "Master JavaScript with 10 quiz levels from beginner to advanced.",
       ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       
-      // Add these missing required properties:
-      imageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
-      buttonTitle: "Start Quiz",
+      // REMOVE these - they're not supported in miniapp structure:
+      // imageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
+      // buttonTitle: "Start Quiz",
 
       noindex: false
     }
