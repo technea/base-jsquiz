@@ -16,7 +16,7 @@
     "splashBackgroundColor": "#0f172a",
     "webhookUrl": "https://base-jsquiz.vercel.app/api/webhook",
     "subtitle": "Test Your Skills",
-    "description": "Test your JavaScript skills with 10 challenging quiz levels from beginner to advanced.",
+    "description": "10 levels of JavaScript quizzes to master your coding skills",
     "screenshotUrls": [
       "https://base-jsquiz.vercel.app/og-pro.png",
       "https://base-jsquiz.vercel.app/splash-pro.png"
@@ -31,8 +31,8 @@
     ],
     "heroImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
     "tagline": "Master JavaScript",
-    "ogTitle": "Master JavaScript: Quiz Miniapp",
-    "ogDescription": "Master JavaScript with 10 quiz levels from beginner to advanced.",
+    "ogTitle": "JavaScript Quiz Miniapp",
+    "ogDescription": "Master JavaScript with 10 quiz levels from beginner to advanced",
     "ogImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
     "noindex": false
   }

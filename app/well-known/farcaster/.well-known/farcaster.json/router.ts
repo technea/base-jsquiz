@@ -6,12 +6,10 @@ export async function GET() {
       signature: "tluJ/iupgN8BPDCk/k6DrzJyql3RJUZJULX7z3fHQY5K2/N3rveIpbXlXFtbM2xdYUyP7Shy/esKER8HftjYJxs="
     },
 
-    // ADD THIS: Your Base account address (replace with your actual address)
     baseBuilder: {
-      ownerAddress: "0x0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93" // ← REPLACE THIS
+      ownerAddress: "0x0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93"
     },
 
-    // CHANGE 'frame' to 'miniapp' and remove unsupported properties
     miniapp: { 
       version: "1",
       name: "JavaScript Quiz Miniapp",
@@ -22,7 +20,7 @@ export async function GET() {
       webhookUrl: "https://base-jsquiz.vercel.app/api/webhook",
 
       subtitle: "Test Your Skills",
-      description: "Test your JavaScript skills with 10 challenging quiz levels from beginner to advanced.",
+      description: "10 levels of JavaScript quizzes to master your coding skills", // Fixed to shorter version
       
       screenshotUrls: [
         "https://base-jsquiz.vercel.app/og-pro.png",
@@ -33,14 +31,12 @@ export async function GET() {
       tags: ["javascript", "quiz", "education", "learning", "base"],
 
       heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
-      tagline: "Master JavaScript",
-      ogTitle: "Master JavaScript: Quiz Miniapp",
-      ogDescription: "Master JavaScript with 10 quiz levels from beginner to advanced.",
-      ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       
-      // REMOVE these - they're not supported in miniapp structure:
-      // imageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
-      // buttonTitle: "Start Quiz",
+      // ADD THESE MISSING FIELDS:
+      tagline: "Master JavaScript",
+      ogTitle: "JavaScript Quiz Miniapp", 
+      ogDescription: "Master JavaScript with 10 quiz levels from beginner to advanced",
+      ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
 
       noindex: false
     }
