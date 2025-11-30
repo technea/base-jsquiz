@@ -4,11 +4,9 @@
     "payload": "eyJkb21haW4iOiJiYXNlLWpzcXVpei52ZXJjZWwuYXBwIn0",
     "signature": "tluJ/iupgN8BPDCk/k6DrzJyql3RJUZJULX7z3fHQY5K2/N3rveIpbXlXFtbM2xdYUyP7Shy/esKER8HftjYJxs="
   },
-  
   "baseBuilder": {
     "ownerAddress": "0x0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93"
   },
-
   "miniapp": {
     "version": "1",
     "name": "JavaScript Quiz Miniapp",
@@ -18,7 +16,7 @@
     "splashBackgroundColor": "#0f172a",
     "webhookUrl": "https://base-jsquiz.vercel.app/api/webhook",
     "subtitle": "Test Your Skills",
-    "description": "10 levels of JavaScript quizzes to master your coding skills",
+    "description": "Test your JavaScript skills with 10 challenging quiz levels from beginner to advanced.",
     "screenshotUrls": [
       "https://base-jsquiz.vercel.app/og-pro.png",
       "https://base-jsquiz.vercel.app/splash-pro.png"
@@ -32,6 +30,10 @@
       "base"
     ],
     "heroImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
+    "tagline": "Master JavaScript",
+    "ogTitle": "Master JavaScript: Quiz Miniapp",
+    "ogDescription": "Master JavaScript with 10 quiz levels from beginner to advanced.",
+    "ogImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
     "noindex": false
   }
 }
