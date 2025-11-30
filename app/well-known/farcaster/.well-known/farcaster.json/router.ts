@@ -1,13 +1,3 @@
-function withValidProperties(
-  properties: Record<string, undefined | string | string[]>
-) {
-  return Object.fromEntries(
-    Object.entries(properties).filter(([_, value]) =>
-      Array.isArray(value) ? value.length > 0 : !!value
-    )
-  );
-}
-
 export async function GET() {
   const manifest = {
     accountAssociation: {
@@ -15,35 +5,35 @@ export async function GET() {
       payload: "eyJkb21haW4iOiJiYXNlLWpzcXVpei52ZXJjZWwuYXBwIn0",
       signature: "tluJ/iupgN8BPDCk/k6DrzJyql3RJUZJULX7z3fHQY5K2/N3rveIpbXlXFtbM2xdYUyP7Shy/esKER8HftjYJxs="
     },
-    frame: {
+
+    miniapp: {
       version: "1",
       name: "JavaScript Quiz Miniapp",
-      iconUrl: "https://base-jsquiz.vercel.app/icon-pro.png",
       homeUrl: "https://base-jsquiz.vercel.app",
-      imageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
-      buttonTitle: "Start Quiz",
+      iconUrl: "https://base-jsquiz.vercel.app/icon-pro.png",
       splashImageUrl: "https://base-jsquiz.vercel.app/splash-pro.png",
       splashBackgroundColor: "#0f172a",
       webhookUrl: "https://base-jsquiz.vercel.app/api/webhook",
+
       subtitle: "Test Your Skills",
-      description: "10 levels of JavaScript quizzes to master your coding knowledge",
+
+      description: "Ten levels of JavaScript quizzes designed to improve your coding skills step by step.",
+      
       screenshotUrls: [
         "https://base-jsquiz.vercel.app/og-pro.png",
         "https://base-jsquiz.vercel.app/splash-pro.png"
       ],
+
       primaryCategory: "education",
-      tags: [
-        "javascript",
-        "quiz",
-        "education",
-        "learning",
-        "base"
-      ],
+      tags: ["javascript", "quiz", "education", "learning", "base"],
+
       heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       tagline: "Master JavaScript",
+
       ogTitle: "JavaScript Quiz Miniapp",
-      ogDescription: "Master JavaScript in 10 levels",
+      ogDescription: "Learn JavaScript through ten levels of skill based quizzes.",
       ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
+
       noindex: false
     }
   };
