@@ -6,7 +6,8 @@
   },
   
   "baseBuilder": {
-    "ownerAddress": "0x0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93"
+    "ownerAddress": "0xYOUR_BASE_ACCOUNT_ADDRESS_HERE"
+  },
 
   "miniapp": {
     "version": "1",
