@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "JavaScript Quiz Miniapp",
-  description: "A 10-level JavaScript quiz challenge. Test your JavaScript knowledge across 10 levels of increasing difficulty.",
+  description: "Master JavaScript across 10 challenging levels. Test your coding knowledge and unlock each level by scoring 70 percent or higher.",
   other: {
     'fc:miniapp': JSON.stringify({
       version: 'next',
