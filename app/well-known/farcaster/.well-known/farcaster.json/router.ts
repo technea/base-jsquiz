@@ -9,8 +9,6 @@ function withValidProperties(
 }
 
 export async function GET() {
-  const URL = process.env.NEXT_PUBLIC_URL as string;
-
   const manifest = {
     accountAssociation: {
       header: "",
@@ -22,27 +20,23 @@ export async function GET() {
     },
     miniapp: {
       version: "1",
-      name: "Example Mini App",
-      homeUrl: "https://ex.co",
-      iconUrl: "https://ex.co/i.png",
-      splashImageUrl: "https://ex.co/l.png",
-      splashBackgroundColor: "#000000",
-      webhookUrl: "https://ex.co/api/webhook",
-      subtitle: "Fast, fun, social",
-      description: "A fast, fun way to challenge friends in real time.",
-      screenshotUrls: [
-        "https://ex.co/s1.png",
-        "https://ex.co/s2.png",
-        "https://ex.co/s3.png"
-      ],
-      primaryCategory: "social",
-      tags: ["example", "miniapp", "baseapp"],
-      heroImageUrl: "https://ex.co/og.png",
-      tagline: "Play instantly",
-      ogTitle: "Example Mini App",
-      ogDescription: "Challenge friends in real time.",
-      ogImageUrl: "https://ex.co/og.png",
-      noindex: true
+      name: "JavaScript Quiz Miniapp",
+      homeUrl: "https://base-jsquiz.vercel.app",
+      iconUrl: "https://base-jsquiz.vercel.app/icon.png",
+      splashImageUrl: "https://base-jsquiz.vercel.app/splash.png",
+      splashBackgroundColor: "#1f2937",
+      webhookUrl: "",
+      subtitle: "Test Your JavaScript Knowledge",
+      description: "A 10-level JavaScript quiz challenge. Pass each level with 7/10 correct answers to unlock the next level.",
+      screenshotUrls: [],
+      primaryCategory: "education",
+      tags: ["javascript", "quiz", "education", "learning"],
+      heroImageUrl: "https://base-jsquiz.vercel.app/hero.png",
+      tagline: "Master JavaScript One Level at a Time",
+      ogTitle: "JavaScript Quiz Miniapp",
+      ogDescription: "Test your JavaScript knowledge across 10 levels of increasing difficulty.",
+      ogImageUrl: "https://base-jsquiz.vercel.app/og.png",
+      noindex: false
     }
   };
 
