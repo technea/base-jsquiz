@@ -18,18 +18,18 @@ export async function GET() {
     frame: {
       version: "1",
       name: "JavaScript Quiz Miniapp",
-      iconUrl: "https://base-jsquiz.vercel.app/icon-new.svg",
+      iconUrl: "https://base-jsquiz.vercel.app/icon-pro.svg",
       homeUrl: "https://base-jsquiz.vercel.app",
-      imageUrl: "https://base-jsquiz.vercel.app/og-image-new.svg",
+      imageUrl: "https://base-jsquiz.vercel.app/og-pro.svg",
       buttonTitle: "Start Quiz",
-      splashImageUrl: "https://base-jsquiz.vercel.app/splash-new.svg",
-      splashBackgroundColor: "#1f2937",
+      splashImageUrl: "https://base-jsquiz.vercel.app/splash-pro.svg",
+      splashBackgroundColor: "#0f172a",
       webhookUrl: "https://base-jsquiz.vercel.app/api/webhook",
       subtitle: "Test Your JavaScript Knowledge",
       description: "A 10-level JavaScript quiz challenge. Pass each level with 7/10 correct answers to unlock the next level.",
       screenshotUrls: [
-        "https://base-jsquiz.vercel.app/og-image-new.svg",
-        "https://base-jsquiz.vercel.app/splash-new.svg"
+        "https://base-jsquiz.vercel.app/og-pro.svg",
+        "https://base-jsquiz.vercel.app/splash-pro.svg"
       ],
       primaryCategory: "education",
       tags: [
@@ -39,11 +39,11 @@ export async function GET() {
         "learning",
         "base"
       ],
-      heroImageUrl: "https://base-jsquiz.vercel.app/og-image-new.svg",
+      heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.svg",
       tagline: "Master JavaScript One Level at a Time",
       ogTitle: "JavaScript Quiz Miniapp",
       ogDescription: "Test your JavaScript knowledge across 10 levels of increasing difficulty. Challenge yourself and unlock all levels!",
-      ogImageUrl: "https://base-jsquiz.vercel.app/og-image-new.svg",
+      ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.svg",
       noindex: false
     }
   };

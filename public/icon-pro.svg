@@ -1,0 +1,24 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0f172a"/>
+  <!-- Gradient circle background -->
+  <circle cx="256" cy="256" r="240" fill="url(#gradIcon)" filter="url(#shadow)"/>
+  <!-- Inner circle accent -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+  <!-- Code brackets decoration -->
+  <g fill="none" stroke="#ffffff" stroke-width="6" opacity="0.8" stroke-linecap="round">
+    <path d="M 150 180 L 130 256 L 150 332"/>
+    <path d="M 362 180 L 382 256 L 362 332"/>
+  </g>
+  <!-- JS Text -->
+  <text x="256" y="295" font-size="140" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" letter-spacing="5">JS</text>
+</svg>

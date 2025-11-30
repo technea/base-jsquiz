@@ -1,0 +1,47 @@
+<svg width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradSplash" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#gradSplash)"/>
+  <!-- Animated circles -->
+  <circle cx="200" cy="400" r="200" fill="url(#accentGrad)" opacity="0.15" filter="url(#glow)"/>
+  <circle cx="900" cy="600" r="150" fill="url(#accentGrad)" opacity="0.1"/>
+  <circle cx="150" cy="1400" r="180" fill="url(#accentGrad)" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="950" cy="1600" r="140" fill="url(#accentGrad)" opacity="0.1"/>
+  
+  <!-- Top accent line -->
+  <line x1="100" y1="600" x2="980" y2="600" stroke="#3b82f6" stroke-width="3" opacity="0.4"/>
+  
+  <!-- Main content -->
+  <text x="540" y="950" font-size="140" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">JavaScript</text>
+  <text x="540" y="1100" font-size="90" font-weight="700" text-anchor="middle" fill="#3b82f6" font-family="Arial, sans-serif">Quiz</text>
+  
+  <text x="540" y="1250" font-size="48" text-anchor="middle" fill="#cbd5e1" font-family="Arial, sans-serif">Master One Level at a Time</text>
+  
+  <!-- Bottom accent line -->
+  <line x1="100" y1="1350" x2="980" y2="1350" stroke="#3b82f6" stroke-width="2" opacity="0.3"/>
+  
+  <text x="540" y="1500" font-size="38" text-anchor="middle" fill="#94a3b8" font-family="Arial, sans-serif">10 Levels • 100 Questions</text>
+  
+  <!-- Decorative code brackets -->
+  <g fill="none" stroke="#3b82f6" stroke-width="4" opacity="0.4">
+    <path d="M 120 1600 L 100 1680 L 120 1760"/>
+    <path d="M 1000 1600 L 1020 1680 L 1000 1760"/>
+  </g>
+</svg>

@@ -1,0 +1,51 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradOG" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentOG" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glowOG">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#gradOG)"/>
+  
+  <!-- Accent circles -->
+  <circle cx="150" cy="150" r="120" fill="url(#accentOG)" opacity="0.15" filter="url(#glowOG)"/>
+  <circle cx="1100" cy="500" r="140" fill="url(#accentOG)" opacity="0.12"/>
+  
+  <!-- Top left accent -->
+  <line x1="50" y1="50" x2="250" y2="50" stroke="#3b82f6" stroke-width="3" opacity="0.5"/>
+  <line x1="50" y1="50" x2="50" y2="150" stroke="#3b82f6" stroke-width="3" opacity="0.5"/>
+  
+  <!-- Bottom right accent -->
+  <line x1="1150" y1="580" x2="950" y2="580" stroke="#3b82f6" stroke-width="3" opacity="0.5"/>
+  <line x1="1150" y1="580" x2="1150" y2="480" stroke="#3b82f6" stroke-width="3" opacity="0.5"/>
+  
+  <!-- Center divider -->
+  <line x1="50" y1="315" x2="1150" y2="315" stroke="#3b82f6" stroke-width="2" opacity="0.3"/>
+  
+  <!-- Main title -->
+  <text x="600" y="220" font-size="72" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">JavaScript Quiz</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="310" font-size="32" text-anchor="middle" fill="#3b82f6" font-family="Arial, sans-serif" font-weight="600">Master JavaScript One Level at a Time</text>
+  
+  <!-- Description -->
+  <text x="600" y="400" font-size="22" text-anchor="middle" fill="#cbd5e1" font-family="Arial, sans-serif">10 Levels • 100 Questions • Real Challenges</text>
+  
+  <!-- Code brackets decoration -->
+  <g fill="none" stroke="#3b82f6" stroke-width="3" opacity="0.5" stroke-linecap="round">
+    <path d="M 80 200 L 50 315 L 80 430"/>
+    <path d="M 1120 200 L 1150 315 L 1120 430"/>
+  </g>
+</svg>
