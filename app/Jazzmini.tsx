@@ -28,12 +28,12 @@ const sdk = {
 } as any;
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "your_api_key_here",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "your_project.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "your_project_id",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "your_project.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "your_messaging_sender_id",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "your_app_id",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
 };
 
 const appId = 'js-level-quiz-default';
@@ -74,17 +74,29 @@ export default function JSQuizApp() {
 
   // --- Initialize Firebase & Auth ---
   useEffect(() => {
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    setDb(getFirestore(app));
-    const auth = getAuth(app);
+    try {
+      if (!firebaseConfig.projectId) {
+        console.warn('Firebase config not set. Using local-only mode.');
+        setUserId(`local-${crypto.randomUUID()}`);
+        setAuthReady(true);
+        return;
+      }
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      setDb(getFirestore(app));
+      const auth = getAuth(app);
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) setUserId(user.uid);
-      else signInAnonymously(auth).catch(() => setUserId(`local-${crypto.randomUUID()}`));
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) setUserId(user.uid);
+        else signInAnonymously(auth).catch(() => setUserId(`local-${crypto.randomUUID()}`));
+        setAuthReady(true);
+      });
+
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+      setUserId(`local-${crypto.randomUUID()}`);
       setAuthReady(true);
-    });
-
-    return () => unsubscribe();
+    }
   }, []);
 
   // --- Global Stats Listener ---
