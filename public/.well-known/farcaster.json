@@ -7,7 +7,6 @@
   
   "baseBuilder": {
     "ownerAddress": "0x0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93"
-  },
 
   "miniapp": {
     "version": "1",
@@ -32,6 +31,10 @@
       "base"
     ],
     "heroImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
+    "tagline": "Master JavaScript",
+    "ogTitle": "JavaScript Quiz Miniapp",
+    "ogDescription": "Master JavaScript with 10 quiz levels from beginner to advanced",
+    "ogImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
     "noindex": false
   }
 }
