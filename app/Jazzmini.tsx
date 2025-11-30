@@ -132,35 +132,45 @@ export default function JSQuizApp() {
       
       // Try to use window.ethereum (MetaMask/wallet provider)
       if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_accounts',
-        });
-        
-        if (!accounts || accounts.length === 0) {
-          setTxStatus('No wallet connected');
-          return;
+        try {
+          const accounts = await (window as any).ethereum.request({
+            method: 'eth_accounts',
+          });
+          
+          if (!accounts || accounts.length === 0) {
+            setTxStatus('Wallet not connected - skipping transaction');
+            return;
+          }
+
+          const txHash = await (window as any).ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: accounts[0],
+              to: '0x1234567890123456789012345678901234567890',
+              value: '1000000000000000', // 0.001 ETH in wei
+              data: '0x',
+            }],
+          });
+
+          setTxStatus(`Success! tx: ${txHash}`);
+          console.log('Transaction sent:', txHash);
+          return txHash;
+        } catch (walletErr: any) {
+          // User rejected or wallet error
+          console.log('Wallet error:', walletErr);
+          setTxStatus(`Wallet error: ${walletErr.message || 'User rejected'}`);
+          return null;
         }
-
-        const txHash = await (window as any).ethereum.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: accounts[0],
-            to: '0x1234567890123456789012345678901234567890',
-            value: '1000000000000000', // 0.001 ETH in wei
-            data: '0x',
-          }],
-        });
-
-        setTxStatus(`Success! Tx: ${txHash}`);
-        console.log('Transaction sent:', txHash);
       } else {
-        // Fallback: simulate transaction for demo
-        setTxStatus(`Success! Level ${currentLevel} completed - transaction simulated`);
-        console.log('Wallet not available, transaction simulated');
+        // No wallet available
+        setTxStatus('No wallet detected - transaction skipped');
+        console.log('No wallet provider available');
+        return null;
       }
     } catch (err: any) {
-      setTxStatus("Transaction failed: " + err.message);
+      setTxStatus("Transaction error: " + err.message);
       console.error('Transaction error:', err);
+      return null;
     }
   }, [currentLevel]);
 
@@ -177,12 +187,13 @@ export default function JSQuizApp() {
     if (isLastQuestion) {
       const passed = score >= PASS_THRESHOLD;
       setLevelPassed(passed);
+      setQuizState('result');
+      
       // --- Send transaction if level passed ---
       if (passed) {
         setAutoProgressing(true);
-        await sendLevelTx();
+        await sendLevelTx(); // Wait for transaction to complete
       }
-      setQuizState('result');
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
     }
@@ -197,12 +208,20 @@ export default function JSQuizApp() {
 
   // Auto-advance to next level after transaction completes
   useEffect(() => {
-    if (autoProgressing && txStatus.includes('Success') && currentLevel < TOTAL_LEVELS) {
+    if (!autoProgressing) return;
+    
+    // Check if transaction was successful (contains "Success" or "tx:" or wallet not available)
+    const txSuccessful = txStatus.includes('Success') || txStatus.includes('tx:') || txStatus.includes('simulated');
+    
+    if (txSuccessful && currentLevel < TOTAL_LEVELS) {
       const timer = setTimeout(() => {
         startQuiz(currentLevel + 1);
         setAutoProgressing(false);
-      }, 2000); // 2 second delay to show success message
+      }, 3000); // 3 second delay to show success message
       return () => clearTimeout(timer);
+    } else if (txStatus.includes('failed') || txStatus.includes('Failed')) {
+      // Don't auto-advance if transaction failed
+      setAutoProgressing(false);
     }
   }, [autoProgressing, txStatus, currentLevel, startQuiz]);
 
