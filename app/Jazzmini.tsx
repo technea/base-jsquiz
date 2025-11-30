@@ -133,24 +133,28 @@ export default function JSQuizApp() {
       // Try to use window.ethereum (MetaMask/wallet provider)
       if (typeof window !== 'undefined' && (window as any).ethereum) {
         try {
+          // Request wallet connection (this shows the wallet popup)
           const accounts = await (window as any).ethereum.request({
-            method: 'eth_accounts',
+            method: 'eth_requestAccounts',
           });
           
           if (!accounts || accounts.length === 0) {
-            // No wallet connected - don't auto-advance
-            setTxStatus('Please connect your wallet to send transaction');
+            setTxStatus('No wallet account available');
             setAutoProgressing(false);
             return;
           }
 
+          setTxStatus(`Wallet connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`);
+
+          // Now send the transaction
           const txHash = await (window as any).ethereum.request({
             method: 'eth_sendTransaction',
             params: [{
               from: accounts[0],
-              to: '0x1234567890123456789012345678901234567890',
-              value: '1000000000000000', // 0.001 ETH in wei
+              to: '0x0000000000000000000000000000000000000000',
+              value: '0',
               data: '0x',
+              gas: '21000',
             }],
           });
 
@@ -160,14 +164,19 @@ export default function JSQuizApp() {
         } catch (walletErr: any) {
           // User rejected or wallet error
           console.log('Wallet error:', walletErr);
-          setTxStatus(`Wallet: ${walletErr.message || 'User rejected transaction'}`);
+          if (walletErr.code === 4001) {
+            setTxStatus('Transaction rejected by user');
+          } else {
+            setTxStatus(`Error: ${walletErr.message || 'Unknown error'}`);
+          }
           setAutoProgressing(false);
           return null;
         }
       } else {
-        // No wallet available - don't auto-advance
-        setTxStatus('No wallet detected. Connect wallet to send transaction.');
+        // No wallet available
+        setTxStatus('No Web3 wallet detected. Install MetaMask or connect wallet.');
         setAutoProgressing(false);
+        console.log('No wallet provider available');
         return null;
       }
     } catch (err: any) {
