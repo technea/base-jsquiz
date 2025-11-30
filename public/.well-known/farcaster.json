@@ -5,31 +5,34 @@
     "signature": "tluJ/iupgN8BPDCk/k6DrzJyql3RJUZJULX7z3fHQY5K2/N3rveIpbXlXFtbM2xdYUyP7Shy/esKER8HftjYJxs="
   },
   "frame": {
-    "version": "1",
-    "name": "JavaScript Quiz Miniapp",
-    "iconUrl": "https://base-jsquiz.vercel.app/icon-pro.png",
-    "homeUrl": "https://base-jsquiz.vercel.app",
-    "imageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
-    "buttonTitle": "Start Quiz",
-    "splashImageUrl": "https://base-jsquiz.vercel.app/splash-pro.png",
-    "splashBackgroundColor": "#0f172a",
-    "webhookUrl": "https://base-jsquiz.vercel.app/api/webhook",
-    "subtitle": "Test Your Skills",
-    "description": "10 levels of JavaScript quizzes to master your coding knowledge",
-    "screenshotUrls": [
-      "https://base-jsquiz.vercel.app/og-pro.png",
-      "https://base-jsquiz.vercel.app/splash-pro.png"
-    ],
-    "primaryCategory": "education",
-    "tags": [
-      "javascript",
-      "quiz",
-      "education",
-      "learning",
-      "base"
-    ],
-    "heroImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
-    "tagline": "Master JavaScript",
-     "noindex": false
-  }
+  "version": "1",
+  "name": "JavaScript Quiz Miniapp",
+  "ogTitle": "JavaScript Quiz Miniapp",
+  "ogDescription": "10 levels of JavaScript quizzes to master your coding knowledge",
+  "ogImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
+  "iconUrl": "https://base-jsquiz.vercel.app/icon-pro.png",
+  "homeUrl": "https://base-jsquiz.vercel.app",
+  "imageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
+  "buttonTitle": "Start Quiz",
+  "splashImageUrl": "https://base-jsquiz.vercel.app/splash-pro.png",
+  "splashBackgroundColor": "#0f172a",
+  "webhookUrl": "https://base-jsquiz.vercel.app/api/webhook",
+  "subtitle": "Test Your Skills",
+  "description": "10 levels of JavaScript quizzes to master your coding knowledge",
+  "screenshotUrls": [
+    "https://base-jsquiz.vercel.app/og-pro.png",
+    "https://base-jsquiz.vercel.app/splash-pro.png"
+  ],
+  "primaryCategory": "education",
+  "tags": [
+    "javascript",
+    "quiz",
+    "education",
+    "learning",
+    "base"
+  ],
+  "heroImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
+  "tagline": "Master JavaScript",
+  "noindex": false
+}
 }
