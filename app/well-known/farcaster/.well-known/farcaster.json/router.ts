@@ -1,12 +1,14 @@
 export async function GET() {
   const manifest = {
+    // 1. You must include the accountAssociation block
     accountAssociation: {
       header: "eyJmaWQiOjE0NDk4NjAsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhDMUM1NEZmQWMwNzM5OGRlNjExQjE5QUU3MWM3NjAxQzgyYzI5NWFGIn0",
       payload: "eyJkb21haW4iOiJiYXNlLWpzcXVpei52ZXJjZWwuYXBwIn0",
       signature: "tluJ/iupgN8BPDCk/k6DrzJyql3RJUZJULX7z3fHQY5K2/N3rveIpbXlXFtbM2xdYUyP7Shy/esKER8HftjYJxs="
     },
 
-   frame: { 
+    // 2. The corrected 'frame' object goes here
+    frame: { 
       version: "1",
       name: "JavaScript Quiz Miniapp",
       homeUrl: "https://base-jsquiz.vercel.app",
@@ -16,8 +18,6 @@ export async function GET() {
       webhookUrl: "https://base-jsquiz.vercel.app/api/webhook",
 
       subtitle: "Test Your Skills",
-
-      // Using the descriptive text you provided
       description: "Ten levels of JavaScript quizzes designed to improve your coding skills step by step.",
       
       screenshotUrls: [
@@ -30,15 +30,13 @@ export async function GET() {
 
       heroImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
       tagline: "Master JavaScript",
-
-      // Recommended optimization
-      ogTitle: "Master JavaScript: Quiz Miniapp", 
+      ogTitle: "Master JavaScript: Quiz Miniapp", // Optimized
       ogDescription: "Learn JavaScript through ten levels of skill based quizzes.",
       ogImageUrl: "https://base-jsquiz.vercel.app/og-pro.png",
 
       noindex: false
     }
-  };
+  }; // Closes the manifest object
 
-  return Response.json(manifest);
-}
+  return Response.json(manifest); // Returns the manifest
+} //
