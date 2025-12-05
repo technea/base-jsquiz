@@ -12,12 +12,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+ export const metadata: Metadata = {
   title: "Master JavaScript in 10 levels of quizzes",
   description: "10 levels of JavaScript quizzes to master your coding skills.",
   other: {
     'fc:miniapp': JSON.stringify({
-      version: 'next',
+      version: '1', // ❌ CHANGE THIS LINE
       imageUrl: 'https://base-jsquiz.vercel.app/og-pro.png',
       button: {
         title: 'Launch Quiz',
@@ -32,7 +32,6 @@ export const metadata: Metadata = {
     }),
   },
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
