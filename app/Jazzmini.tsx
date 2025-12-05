@@ -159,7 +159,7 @@ export default function JSQuizApp() {
   }, []);
 
   // ✅ OPTIMIZED: Send Transaction with better user experience
-  const sendLevelTx = useCallback(async () => {
+  const userCompleteLevel= useCallback(async () => {
     try {
       setTxStatus(`📤 Sending transaction for Level ${currentLevel}...`);
       setShowMetaMaskHelp(true);
@@ -258,12 +258,12 @@ export default function JSQuizApp() {
       
       if (passed) {
         setAutoProgressing(true);
-        await sendLevelTx();
+        await userCompleteLevel();
       }
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
     }
-  }, [isLastQuestion, score, sendLevelTx, PASS_THRESHOLD]);
+  }, [isLastQuestion, score,PASS_THRESHOLD]);
 
   const startQuiz = useCallback((level: number) => {
     setCurrentLevel(level);
@@ -403,7 +403,7 @@ export default function JSQuizApp() {
               {!txStatus || txStatus.includes('❌') || txStatus.includes('No wallet') || txStatus.includes('rejected') ? (
                 <button 
                   type="button" 
-                  onClick={() => sendLevelTx()}
+                  onClick={() => userCompleteLevel()}
                   className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold flex items-center justify-center gap-2"
                 >
                   <Zap className="w-5 h-5" />
