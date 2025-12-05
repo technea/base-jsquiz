@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
@@ -75,6 +75,9 @@ export default function JSQuizApp() {
   const [txStatus, setTxStatus] = useState("");
   const [autoProgressing, setAutoProgressing] = useState(false);
   const [showMetaMaskHelp, setShowMetaMaskHelp] = useState(false);
+  
+  // ✅ ADDED: Track if we've already tried to add contract to MetaMask
+  const contractAddedRef = useRef(false);
 
   // --- Initialize Firebase & Auth ---
   useEffect(() => {
@@ -130,8 +133,10 @@ export default function JSQuizApp() {
     setShowExplanation(false);
   }, [currentLevel]);
 
-  // ✅ FIXED: Helper function to add contract to MetaMask
+  // ✅ FIXED: Helper function to add contract to MetaMask (ONCE per session)
   const addContractToMetaMask = useCallback(async () => {
+    if (contractAddedRef.current) return; // Already tried this session
+    
     try {
       await (window as any).ethereum.request({
         method: 'wallet_watchAsset',
@@ -146,15 +151,17 @@ export default function JSQuizApp() {
         },
       });
       console.log('Contract added to MetaMask');
+      contractAddedRef.current = true;
     } catch (error) {
-      console.log('Failed to add contract to MetaMask:', error);
+      console.log('Failed to add contract to MetaMask (normal for custom contracts):', error);
+      contractAddedRef.current = true; // Mark as tried even if failed
     }
   }, []);
 
-  // ✅ FIXED: Send Transaction with better MetaMask support
+  // ✅ OPTIMIZED: Send Transaction with better user experience
   const sendLevelTx = useCallback(async () => {
     try {
-      setTxStatus(`Sending transaction for Level ${currentLevel}...`);
+      setTxStatus(`📤 Sending transaction for Level ${currentLevel}...`);
       setShowMetaMaskHelp(true);
       
       if (typeof window !== 'undefined' && (window as any).ethereum) {
@@ -165,23 +172,25 @@ export default function JSQuizApp() {
           });
           
           if (!accounts || accounts.length === 0) {
-            setTxStatus('No wallet account available');
+            setTxStatus('❌ No wallet account available');
             setAutoProgressing(false);
             return;
           }
 
-          setTxStatus(`Wallet connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`);
+          setTxStatus(`✅ Wallet connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`);
 
-          // ✅ ENHANCED: First try to add contract to MetaMask for better recognition
-          await addContractToMetaMask();
+          // ✅ OPTIMIZED: Only try to add contract once per session
+          if (!contractAddedRef.current) {
+            await addContractToMetaMask();
+          }
 
-          // Encode function call manually (works better for MetaMask recognition)
+          // Encode function call
           const encodeLevelCompletion = (level: number): string => {
             // Function signature for completeLevel(uint256) = 0x3ccfd60b
             return '0x3ccfd60b' + level.toString(16).padStart(64, '0');
           };
 
-          // ✅ ENHANCED: Add contract metadata to help MetaMask
+          // Send transaction
           const txHash = await (window as any).ethereum.request({
             method: 'eth_sendTransaction',
             params: [{
@@ -189,19 +198,18 @@ export default function JSQuizApp() {
               to: QUIZ_CONTRACT_ADDRESS,
               value: '0',
               data: encodeLevelCompletion(currentLevel),
-              gas: '200000', // Increased gas for better reliability
-              // Add explicit chain ID for Base Mainnet
-              chainId: '0x2105', // 8453 in hex
+              gas: '150000', // Optimal gas for Base Mainnet
+              chainId: '0x2105', // Base Mainnet
             }],
           });
 
-          setTxStatus(`✅ Success! Transaction sent: ${txHash.slice(0, 10)}...`);
+          setTxStatus(`🚀 Transaction sent! Hash: ${txHash.slice(0, 10)}...`);
           console.log('Transaction sent to contract:', txHash);
           
-          // Monitor transaction
+          // Show BaseScan link
           setTimeout(() => {
-            setTxStatus(prev => prev + ' (Check BaseScan for confirmation)');
-          }, 2000);
+            setTxStatus(prev => `${prev}\n🔍 View on BaseScan: https://basescan.org/tx/${txHash}`);
+          }, 1000);
           
           return txHash;
 
@@ -210,9 +218,11 @@ export default function JSQuizApp() {
           if (walletErr.code === 4001) {
             setTxStatus('❌ Transaction rejected by user');
           } else if (walletErr.message?.includes('insufficient funds')) {
-            setTxStatus('❌ Insufficient funds for gas');
+            setTxStatus('❌ Insufficient ETH for gas fees');
+          } else if (walletErr.message?.includes('user rejected')) {
+            setTxStatus('❌ User rejected the transaction');
           } else {
-            setTxStatus(`⚠️ Error: ${walletErr.message?.slice(0, 80) || 'Unknown error'}`);
+            setTxStatus(`⚠️ ${walletErr.message?.slice(0, 60) || 'Transaction failed'}`);
           }
           setAutoProgressing(false);
           return null;
@@ -224,7 +234,7 @@ export default function JSQuizApp() {
         return null;
       }
     } catch (err: any) {
-      setTxStatus("❌ Error: " + (err.message?.slice(0, 80) || 'Unknown'));
+      setTxStatus("❌ Error: " + (err.message?.slice(0, 60) || 'Transaction failed'));
       setAutoProgressing(false);
       console.error('Transaction error:', err);
       return null;
@@ -268,16 +278,16 @@ export default function JSQuizApp() {
     if (!autoProgressing) return;
     
     const hasTxStatus = txStatus && txStatus.length > 0;
-    const txSuccessful = hasTxStatus && (txStatus.includes('✅') || txStatus.includes('Success') || txStatus.includes('Transaction'));
+    const txSuccessful = hasTxStatus && (txStatus.includes('🚀') || txStatus.includes('Transaction sent') || txStatus.includes('BaseScan'));
     
     if (txSuccessful && currentLevel < TOTAL_LEVELS) {
       const timer = setTimeout(() => {
         startQuiz(currentLevel + 1);
         setAutoProgressing(false);
         setShowMetaMaskHelp(false);
-      }, 4000);
+      }, 5000); // Give user time to see the success message
       return () => clearTimeout(timer);
-    } else if (hasTxStatus && (txStatus.includes('❌') || txStatus.includes('Error') || txStatus.includes('rejected'))) {
+    } else if (hasTxStatus && txStatus.includes('❌')) {
       setAutoProgressing(false);
     }
   }, [autoProgressing, txStatus, currentLevel, startQuiz]);
@@ -371,13 +381,13 @@ export default function JSQuizApp() {
                 <div className="p-4 bg-yellow-900/30 rounded-lg border border-yellow-500">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertCircle className="w-5 h-5 text-yellow-400" />
-                    <p className="font-bold text-yellow-400">MetaMask Notice:</p>
+                    <p className="font-bold text-yellow-400">ℹ️ MetaMask Notice:</p>
                   </div>
                   <p className="text-sm text-yellow-200 text-left">
-                    • MetaMask may show "Null: 0x0..." - this is normal<br/>
-                    • Your transaction IS going to your JS Quiz contract<br/>
-                    • Click "Confirm" to proceed - it's safe<br/>
-                    • Check <a href={`https://basescan.org/address/${QUIZ_CONTRACT_ADDRESS}`} target="_blank" className="underline">BaseScan</a> for verification
+                    • MetaMask may show "Null: 0x0..." - this is normal for custom contracts<br/>
+                    • Your transaction IS going to: <code className="text-xs">{QUIZ_CONTRACT_ADDRESS.slice(0, 10)}...</code><br/>
+                    • Click "Confirm" to proceed - the transaction is safe<br/>
+                    • You can verify on <a href={`https://basescan.org/address/${QUIZ_CONTRACT_ADDRESS}`} target="_blank" className="underline font-medium">BaseScan</a>
                   </p>
                 </div>
               )}
@@ -385,12 +395,12 @@ export default function JSQuizApp() {
               {/* Transaction Status */}
               {txStatus && (
                 <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-500">
-                  <p className="text-yellow-300 font-semibold">{txStatus}</p>
+                  <p className="text-yellow-300 font-semibold whitespace-pre-line">{txStatus}</p>
                 </div>
               )}
               
               {/* Send Transaction Button */}
-              {!txStatus || txStatus.includes('detected') || txStatus.includes('❌') || txStatus.includes('Error') || txStatus.includes('rejected') ? (
+              {!txStatus || txStatus.includes('❌') || txStatus.includes('No wallet') || txStatus.includes('rejected') ? (
                 <button 
                   type="button" 
                   onClick={() => sendLevelTx()}
@@ -402,7 +412,7 @@ export default function JSQuizApp() {
               ) : null}
               
               {/* Next Level Button */}
-              {currentLevel < TOTAL_LEVELS && txStatus && txStatus.includes('✅') && (
+              {currentLevel < TOTAL_LEVELS && txStatus && (txStatus.includes('🚀') || txStatus.includes('BaseScan')) && (
                 <button 
                   type="button" 
                   onClick={() => startQuiz(currentLevel + 1)} 
