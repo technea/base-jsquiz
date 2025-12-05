@@ -22,13 +22,16 @@
     "wagmi": "^3.0.2"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-verify": "^3.0.8",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "type": "module"
 }
