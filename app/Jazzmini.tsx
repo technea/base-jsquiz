@@ -14,7 +14,7 @@ import {
   onSnapshot,
   Firestore
 } from 'firebase/firestore';
-import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet, Sun, Moon } from 'lucide-react';
 import { QUIZ_DATA } from './quizData';
 
 // Type definitions for Ethereum provider
@@ -142,6 +142,7 @@ export default function JSQuizApp() {
   const [userId, setUserId] = useState<string | null>(null);
   const [globalStats, setGlobalStats] = useState<GlobalStats>({ maxScore: 0, highestLevel: 1 });
   const [authReady, setAuthReady] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const [currentLevel, setCurrentLevel] = useState(1);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -521,10 +522,39 @@ export default function JSQuizApp() {
 
   if (!authReady) return <div className="text-white text-center pt-16 font-semibold">Authenticating...</div>;
 
+  const bgClass = isDarkMode 
+    ? 'bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+    : 'bg-linear-to-br from-gray-50 via-gray-100 to-gray-50 text-gray-900';
+  
+  const cardClass = isDarkMode
+    ? 'bg-gray-700 border border-gray-600'
+    : 'bg-white border border-gray-200';
+  
+  const textSecondaryClass = isDarkMode ? 'text-gray-300' : 'text-gray-600';
+  const textTertiaryClass = isDarkMode ? 'text-gray-400' : 'text-gray-500';
+  const inputClass = isDarkMode
+    ? 'bg-gray-800 border border-gray-600 text-white'
+    : 'bg-gray-50 border border-gray-300 text-gray-900';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 sm:p-6">
+    <div className={`min-h-screen ${bgClass} p-4 sm:p-6`}>
       <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-3xl sm:text-4xl font-black text-center text-blue-400 mb-8 border-b border-gray-700 pb-4">JS Quiz Miniapp</h1>
+        {/* Header with Theme Toggle */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl sm:text-4xl font-black text-center flex-1 text-blue-400 border-b border-gray-700 pb-4">JS Quiz Miniapp</h1>
+          <button
+            type="button"
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className={`p-2 rounded-lg ml-4 transition-colors ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+            }`}
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        </div>
 
         {quizState === 'start' && (
           <div className="text-center space-y-6">
@@ -533,41 +563,41 @@ export default function JSQuizApp() {
             <p className="text-base sm:text-lg text-gray-300">Score {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to unlock the next level.</p>
 
             {/* ✅ NEW: Wallet Connection Section */}
-            <div className="bg-gray-700 rounded-lg p-4 space-y-3 border border-gray-600">
+            <div className={`rounded-lg p-4 space-y-3 border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}>
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-yellow-400" />
-                <h3 className="font-semibold text-lg">Connect Your Wallet</h3>
+                <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Connect Your Wallet</h3>
               </div>
               
               {connectedAddress ? (
-                <div className="bg-green-900/30 border border-green-500 rounded p-3">
-                  <p className="text-green-200 font-semibold">✅ Connected</p>
-                  <p className="text-sm text-green-300">{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
+                <div className={`border rounded p-3 ${isDarkMode ? 'bg-green-900/30 border-green-500' : 'bg-green-50 border-green-300'}`}>
+                  <p className={`font-semibold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>✅ Connected</p>
+                  <p className={`text-sm ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-gray-300">
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {availableWallets.length > 0 
                       ? `Detected: ${availableWallets.join(', ')}` 
                       : 'No Web3 wallet detected'}
                   </p>
                   
                   {walletError && (
-                    <div className="bg-red-900/30 border border-red-500 rounded p-2">
-                      <p className="text-red-200 text-sm">{walletError}</p>
+                    <div className={`border rounded p-2 ${isDarkMode ? 'bg-red-900/30 border-red-500' : 'bg-red-50 border-red-300'}`}>
+                      <p className={`text-sm ${isDarkMode ? 'text-red-200' : 'text-red-700'}`}>{walletError}</p>
                     </div>
                   )}
                   
                   <button
                     type="button"
                     onClick={connectWallet}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                    className="w-full py-3 px-4 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all"
                   >
                     <Wallet className="w-5 h-5" />
                     Connect Wallet
                   </button>
                   
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mt-2`}>
                     Supports: MetaMask, Coinbase Wallet, Base App, and Farcaster
                   </p>
                 </>
@@ -604,14 +634,14 @@ export default function JSQuizApp() {
 
       {quizState === 'in_progress' && currentQuestion && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-sm sm:text-xl font-semibold border-b border-gray-700 pb-3">
+          <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-sm sm:text-xl font-semibold border-b pb-3 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
             <span className="text-blue-400">Level {currentLevel} of {TOTAL_LEVELS}</span>
-            <span className="text-white">Q {currentQuestionIndex + 1} of {QUESTIONS_PER_LEVEL}</span>
+            <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Q {currentQuestionIndex + 1} of {QUESTIONS_PER_LEVEL}</span>
             <span className="text-green-400">Score: {score}</span>
           </div>
 
-          <div className="p-4 sm:p-5 bg-gray-700 rounded-lg border-l-4 border-blue-500 shadow-xl">
-            <p className="text-lg sm:text-2xl font-medium text-white">{currentQuestion.question}</p>
+          <div className={`p-4 sm:p-5 rounded-lg border-l-4 border-blue-500 shadow-xl ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
+            <p className={`text-lg sm:text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{currentQuestion.question}</p>
           </div>
 
           <div className="space-y-3">
@@ -619,16 +649,24 @@ export default function JSQuizApp() {
               const isCorrect = option === currentQuestion.answer;
               const isSelected = option === selectedOption;
               const isAnswered = selectedOption !== null;
-              let optionStyle = 'bg-gray-700 hover:bg-gray-600';
+              let optionStyle = isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300';
               let icon = null;
               if (isAnswered) {
-                if (isCorrect) { optionStyle = 'bg-green-800 border-2 border-green-500'; icon = <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-300" />; }
-                else if (isSelected) { optionStyle = 'bg-red-800 border-2 border-red-500'; icon = <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-300" />; }
-                else { optionStyle = 'bg-gray-800 text-gray-500 cursor-default'; }
+                if (isCorrect) { 
+                  optionStyle = isDarkMode ? 'bg-green-800 border-2 border-green-500' : 'bg-green-100 border-2 border-green-500'; 
+                  icon = <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-green-300' : 'text-green-600'}`} />; 
+                }
+                else if (isSelected) { 
+                  optionStyle = isDarkMode ? 'bg-red-800 border-2 border-red-500' : 'bg-red-100 border-2 border-red-500'; 
+                  icon = <XCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-red-300' : 'text-red-600'}`} />; 
+                }
+                else { 
+                  optionStyle = isDarkMode ? 'bg-gray-800 text-gray-500 cursor-default' : 'bg-gray-300 text-gray-500 cursor-default'; 
+                }
               }
               return (
                 <div key={index} onClick={() => handleOptionSelect(option)} className={`p-3 sm:p-4 rounded-lg flex items-center justify-between transition duration-150 text-sm sm:text-base ${!isAnswered ? 'cursor-pointer' : 'cursor-default'} ${optionStyle}`}>
-                  <span className={`${isAnswered && !isCorrect && !isSelected ? 'text-gray-500' : 'text-white'}`}>{option}</span>
+                  <span className={`${isAnswered && !isCorrect && !isSelected ? (isDarkMode ? 'text-gray-500' : 'text-gray-600') : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>{option}</span>
                   {icon}
                 </div>
               );
@@ -636,9 +674,9 @@ export default function JSQuizApp() {
           </div>
 
           {showExplanation && (
-            <div className="p-4 mt-4 bg-gray-900 rounded-lg border-l-4 border-yellow-500 shadow-md">
-              <p className="font-bold text-yellow-400 mb-2">Explanation:</p>
-              <p className="text-gray-300 text-sm sm:text-base">{currentQuestion.explanation}</p>
+            <div className={`p-4 mt-4 rounded-lg border-l-4 border-yellow-500 shadow-md ${isDarkMode ? 'bg-gray-900' : 'bg-yellow-50'}`}>
+              <p className={`font-bold mb-2 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-700'}`}>Explanation:</p>
+              <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{currentQuestion.explanation}</p>
             </div>
           )}
 
@@ -653,17 +691,17 @@ export default function JSQuizApp() {
       )}
 
       {quizState === 'result' && (
-        <div className="text-center space-y-6 p-4 sm:p-6 bg-gray-700 rounded-xl shadow-2xl">
+        <div className={`text-center space-y-6 p-4 sm:p-6 rounded-xl shadow-2xl ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
           {levelPassed ? (
             <>
               <CheckCircle className="w-16 sm:w-20 h-16 sm:h-20 mx-auto text-green-400" />
-              <h2 className="text-2xl sm:text-4xl font-bold text-white">Level {currentLevel} Passed!</h2>
-              <p className="text-base sm:text-lg text-gray-300">Score: {score}/{QUESTIONS_PER_LEVEL}</p>
+              <h2 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Level {currentLevel} Passed!</h2>
+              <p className={`text-base sm:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Score: {score}/{QUESTIONS_PER_LEVEL}</p>
               
               {/* Transaction Status */}
               {txStatus && (
-                <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-500">
-                  <p className="text-yellow-300 font-semibold whitespace-pre-line text-sm sm:text-base">{txStatus}</p>
+                <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-blue-900/30 border-blue-500' : 'bg-blue-50 border-blue-300'}`}>
+                  <p className={`font-semibold whitespace-pre-line text-sm sm:text-base ${isDarkMode ? 'text-yellow-300' : 'text-blue-700'}`}>{txStatus}</p>
                 </div>
               )}
               
@@ -693,14 +731,14 @@ export default function JSQuizApp() {
           ) : (
             <>
               <XCircle className="w-16 sm:w-20 h-16 sm:h-20 mx-auto text-red-400" />
-              <h2 className="text-2xl sm:text-4xl font-bold text-white">Level {currentLevel} Failed</h2>
-              <p className="text-base sm:text-lg text-gray-300">You needed {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to pass.</p>
+              <h2 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Level {currentLevel} Failed</h2>
+              <p className={`text-base sm:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>You needed {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to pass.</p>
               <button type="button" onClick={() => startQuiz(currentLevel)} className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold transition-all">
                 Retry Level
               </button>
             </>
           )}
-          <button type="button" onClick={() => setQuizState('start')} className="w-full px-6 py-3 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold transition-all">
+          <button type="button" onClick={() => setQuizState('start')} className={`w-full px-6 py-3 rounded-lg font-semibold transition-all ${isDarkMode ? 'bg-gray-500 hover:bg-gray-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-900'}`}>
             Back to Level Select
           </button>
         </div>
