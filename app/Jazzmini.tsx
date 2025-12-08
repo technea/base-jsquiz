@@ -143,6 +143,7 @@ export default function JSQuizApp() {
   const [globalStats, setGlobalStats] = useState<GlobalStats>({ maxScore: 0, highestLevel: 1 });
   const [authReady, setAuthReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [themeLoaded, setThemeLoaded] = useState(false);
 
   const [currentLevel, setCurrentLevel] = useState(1);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -161,6 +162,24 @@ export default function JSQuizApp() {
   const [walletError, setWalletError] = useState<string | null>(null);
   
   const contractAddedRef = useRef(false);
+
+  // --- Load theme preference from localStorage ---
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('quizTheme');
+      if (savedTheme === 'light') {
+        setIsDarkMode(false);
+      }
+      setThemeLoaded(true);
+    }
+  }, []);
+
+  // --- Save theme preference to localStorage ---
+  useEffect(() => {
+    if (typeof window !== 'undefined' && themeLoaded) {
+      localStorage.setItem('quizTheme', isDarkMode ? 'dark' : 'light');
+    }
+  }, [isDarkMode, themeLoaded]);
 
   // --- Initialize Firebase & Auth ---
   useEffect(() => {
