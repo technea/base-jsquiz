@@ -542,32 +542,32 @@ export default function JSQuizApp() {
   if (!authReady) return <div className="text-white text-center pt-16 font-semibold">Authenticating...</div>;
 
   const bgClass = isDarkMode 
-    ? 'bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
-    : 'bg-linear-to-br from-gray-50 via-gray-100 to-gray-50 text-gray-900';
+    ? 'bg-linear-to-br from-gray-900 via-purple-900 to-gray-900 text-white' 
+    : 'bg-linear-to-br from-blue-50 via-purple-50 to-pink-50 text-gray-900';
   
   const cardClass = isDarkMode
-    ? 'bg-gray-700 border border-gray-600'
-    : 'bg-white border border-gray-200';
+    ? 'glass-dark rounded-xl shadow-2xl'
+    : 'glass rounded-xl shadow-2xl';
   
-  const textSecondaryClass = isDarkMode ? 'text-gray-300' : 'text-gray-600';
-  const textTertiaryClass = isDarkMode ? 'text-gray-400' : 'text-gray-500';
+  const textSecondaryClass = isDarkMode ? 'text-gray-300' : 'text-gray-700';
+  const textTertiaryClass = isDarkMode ? 'text-gray-400' : 'text-gray-600';
   const inputClass = isDarkMode
-    ? 'bg-gray-800 border border-gray-600 text-white'
-    : 'bg-gray-50 border border-gray-300 text-gray-900';
+    ? 'glass-dark rounded-lg text-white placeholder-gray-400'
+    : 'glass rounded-lg text-gray-900 placeholder-gray-600';
 
   return (
     <div className={`min-h-screen ${bgClass} p-4 sm:p-6`}>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header with Theme Toggle */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-center flex-1 text-blue-400 border-b border-gray-700 pb-4">JS Quiz Miniapp</h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-center flex-1 bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent pb-4">JS Quiz Miniapp</h1>
           <button
             type="button"
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`p-2 rounded-lg ml-4 transition-colors ${
+            className={`p-2 rounded-lg ml-4 transition-all glass-dark hover:shadow-lg ${
               isDarkMode 
-                ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                ? 'text-yellow-400' 
+                : 'text-gray-800'
             }`}
             title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
@@ -582,20 +582,20 @@ export default function JSQuizApp() {
             <p className="text-base sm:text-lg text-gray-300">Score {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to unlock the next level.</p>
 
             {/* ✅ NEW: Wallet Connection Section */}
-            <div className={`rounded-lg p-4 space-y-3 border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}>
+            <div className={`p-4 space-y-3 ${cardClass}`}>
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-yellow-400" />
                 <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Connect Your Wallet</h3>
               </div>
               
               {connectedAddress ? (
-                <div className={`border rounded p-3 ${isDarkMode ? 'bg-green-900/30 border-green-500' : 'bg-green-50 border-green-300'}`}>
+                <div className={`rounded p-3 ${isDarkMode ? 'glass-dark' : 'glass'} border border-green-400`}>
                   <p className={`font-semibold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>✅ Connected</p>
                   <p className={`text-sm ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
                 </div>
               ) : (
                 <>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p className={`text-sm ${textSecondaryClass}`}>
                     {availableWallets.length > 0 
                       ? `Detected: ${availableWallets.join(', ')}` 
                       : 'No Web3 wallet detected'}
@@ -610,7 +610,7 @@ export default function JSQuizApp() {
                   <button
                     type="button"
                     onClick={connectWallet}
-                    className="w-full py-3 px-4 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                    className="w-full py-3 px-4 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
                   >
                     <Wallet className="w-5 h-5" />
                     Connect Wallet
@@ -637,10 +637,10 @@ export default function JSQuizApp() {
                     disabled={!unlocked && !isNext}
                     className={`p-2 sm:p-3 rounded-lg text-sm sm:text-base font-semibold transition-all ${
                       unlocked
-                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        ? 'bg-linear-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 text-white shadow-lg'
                         : isNext
-                        ? 'bg-blue-600 hover:bg-blue-700 font-bold text-white'
-                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        ? 'bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 font-bold text-white shadow-lg'
+                        : 'glass cursor-not-allowed opacity-50'
                     }`}
                   >
                     L{level}
@@ -659,7 +659,7 @@ export default function JSQuizApp() {
             <span className="text-green-400">Score: {score}</span>
           </div>
 
-          <div className={`p-4 sm:p-5 rounded-lg border-l-4 border-blue-500 shadow-xl ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
+          <div className={`p-4 sm:p-5 rounded-lg border-l-4 border-blue-500 shadow-xl ${cardClass}`}>
             <p className={`text-lg sm:text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{currentQuestion.question}</p>
           </div>
 
@@ -668,19 +668,19 @@ export default function JSQuizApp() {
               const isCorrect = option === currentQuestion.answer;
               const isSelected = option === selectedOption;
               const isAnswered = selectedOption !== null;
-              let optionStyle = isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300';
+              let optionStyle = isDarkMode ? 'glass-dark hover:backdrop-blur-lg' : 'glass hover:backdrop-blur-lg';
               let icon = null;
               if (isAnswered) {
                 if (isCorrect) { 
-                  optionStyle = isDarkMode ? 'bg-green-800 border-2 border-green-500' : 'bg-green-100 border-2 border-green-500'; 
+                  optionStyle = isDarkMode ? 'bg-green-900/40 border-2 border-green-400 backdrop-blur-lg' : 'bg-green-100/60 border-2 border-green-500 backdrop-blur-lg'; 
                   icon = <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-green-300' : 'text-green-600'}`} />; 
                 }
                 else if (isSelected) { 
-                  optionStyle = isDarkMode ? 'bg-red-800 border-2 border-red-500' : 'bg-red-100 border-2 border-red-500'; 
+                  optionStyle = isDarkMode ? 'bg-red-900/40 border-2 border-red-400 backdrop-blur-lg' : 'bg-red-100/60 border-2 border-red-500 backdrop-blur-lg'; 
                   icon = <XCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-red-300' : 'text-red-600'}`} />; 
                 }
                 else { 
-                  optionStyle = isDarkMode ? 'bg-gray-800 text-gray-500 cursor-default' : 'bg-gray-300 text-gray-500 cursor-default'; 
+                  optionStyle = isDarkMode ? 'glass-dark opacity-50 cursor-default' : 'glass opacity-50 cursor-default'; 
                 }
               }
               return (
