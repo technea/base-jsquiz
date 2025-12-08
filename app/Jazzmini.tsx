@@ -542,8 +542,8 @@ export default function JSQuizApp() {
   if (!authReady) return <div className="text-white text-center pt-16 font-semibold">Authenticating...</div>;
 
   const bgClass = isDarkMode 
-    ? 'bg-linear-to-br from-gray-900 via-purple-900 to-gray-900 text-white' 
-    : 'bg-linear-to-br from-blue-50 via-purple-50 to-pink-50 text-gray-900';
+    ? 'bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 text-white' 
+    : 'bg-linear-to-br from-cyan-50 via-blue-50 to-indigo-50 text-slate-900';
   
   const cardClass = isDarkMode
     ? 'glass-dark rounded-xl shadow-2xl'
@@ -560,14 +560,18 @@ export default function JSQuizApp() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header with Theme Toggle */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-center flex-1 bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent pb-4">JS Quiz Miniapp</h1>
+          <h1 className={`text-3xl sm:text-4xl font-black text-center flex-1 bg-clip-text text-transparent pb-4 ${
+            isDarkMode 
+              ? 'bg-linear-to-r from-cyan-300 via-blue-300 to-indigo-400' 
+              : 'bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600'
+          }`}>JS Quiz Miniapp</h1>
           <button
             type="button"
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`p-2 rounded-lg ml-4 transition-all glass-dark hover:shadow-lg ${
+            className={`p-2 rounded-lg ml-4 transition-all glass-purple hover:shadow-xl ${
               isDarkMode 
-                ? 'text-yellow-400' 
-                : 'text-gray-800'
+                ? 'text-amber-300' 
+                : 'text-indigo-900'
             }`}
             title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
@@ -582,41 +586,41 @@ export default function JSQuizApp() {
             <p className="text-base sm:text-lg text-gray-300">Score {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to unlock the next level.</p>
 
             {/* ✅ NEW: Wallet Connection Section */}
-            <div className={`p-4 space-y-3 ${cardClass}`}>
+            <div className={`p-4 space-y-3 ${isDarkMode ? 'glass-blue' : 'glass'}`}>
               <div className="flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-yellow-400" />
-                <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Connect Your Wallet</h3>
+                <Wallet className={`w-5 h-5 ${isDarkMode ? 'text-cyan-300' : 'text-indigo-600'}`} />
+                <h3 className={`font-bold text-lg ${isDarkMode ? 'text-cyan-100' : 'text-indigo-900'}`}>Connect Your Wallet</h3>
               </div>
               
               {connectedAddress ? (
-                <div className={`rounded p-3 ${isDarkMode ? 'glass-dark' : 'glass'} border border-green-400`}>
-                  <p className={`font-semibold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>✅ Connected</p>
-                  <p className={`text-sm ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
+                <div className={`rounded p-3 ${isDarkMode ? 'glass-emerald' : 'glass'} border border-emerald-400`}>
+                  <p className={`font-semibold ${isDarkMode ? 'text-emerald-200' : 'text-emerald-700'}`}>✅ Connected</p>
+                  <p className={`text-sm font-mono ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
                 </div>
               ) : (
                 <>
-                  <p className={`text-sm font-medium ${textSecondaryClass}`}>
+                  <p className={`text-sm font-semibold ${isDarkMode ? 'text-cyan-200' : 'text-indigo-700'}`}>
                     🔗 {availableWallets.length > 0 
                       ? `Ready to Connect: ${availableWallets.join(' • ')}` 
                       : '⚠️ No Wallet Found - Install MetaMask or Base App'}
                   </p>
                   
                   {walletError && (
-                    <div className={`border rounded p-2 ${isDarkMode ? 'bg-red-900/30 border-red-500' : 'bg-red-50 border-red-300'}`}>
-                      <p className={`text-sm ${isDarkMode ? 'text-red-200' : 'text-red-700'}`}>{walletError}</p>
+                    <div className={`border rounded p-2 ${isDarkMode ? 'glass-rose' : 'glass'}`}>
+                      <p className={`text-sm font-semibold ${isDarkMode ? 'text-rose-200' : 'text-rose-700'}`}>{walletError}</p>
                     </div>
                   )}
                   
                   <button
                     type="button"
                     onClick={connectWallet}
-                    className="w-full py-3 px-4 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 rounded-lg text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl text-lg"
+                    className="w-full py-3 px-4 bg-linear-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-500 hover:via-blue-600 hover:to-indigo-700 rounded-lg text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-2xl text-lg"
                   >
                     <Wallet className="w-6 h-6" />
                     Connect & Earn Rewards
                   </button>
                   
-                  <p className={`text-xs font-semibold ${textTertiaryClass} mt-3 text-center`}>
+                  <p className={`text-xs font-bold text-center ${isDarkMode ? 'text-blue-200' : 'text-indigo-700'}`}>
                     🚀 Unlock rewards • 🔐 Secure transaction • ✨ Instant verification
                   </p>
                 </>
@@ -635,12 +639,12 @@ export default function JSQuizApp() {
                     key={level}
                     onClick={() => startQuiz(level)}
                     disabled={!unlocked && !isNext}
-                    className={`p-2 sm:p-3 rounded-lg text-sm sm:text-base font-semibold transition-all ${
+                    className={`p-2 sm:p-3 rounded-lg text-sm sm:text-base font-bold transition-all ${
                       unlocked
-                        ? 'bg-linear-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 text-white shadow-lg'
+                        ? 'bg-linear-to-r from-emerald-400 to-teal-600 hover:from-emerald-500 hover:to-teal-700 text-white shadow-lg'
                         : isNext
-                        ? 'bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 font-bold text-white shadow-lg'
-                        : 'glass cursor-not-allowed opacity-50'
+                        ? 'bg-linear-to-r from-cyan-400 to-blue-600 hover:from-cyan-500 hover:to-blue-700 text-white shadow-lg'
+                        : `${isDarkMode ? 'glass-dark' : 'glass'} cursor-not-allowed opacity-40`
                     }`}
                   >
                     L{level}
@@ -659,8 +663,8 @@ export default function JSQuizApp() {
             <span className="text-green-400">Score: {score}</span>
           </div>
 
-          <div className={`p-4 sm:p-5 rounded-lg border-l-4 border-blue-500 shadow-xl ${cardClass}`}>
-            <p className={`text-lg sm:text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{currentQuestion.question}</p>
+          <div className={`p-4 sm:p-5 rounded-lg border-l-4 border-cyan-400 shadow-xl ${isDarkMode ? 'glass-blue' : 'glass'}`}>
+            <p className={`text-lg sm:text-2xl font-bold ${isDarkMode ? 'text-cyan-100' : 'text-indigo-900'}`}>{currentQuestion.question}</p>
           </div>
 
           <div className="space-y-3">
@@ -668,24 +672,24 @@ export default function JSQuizApp() {
               const isCorrect = option === currentQuestion.answer;
               const isSelected = option === selectedOption;
               const isAnswered = selectedOption !== null;
-              let optionStyle = isDarkMode ? 'glass-dark hover:backdrop-blur-lg' : 'glass hover:backdrop-blur-lg';
+              let optionStyle = isDarkMode ? 'glass-blue hover:glass-purple' : 'glass hover:backdrop-blur-lg';
               let icon = null;
               if (isAnswered) {
                 if (isCorrect) { 
-                  optionStyle = isDarkMode ? 'bg-green-900/40 border-2 border-green-400 backdrop-blur-lg' : 'bg-green-100/60 border-2 border-green-500 backdrop-blur-lg'; 
-                  icon = <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-green-300' : 'text-green-600'}`} />; 
+                  optionStyle = isDarkMode ? 'glass-emerald border border-emerald-300' : 'glass border border-emerald-400'; 
+                  icon = <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`} />; 
                 }
                 else if (isSelected) { 
-                  optionStyle = isDarkMode ? 'bg-red-900/40 border-2 border-red-400 backdrop-blur-lg' : 'bg-red-100/60 border-2 border-red-500 backdrop-blur-lg'; 
-                  icon = <XCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-red-300' : 'text-red-600'}`} />; 
+                  optionStyle = isDarkMode ? 'glass-rose border border-rose-300' : 'glass border border-rose-400'; 
+                  icon = <XCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-rose-300' : 'text-rose-600'}`} />; 
                 }
                 else { 
-                  optionStyle = isDarkMode ? 'glass-dark opacity-50 cursor-default' : 'glass opacity-50 cursor-default'; 
+                  optionStyle = isDarkMode ? 'glass-dark opacity-40 cursor-default' : 'glass opacity-40 cursor-default'; 
                 }
               }
               return (
-                <div key={index} onClick={() => handleOptionSelect(option)} className={`p-3 sm:p-4 rounded-lg flex items-center justify-between transition duration-150 text-sm sm:text-base ${!isAnswered ? 'cursor-pointer' : 'cursor-default'} ${optionStyle}`}>
-                  <span className={`${isAnswered && !isCorrect && !isSelected ? (isDarkMode ? 'text-gray-500' : 'text-gray-600') : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>{option}</span>
+                <div key={index} onClick={() => handleOptionSelect(option)} className={`p-3 sm:p-4 rounded-lg flex items-center justify-between transition duration-150 text-sm sm:text-base font-semibold ${!isAnswered ? 'cursor-pointer' : 'cursor-default'} ${optionStyle}`}>
+                  <span className={`${isAnswered && !isCorrect && !isSelected ? (isDarkMode ? 'text-slate-400' : 'text-slate-500') : (isDarkMode ? 'text-cyan-50' : 'text-indigo-900')}`}>{option}</span>
                   {icon}
                 </div>
               );
@@ -693,9 +697,9 @@ export default function JSQuizApp() {
           </div>
 
           {showExplanation && (
-            <div className={`p-4 mt-4 rounded-lg border-l-4 border-yellow-500 shadow-md ${isDarkMode ? 'bg-gray-900' : 'bg-yellow-50'}`}>
-              <p className={`font-bold mb-2 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-700'}`}>Explanation:</p>
-              <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{currentQuestion.explanation}</p>
+            <div className={`p-4 mt-4 rounded-lg border-l-4 border-amber-400 shadow-lg ${isDarkMode ? 'glass-purple' : 'glass'}`}>
+              <p className={`font-bold mb-2 ${isDarkMode ? 'text-amber-200' : 'text-amber-700'}`}>💡 Explanation:</p>
+              <p className={`text-sm sm:text-base font-medium ${isDarkMode ? 'text-blue-100' : 'text-indigo-900'}`}>{currentQuestion.explanation}</p>
             </div>
           )}
 
@@ -710,17 +714,17 @@ export default function JSQuizApp() {
       )}
 
       {quizState === 'result' && (
-        <div className={`text-center space-y-6 p-4 sm:p-6 rounded-xl shadow-2xl ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
+        <div className={`text-center space-y-6 p-4 sm:p-6 rounded-xl shadow-2xl ${isDarkMode ? 'glass-blue' : 'glass'}`}>
           {levelPassed ? (
             <>
-              <CheckCircle className="w-16 sm:w-20 h-16 sm:h-20 mx-auto text-green-400" />
-              <h2 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Level {currentLevel} Passed!</h2>
-              <p className={`text-base sm:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Score: {score}/{QUESTIONS_PER_LEVEL}</p>
+              <CheckCircle className={`w-16 sm:w-20 h-16 sm:h-20 mx-auto ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`} />
+              <h2 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-emerald-200' : 'text-emerald-700'}`}>🎉 Level {currentLevel} Passed!</h2>
+              <p className={`text-base sm:text-lg font-semibold ${isDarkMode ? 'text-cyan-200' : 'text-indigo-700'}`}>Score: {score}/{QUESTIONS_PER_LEVEL}</p>
               
               {/* Transaction Status */}
               {txStatus && (
-                <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-blue-900/30 border-blue-500' : 'bg-blue-50 border-blue-300'}`}>
-                  <p className={`font-semibold whitespace-pre-line text-sm sm:text-base ${isDarkMode ? 'text-yellow-300' : 'text-blue-700'}`}>{txStatus}</p>
+                <div className={`p-4 rounded-lg border ${isDarkMode ? 'glass-purple' : 'glass'}`}>
+                  <p className={`font-semibold whitespace-pre-line text-sm sm:text-base ${isDarkMode ? 'text-cyan-200' : 'text-indigo-700'}`}>{txStatus}</p>
                 </div>
               )}
               
@@ -749,16 +753,16 @@ export default function JSQuizApp() {
             </>
           ) : (
             <>
-              <XCircle className="w-16 sm:w-20 h-16 sm:h-20 mx-auto text-red-400" />
-              <h2 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Level {currentLevel} Failed</h2>
-              <p className={`text-base sm:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>You needed {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to pass.</p>
-              <button type="button" onClick={() => startQuiz(currentLevel)} className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold transition-all">
-                Retry Level
+              <XCircle className={`w-16 sm:w-20 h-16 sm:h-20 mx-auto ${isDarkMode ? 'text-rose-300' : 'text-rose-600'}`} />
+              <h2 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-rose-200' : 'text-rose-700'}`}>Level {currentLevel} Failed</h2>
+              <p className={`text-base sm:text-lg font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>You needed {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to pass.</p>
+              <button type="button" onClick={() => startQuiz(currentLevel)} className="w-full px-6 py-3 bg-linear-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 rounded-lg text-white font-bold transition-all shadow-lg hover:shadow-xl">
+                Try Again
               </button>
             </>
           )}
-          <button type="button" onClick={() => setQuizState('start')} className={`w-full px-6 py-3 rounded-lg font-semibold transition-all ${isDarkMode ? 'bg-gray-500 hover:bg-gray-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-900'}`}>
-            Back to Level Select
+          <button type="button" onClick={() => setQuizState('start')} className={`w-full px-6 py-3 rounded-lg font-bold transition-all ${isDarkMode ? 'glass-purple text-cyan-100 hover:shadow-lg' : 'glass text-indigo-900 hover:shadow-lg'}`}>
+            ← Back to Levels
           </button>
         </div>
       )}
