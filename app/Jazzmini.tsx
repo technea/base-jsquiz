@@ -595,10 +595,10 @@ export default function JSQuizApp() {
                 </div>
               ) : (
                 <>
-                  <p className={`text-sm ${textSecondaryClass}`}>
-                    {availableWallets.length > 0 
-                      ? `Detected: ${availableWallets.join(', ')}` 
-                      : 'No Web3 wallet detected'}
+                  <p className={`text-sm font-medium ${textSecondaryClass}`}>
+                    🔗 {availableWallets.length > 0 
+                      ? `Ready to Connect: ${availableWallets.join(' • ')}` 
+                      : '⚠️ No Wallet Found - Install MetaMask or Base App'}
                   </p>
                   
                   {walletError && (
@@ -610,14 +610,14 @@ export default function JSQuizApp() {
                   <button
                     type="button"
                     onClick={connectWallet}
-                    className="w-full py-3 px-4 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
+                    className="w-full py-3 px-4 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 rounded-lg text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl text-lg"
                   >
-                    <Wallet className="w-5 h-5" />
-                    Connect Wallet
+                    <Wallet className="w-6 h-6" />
+                    Connect & Earn Rewards
                   </button>
                   
-                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mt-2`}>
-                    Supports: MetaMask, Coinbase Wallet, Base App, and Farcaster
+                  <p className={`text-xs font-semibold ${textTertiaryClass} mt-3 text-center`}>
+                    🚀 Unlock rewards • 🔐 Secure transaction • ✨ Instant verification
                   </p>
                 </>
               )}
