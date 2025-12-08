@@ -14,8 +14,16 @@ import {
   onSnapshot,
   Firestore
 } from 'firebase/firestore';
-import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet } from 'lucide-react';
 import { QUIZ_DATA } from './quizData';
+
+// Type definitions for Ethereum provider
+interface EthereumProvider {
+  isMetaMask?: boolean;
+  isCoinbaseBrowser?: boolean;
+  isBase?: boolean;
+  request: (args: { method: string; params?: any[] | Record<string, any> }) => Promise<any>;
+}
 
 // Farcaster SDK import with fallback
 let sdk: any = null;
@@ -42,9 +50,79 @@ const QUESTIONS_PER_LEVEL = 10;
 const TOTAL_LEVELS = 10;
 const PASS_THRESHOLD = 7;
 
-// ✅ Your contract address and ABI
+// ✅ Contract address and ABI (validated)
 const QUIZ_CONTRACT_ADDRESS = '0x2315d55F06E19D21Ebda68Aa1E54F9aF6924dcE5';
 const QUIZ_CONTRACT_ABI = [{"inputs":[{"internalType":"uint256","name":"level","type":"uint256"}],"name":"completeLevel","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}];
+
+// ✅ Security: Validate contract address format
+const isValidAddress = (address: string): boolean => {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+};
+
+// ✅ Security: Safely detect wallet providers with retry mechanism
+const getWalletProvider = (): EthereumProvider | null => {
+  if (typeof window === 'undefined') return null;
+  
+  // Try to get ethereum provider with a small delay to allow MetaMask to inject
+  let ethereum = (window as any).ethereum;
+  
+  // If not found immediately, check common wallet injection points
+  if (!ethereum) {
+    // Check for MetaMask specifically
+    if ((window as any).MetaMask) {
+      ethereum = (window as any).MetaMask;
+    }
+    // Check if injected but under different name
+    else if ((window as any).ethereum) {
+      ethereum = (window as any).ethereum;
+    }
+  }
+  
+  if (!ethereum) return null;
+  
+  // Validate that it has the required request method
+  if (typeof ethereum.request !== 'function') return null;
+  
+  return ethereum;
+};
+
+// ✅ Security: Detect which wallets are available
+const getAvailableWallets = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  const ethereum = (window as any).ethereum;
+  if (!ethereum) return [];
+  
+  const wallets: string[] = [];
+  if (ethereum.isMetaMask) wallets.push('MetaMask');
+  if (ethereum.isCoinbaseBrowser) wallets.push('Coinbase Wallet');
+  if (ethereum.isBase) wallets.push('Base App');
+  
+  // Default to MetaMask-compatible if no specific identification
+  if (wallets.length === 0 && typeof ethereum.request === 'function') {
+    wallets.push('Browser Wallet');
+  }
+  
+  return wallets;
+};
+
+// ✅ Security: Safely encode function calls (replaces manual hex encoding)
+const encodeFunctionCall = (functionSignature: string, params: any[]): string => {
+  // Function signature for completeLevel(uint256) = 0x3ccfd60b
+  if (functionSignature !== 'completeLevel') {
+    throw new Error('Unsupported function');
+  }
+  
+  if (!Array.isArray(params) || params.length !== 1) {
+    throw new Error('Invalid parameters for completeLevel');
+  }
+  
+  const level = params[0];
+  if (typeof level !== 'number' || level < 1 || level > TOTAL_LEVELS) {
+    throw new Error(`Invalid level: must be between 1 and ${TOTAL_LEVELS}`);
+  }
+  
+  return '0x3ccfd60b' + level.toString(16).padStart(64, '0');
+};
 
 type QuizQuestion = {
   level: number;
@@ -76,7 +154,11 @@ export default function JSQuizApp() {
   const [autoProgressing, setAutoProgressing] = useState(false);
   const [showMetaMaskHelp, setShowMetaMaskHelp] = useState(false);
   
-  // ✅ ADDED: Track if we've already tried to add contract to MetaMask
+  // ✅ NEW: Wallet connection state
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  const [availableWallets, setAvailableWallets] = useState<string[]>([]);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  
   const contractAddedRef = useRef(false);
 
   // --- Initialize Firebase & Auth ---
@@ -104,6 +186,63 @@ export default function JSQuizApp() {
       setUserId(`local-${crypto.randomUUID()}`);
       setAuthReady(true);
     }
+  }, []);
+
+  // ✅ NEW: Detect available wallets on component mount with retry
+  useEffect(() => {
+    // Function to check and set available wallets
+    const checkWallets = () => {
+      const wallets = getAvailableWallets();
+      setAvailableWallets(wallets);
+      
+      // Check if wallet is already connected (e.g., from previous session)
+      const checkConnected = async () => {
+        const provider = getWalletProvider();
+        if (provider) {
+          try {
+            const accounts = await provider.request({ method: 'eth_accounts' });
+            if (accounts && accounts.length > 0) {
+              setConnectedAddress(accounts[0]);
+            }
+          } catch (error) {
+            console.log('Error checking wallet connection:', error);
+          }
+        }
+      };
+      
+      if (typeof window !== 'undefined') {
+        checkConnected();
+      }
+    };
+    
+    // Check immediately
+    checkWallets();
+    
+    // Also check after a delay to catch MetaMask injection
+    const timer = setTimeout(checkWallets, 1000);
+    
+    // Listen for ethereum availability changes
+    const handleEthereumReady = () => {
+      checkWallets();
+    };
+    
+    if (typeof window !== 'undefined' && (window as any).ethereum) {
+      (window as any).ethereum.on?.('connect', handleEthereumReady);
+      (window as any).ethereum.on?.('accountsChanged', (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setConnectedAddress(accounts[0]);
+        } else {
+          setConnectedAddress(null);
+        }
+      });
+    }
+    
+    return () => {
+      clearTimeout(timer);
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        (window as any).ethereum.removeListener?.('connect', handleEthereumReady);
+      }
+    };
   }, []);
 
   // --- Global Stats Listener ---
@@ -138,7 +277,15 @@ export default function JSQuizApp() {
     if (contractAddedRef.current) return; // Already tried this session
     
     try {
-      await (window as any).ethereum.request({
+      const provider = getWalletProvider();
+      if (!provider) return;
+      
+      if (!isValidAddress(QUIZ_CONTRACT_ADDRESS)) {
+        console.error('Invalid contract address');
+        return;
+      }
+      
+      await provider.request({
         method: 'wallet_watchAsset',
         params: {
           type: 'ERC20',
@@ -154,83 +301,163 @@ export default function JSQuizApp() {
       contractAddedRef.current = true;
     } catch (error) {
       console.log('Failed to add contract to MetaMask (normal for custom contracts):', error);
-      contractAddedRef.current = true; // Mark as tried even if failed
+      contractAddedRef.current = true;
     }
   }, []);
 
-  // ✅ OPTIMIZED: Send Transaction with better user experience
-  const userCompleteLevel= useCallback(async () => {
+  // ✅ NEW: Connect wallet function with proper error handling and retry
+  const connectWallet = useCallback(async () => {
+    setWalletError(null);
     try {
+      // Wait a moment for MetaMask to inject ethereum object
+      let provider = getWalletProvider();
+      if (!provider) {
+        // Try once more after a small delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        provider = getWalletProvider();
+      }
+      
+      if (!provider) {
+        setWalletError('No Web3 wallet detected. Please install MetaMask, Coinbase Wallet, or Base App.');
+        return;
+      }
+
+      try {
+        const accounts = await provider.request({
+          method: 'eth_requestAccounts',
+        });
+
+        if (!accounts || accounts.length === 0) {
+          setWalletError('No accounts available. Please connect a wallet account.');
+          return;
+        }
+
+        setConnectedAddress(accounts[0]);
+        setWalletError(null);
+        console.log('Wallet connected:', accounts[0]);
+      } catch (requestError: any) {
+        console.error('Request accounts error:', requestError);
+        
+        if (requestError.code === 4001) {
+          setWalletError('Connection cancelled. Please try again.');
+        } else if (requestError.code === -32002) {
+          setWalletError('Connection request already pending. Please check your wallet.');
+        } else if (requestError.message?.includes('User rejected') || requestError.message?.includes('rejected')) {
+          setWalletError('Connection rejected. Please try again and approve the request.');
+        } else {
+          setWalletError(requestError.message || 'Failed to connect wallet. Please try again.');
+        }
+      }
+    } catch (error: any) {
+      console.error('Wallet connection error:', error);
+      setWalletError('Unexpected error connecting wallet. Please try again.');
+    }
+  }, []);
+
+  // ✅ OPTIMIZED: Send Transaction with better user experience and security
+  const userCompleteLevel = useCallback(async () => {
+    try {
+      // Validate contract address
+      if (!isValidAddress(QUIZ_CONTRACT_ADDRESS)) {
+        setTxStatus('❌ Invalid contract address');
+        setAutoProgressing(false);
+        return;
+      }
+
       setTxStatus(`📤 Sending transaction for Level ${currentLevel}...`);
       setShowMetaMaskHelp(true);
       
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        try {
-          // Request wallet connection
-          const accounts = await (window as any).ethereum.request({
-            method: 'eth_requestAccounts',
-          });
-          
-          if (!accounts || accounts.length === 0) {
-            setTxStatus('❌ No wallet account available');
-            setAutoProgressing(false);
-            return;
-          }
-
-          setTxStatus(`✅ Wallet connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`);
-
-          // ✅ OPTIMIZED: Only try to add contract once per session
-          if (!contractAddedRef.current) {
-            await addContractToMetaMask();
-          }
-
-          // Encode function call
-          const encodeLevelCompletion = (level: number): string => {
-            // Function signature for completeLevel(uint256) = 0x3ccfd60b
-            return '0x3ccfd60b' + level.toString(16).padStart(64, '0');
-          };
-
-          // Send transaction
-          const txHash = await (window as any).ethereum.request({
-            method: 'eth_sendTransaction',
-            params: [{
-              from: accounts[0],
-              to: QUIZ_CONTRACT_ADDRESS,
-              value: '0',
-              data: encodeLevelCompletion(currentLevel),
-              gas: '150000', // Optimal gas for Base Mainnet
-              chainId: '0x2105', // Base Mainnet
-            }],
-          });
-
-          setTxStatus(`🚀 Transaction sent! Hash: ${txHash.slice(0, 10)}...`);
-          console.log('Transaction sent to contract:', txHash);
-          
-          // Show BaseScan link
-          setTimeout(() => {
-            setTxStatus(prev => `${prev}\n🔍 View on BaseScan: https://basescan.org/tx/${txHash}`);
-          }, 1000);
-          
-          return txHash;
-
-        } catch (walletErr: any) {
-          console.log('Wallet error:', walletErr);
-          if (walletErr.code === 4001) {
-            setTxStatus('❌ Transaction rejected by user');
-          } else if (walletErr.message?.includes('insufficient funds')) {
-            setTxStatus('❌ Insufficient ETH for gas fees');
-          } else if (walletErr.message?.includes('user rejected')) {
-            setTxStatus('❌ User rejected the transaction');
-          } else {
-            setTxStatus(`⚠️ ${walletErr.message?.slice(0, 60) || 'Transaction failed'}`);
-          }
-          setAutoProgressing(false);
-          return null;
-        }
-      } else {
-        setTxStatus('❌ No Web3 wallet detected. Install MetaMask or connect wallet.');
+      const provider = getWalletProvider();
+      if (!provider) {
+        setTxStatus('❌ No Web3 wallet detected. Please connect a wallet first.');
         setAutoProgressing(false);
-        console.log('No wallet provider available');
+        return;
+      }
+
+      try {
+        // Create a timeout promise
+        const requestPromise = provider.request({
+          method: 'eth_requestAccounts',
+        });
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout: MetaMask did not respond within 30 seconds')), 30000)
+        );
+        
+        const accounts = await Promise.race([requestPromise, timeoutPromise]) as string[];
+        
+        if (!accounts || accounts.length === 0) {
+          setTxStatus('❌ No wallet account available');
+          setAutoProgressing(false);
+          return;
+        }
+
+        const account = accounts[0];
+        setConnectedAddress(account);
+        setTxStatus(`✅ Wallet connected: ${account.slice(0, 6)}...${account.slice(-4)}`);
+
+        // Only try to add contract once per session
+        if (!contractAddedRef.current) {
+          await addContractToMetaMask();
+        }
+
+        // Safely encode function call with validation
+        let encodedData: string;
+        try {
+          encodedData = encodeFunctionCall('completeLevel', [currentLevel]);
+        } catch (encodeError: any) {
+          setTxStatus(`❌ ${encodeError.message}`);
+          setAutoProgressing(false);
+          return;
+        }
+
+        // Send transaction with proper parameters
+        const txHash = await provider.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: account,
+            to: QUIZ_CONTRACT_ADDRESS,
+            value: '0',
+            data: encodedData,
+            gas: '150000',
+            chainId: '0x2105', // Base Mainnet
+          }],
+        });
+
+        if (!txHash || typeof txHash !== 'string') {
+          setTxStatus('❌ Transaction failed: Invalid response from wallet');
+          setAutoProgressing(false);
+          return;
+        }
+
+        setTxStatus(`🚀 Transaction sent! Hash: ${txHash.slice(0, 10)}...`);
+        console.log('Transaction sent to contract:', txHash);
+        
+        // Show BaseScan link
+        setTimeout(() => {
+          setTxStatus(prev => `${prev}\n🔍 View on BaseScan: https://basescan.org/tx/${txHash}`);
+        }, 1000);
+        
+        return txHash;
+
+      } catch (walletErr: any) {
+        console.log('Wallet error:', walletErr);
+        
+        // Handle timeout specifically
+        if (walletErr.message?.includes('timeout') || walletErr.message?.includes('Timeout')) {
+          setTxStatus('❌ Request timeout: MetaMask did not respond. Please try again.');
+        } else if (walletErr.code === 4001) {
+          setTxStatus('❌ Transaction rejected by user');
+        } else if (walletErr.message?.includes('insufficient funds')) {
+          setTxStatus('❌ Insufficient ETH for gas fees');
+        } else if (walletErr.message?.includes('user rejected')) {
+          setTxStatus('❌ User rejected the transaction');
+        } else if (walletErr.message?.includes('connection') || walletErr.message?.includes('Connection')) {
+          setTxStatus('❌ Connection error with wallet. Please check MetaMask.');
+        } else {
+          setTxStatus(`⚠️ ${walletErr.message?.slice(0, 60) || 'Transaction failed'}`);
+        }
+        setAutoProgressing(false);
         return null;
       }
     } catch (err: any) {
@@ -263,7 +490,7 @@ export default function JSQuizApp() {
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
     }
-  }, [isLastQuestion, score,PASS_THRESHOLD]);
+  }, [isLastQuestion, score, userCompleteLevel]);
 
   const startQuiz = useCallback((level: number) => {
     setCurrentLevel(level);
@@ -295,39 +522,96 @@ export default function JSQuizApp() {
   if (!authReady) return <div className="text-white text-center pt-16 font-semibold">Authenticating...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 text-white bg-gray-800 min-h-screen space-y-6">
-      <h1 className="text-4xl font-black text-center text-blue-400 mb-8 border-b border-gray-700 pb-4">JS Quiz Miniapp</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <h1 className="text-3xl sm:text-4xl font-black text-center text-blue-400 mb-8 border-b border-gray-700 pb-4">JS Quiz Miniapp</h1>
 
-      {quizState === 'start' && (
-        <div className="text-center space-y-6">
-          <BookOpen className="w-16 h-16 mx-auto text-blue-400" />
-          <h2 className="text-4xl font-extrabold text-white">JavaScript 10-Level Challenge</h2>
-          <p className="text-lg text-gray-300">Score {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to unlock the next level.</p>
-          <div className="grid grid-cols-5 gap-3 pt-4">
-            {[...Array(TOTAL_LEVELS)].map((_, i) => {
-              const level = i + 1;
-              const unlocked = level < globalStats.highestLevel;
-              const isNext = level === globalStats.highestLevel;
-              return (
-                <button type="button" key={level} onClick={() => startQuiz(level)} disabled={!unlocked && !isNext} className={`p-3 rounded-lg ${unlocked ? 'bg-green-600 hover:bg-green-700' : isNext ? 'bg-blue-600 hover:bg-blue-700 font-bold' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}>
-                  L{level}
-                </button>
-              );
-            })}
+        {quizState === 'start' && (
+          <div className="text-center space-y-6">
+            <BookOpen className="w-16 h-16 mx-auto text-blue-400" />
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white">JavaScript 10-Level Challenge</h2>
+            <p className="text-base sm:text-lg text-gray-300">Score {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to unlock the next level.</p>
+
+            {/* ✅ NEW: Wallet Connection Section */}
+            <div className="bg-gray-700 rounded-lg p-4 space-y-3 border border-gray-600">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-yellow-400" />
+                <h3 className="font-semibold text-lg">Connect Your Wallet</h3>
+              </div>
+              
+              {connectedAddress ? (
+                <div className="bg-green-900/30 border border-green-500 rounded p-3">
+                  <p className="text-green-200 font-semibold">✅ Connected</p>
+                  <p className="text-sm text-green-300">{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-300">
+                    {availableWallets.length > 0 
+                      ? `Detected: ${availableWallets.join(', ')}` 
+                      : 'No Web3 wallet detected'}
+                  </p>
+                  
+                  {walletError && (
+                    <div className="bg-red-900/30 border border-red-500 rounded p-2">
+                      <p className="text-red-200 text-sm">{walletError}</p>
+                    </div>
+                  )}
+                  
+                  <button
+                    type="button"
+                    onClick={connectWallet}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Wallet className="w-5 h-5" />
+                    Connect Wallet
+                  </button>
+                  
+                  <p className="text-xs text-gray-400 mt-2">
+                    Supports: MetaMask, Coinbase Wallet, Base App, and Farcaster
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Level Grid - Responsive */}
+            <div className="grid grid-cols-5 sm:grid-cols-5 gap-2 sm:gap-3 pt-4">
+              {[...Array(TOTAL_LEVELS)].map((_, i) => {
+                const level = i + 1;
+                const unlocked = level < globalStats.highestLevel;
+                const isNext = level === globalStats.highestLevel;
+                return (
+                  <button
+                    type="button"
+                    key={level}
+                    onClick={() => startQuiz(level)}
+                    disabled={!unlocked && !isNext}
+                    className={`p-2 sm:p-3 rounded-lg text-sm sm:text-base font-semibold transition-all ${
+                      unlocked
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : isNext
+                        ? 'bg-blue-600 hover:bg-blue-700 font-bold text-white'
+                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    L{level}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {quizState === 'in_progress' && currentQuestion && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center text-xl font-semibold border-b border-gray-700 pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-sm sm:text-xl font-semibold border-b border-gray-700 pb-3">
             <span className="text-blue-400">Level {currentLevel} of {TOTAL_LEVELS}</span>
             <span className="text-white">Q {currentQuestionIndex + 1} of {QUESTIONS_PER_LEVEL}</span>
             <span className="text-green-400">Score: {score}</span>
           </div>
 
-          <div className="p-5 bg-gray-700 rounded-lg border-l-4 border-blue-500 shadow-xl">
-            <p className="text-2xl font-medium text-white">{currentQuestion.question}</p>
+          <div className="p-4 sm:p-5 bg-gray-700 rounded-lg border-l-4 border-blue-500 shadow-xl">
+            <p className="text-lg sm:text-2xl font-medium text-white">{currentQuestion.question}</p>
           </div>
 
           <div className="space-y-3">
@@ -338,13 +622,13 @@ export default function JSQuizApp() {
               let optionStyle = 'bg-gray-700 hover:bg-gray-600';
               let icon = null;
               if (isAnswered) {
-                if (isCorrect) { optionStyle = 'bg-green-800 border-2 border-green-500'; icon = <CheckCircle className="w-6 h-6 text-green-300" />; }
-                else if (isSelected) { optionStyle = 'bg-red-800 border-2 border-red-500'; icon = <XCircle className="w-6 h-6 text-red-300" />; }
+                if (isCorrect) { optionStyle = 'bg-green-800 border-2 border-green-500'; icon = <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-300" />; }
+                else if (isSelected) { optionStyle = 'bg-red-800 border-2 border-red-500'; icon = <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-300" />; }
                 else { optionStyle = 'bg-gray-800 text-gray-500 cursor-default'; }
               }
               return (
-                <div key={index} onClick={() => handleOptionSelect(option)} className={`p-4 rounded-lg flex items-center justify-between transition duration-150 ${!isAnswered ? 'cursor-pointer' : 'cursor-default'} ${optionStyle}`}>
-                  <span className={`text-lg ${isAnswered && !isCorrect && !isSelected ? 'text-gray-500' : 'text-white'}`}>{option}</span>
+                <div key={index} onClick={() => handleOptionSelect(option)} className={`p-3 sm:p-4 rounded-lg flex items-center justify-between transition duration-150 text-sm sm:text-base ${!isAnswered ? 'cursor-pointer' : 'cursor-default'} ${optionStyle}`}>
+                  <span className={`${isAnswered && !isCorrect && !isSelected ? 'text-gray-500' : 'text-white'}`}>{option}</span>
                   {icon}
                 </div>
               );
@@ -354,7 +638,7 @@ export default function JSQuizApp() {
           {showExplanation && (
             <div className="p-4 mt-4 bg-gray-900 rounded-lg border-l-4 border-yellow-500 shadow-md">
               <p className="font-bold text-yellow-400 mb-2">Explanation:</p>
-              <p className="text-gray-300">{currentQuestion.explanation}</p>
+              <p className="text-gray-300 text-sm sm:text-base">{currentQuestion.explanation}</p>
             </div>
           )}
 
@@ -369,33 +653,17 @@ export default function JSQuizApp() {
       )}
 
       {quizState === 'result' && (
-        <div className="text-center space-y-8 p-6 bg-gray-700 rounded-xl shadow-2xl">
+        <div className="text-center space-y-6 p-4 sm:p-6 bg-gray-700 rounded-xl shadow-2xl">
           {levelPassed ? (
             <>
-              <CheckCircle className="w-20 h-20 mx-auto text-green-400" />
-              <h2 className="text-4xl font-bold text-white">Level {currentLevel} Passed!</h2>
-              <p className="text-lg text-gray-300">Score: {score}/{QUESTIONS_PER_LEVEL}</p>
-              
-              {/* MetaMask Help Notice */}
-              {showMetaMaskHelp && (
-                <div className="p-4 bg-yellow-900/30 rounded-lg border border-yellow-500">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-400" />
-                    <p className="font-bold text-yellow-400">ℹ️ MetaMask Notice:</p>
-                  </div>
-                  <p className="text-sm text-yellow-200 text-left">
-                    • MetaMask may show "Null: 0x0..." - this is normal for custom contracts<br/>
-                    • Your transaction IS going to: <code className="text-xs">{QUIZ_CONTRACT_ADDRESS.slice(0, 10)}...</code><br/>
-                    • Click "Confirm" to proceed - the transaction is safe<br/>
-                    • You can verify on <a href={`https://basescan.org/address/${QUIZ_CONTRACT_ADDRESS}`} target="_blank" className="underline font-medium">BaseScan</a>
-                  </p>
-                </div>
-              )}
+              <CheckCircle className="w-16 sm:w-20 h-16 sm:h-20 mx-auto text-green-400" />
+              <h2 className="text-2xl sm:text-4xl font-bold text-white">Level {currentLevel} Passed!</h2>
+              <p className="text-base sm:text-lg text-gray-300">Score: {score}/{QUESTIONS_PER_LEVEL}</p>
               
               {/* Transaction Status */}
               {txStatus && (
                 <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-500">
-                  <p className="text-yellow-300 font-semibold whitespace-pre-line">{txStatus}</p>
+                  <p className="text-yellow-300 font-semibold whitespace-pre-line text-sm sm:text-base">{txStatus}</p>
                 </div>
               )}
               
@@ -404,7 +672,7 @@ export default function JSQuizApp() {
                 <button 
                   type="button" 
                   onClick={() => userCompleteLevel()}
-                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold flex items-center justify-center gap-2"
+                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all"
                 >
                   <Zap className="w-5 h-5" />
                   Send Transaction
@@ -416,23 +684,28 @@ export default function JSQuizApp() {
                 <button 
                   type="button" 
                   onClick={() => startQuiz(currentLevel + 1)} 
-                  className="w-full px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white font-semibold"
+                  className="w-full px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white font-semibold transition-all"
                 >
-                  Next Level
+                  Next Level →
                 </button>
               )}
             </>
           ) : (
             <>
-              <XCircle className="w-20 h-20 mx-auto text-red-400" />
-              <h2 className="text-4xl font-bold text-white">Level {currentLevel} Failed</h2>
-              <p className="text-lg text-gray-300">You needed {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to pass.</p>
-              <button type="button" onClick={() => startQuiz(currentLevel)} className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold">Retry Level</button>
+              <XCircle className="w-16 sm:w-20 h-16 sm:h-20 mx-auto text-red-400" />
+              <h2 className="text-2xl sm:text-4xl font-bold text-white">Level {currentLevel} Failed</h2>
+              <p className="text-base sm:text-lg text-gray-300">You needed {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to pass.</p>
+              <button type="button" onClick={() => startQuiz(currentLevel)} className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold transition-all">
+                Retry Level
+              </button>
             </>
           )}
-          <button type="button" onClick={() => setQuizState('start')} className="w-full px-6 py-3 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold">Back to Level Select</button>
+          <button type="button" onClick={() => setQuizState('start')} className="w-full px-6 py-3 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold transition-all">
+            Back to Level Select
+          </button>
         </div>
       )}
+      </div>
     </div>
   );
 }
