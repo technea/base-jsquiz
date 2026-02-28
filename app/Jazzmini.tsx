@@ -71,28 +71,26 @@ const isValidAddress = (address: string): boolean => {
   return /^0x[0-9a-fA-F]{40}$/.test(address);
 };
 
-// ✅ Security: Safely detect wallet providers with retry mechanism
+// ✅ Get wallet provider — Farcaster SDK first, then window.ethereum
 const getWalletProvider = (): EthereumProvider | null => {
   if (typeof window === 'undefined') return null;
 
-  // Try to get ethereum provider with a small delay to allow MetaMask to inject
+  // 🥇 Priority 1: Farcaster / Base App SDK provider
+  try {
+    if (sdk && sdk.wallet && sdk.wallet.ethProvider) {
+      const sdkProvider = sdk.wallet.ethProvider;
+      if (typeof sdkProvider.request === 'function') {
+        return sdkProvider as EthereumProvider;
+      }
+    }
+  } catch (e) { /* not in Farcaster */ }
+
+  // 🥈 Priority 2: window.ethereum (MetaMask, Coinbase, etc.)
   let ethereum = (window as any).ethereum;
-
-  // If not found immediately, check common wallet injection points
-  if (!ethereum) {
-    // Check for MetaMask specifically
-    if ((window as any).MetaMask) {
-      ethereum = (window as any).MetaMask;
-    }
-    // Check if injected but under different name
-    else if ((window as any).ethereum) {
-      ethereum = (window as any).ethereum;
-    }
+  if (!ethereum && (window as any).MetaMask) {
+    ethereum = (window as any).MetaMask;
   }
-
   if (!ethereum) return null;
-
-  // Validate that it has the required request method
   if (typeof ethereum.request !== 'function') return null;
 
   return ethereum;
@@ -309,60 +307,89 @@ export default function JSQuizApp() {
     }
   }, []);
 
-  // ✅ NEW: Detect available wallets on component mount with retry
+  // ✅ Wallet detection + Farcaster/Base App auto-connect
   useEffect(() => {
-    // Function to check and set available wallets
     const checkWallets = () => {
       const wallets = getAvailableWallets();
       setAvailableWallets(wallets);
+    };
 
-      // Check if wallet is already connected (e.g., from previous session)
-      const checkConnected = async () => {
-        const provider = getWalletProvider();
-        if (provider) {
-          try {
-            const accounts = await provider.request({ method: 'eth_accounts' });
+    // 🚀 Farcaster / Base App: Auto-connect via SDK
+    const tryFarcasterAutoConnect = async () => {
+      try {
+        if (sdk && sdk.wallet && sdk.wallet.ethProvider) {
+          const sdkProvider = sdk.wallet.ethProvider;
+          if (typeof sdkProvider.request === 'function') {
+            console.log('Farcaster SDK detected — attempting auto-connect...');
+            // First check if already connected
+            const existingAccounts = await sdkProvider.request({ method: 'eth_accounts' });
+            if (existingAccounts && existingAccounts.length > 0) {
+              setConnectedAddress(existingAccounts[0]);
+              console.log('Farcaster wallet auto-connected (existing):', existingAccounts[0]);
+              return;
+            }
+            // Request connection (Farcaster auto-approves this)
+            const accounts = await sdkProvider.request({ method: 'eth_requestAccounts' });
             if (accounts && accounts.length > 0) {
               setConnectedAddress(accounts[0]);
+              console.log('Farcaster wallet auto-connected:', accounts[0]);
             }
-          } catch (error) {
-            console.log('Error checking wallet connection:', error);
+            return; // SDK connected — no need to check window.ethereum
           }
         }
-      };
+      } catch (e) {
+        console.log('Farcaster auto-connect skipped (not in Farcaster):', e);
+      }
 
-      if (typeof window !== 'undefined') {
-        checkConnected();
+      // 🌐 Normal browser: check if already connected (no prompt)
+      const provider = getWalletProvider();
+      if (provider) {
+        try {
+          const accounts = await provider.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            setConnectedAddress(accounts[0]);
+          }
+        } catch (error) {
+          console.log('Error checking wallet connection:', error);
+        }
       }
     };
 
-    // Check immediately
     checkWallets();
+    tryFarcasterAutoConnect();
 
-    // Also check after a delay to catch MetaMask injection
-    const timer = setTimeout(checkWallets, 1000);
-
-    // Listen for ethereum availability changes
-    const handleEthereumReady = () => {
+    // Retry after delay to catch delayed injections
+    const timer = setTimeout(() => {
       checkWallets();
+      tryFarcasterAutoConnect();
+    }, 1000);
+
+    // Listen for account changes
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length > 0) setConnectedAddress(accounts[0]);
+      else setConnectedAddress(null);
     };
 
     if (typeof window !== 'undefined' && (window as any).ethereum) {
-      (window as any).ethereum.on?.('connect', handleEthereumReady);
-      (window as any).ethereum.on?.('accountsChanged', (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setConnectedAddress(accounts[0]);
-        } else {
-          setConnectedAddress(null);
-        }
-      });
+      (window as any).ethereum.on?.('accountsChanged', handleAccountsChanged);
     }
+    // Also listen on SDK provider if available
+    try {
+      if (sdk?.wallet?.ethProvider?.on) {
+        sdk.wallet.ethProvider.on('accountsChanged', handleAccountsChanged);
+      }
+    } catch (e) { }
 
     return () => {
       clearTimeout(timer);
       if (typeof window !== 'undefined' && (window as any).ethereum) {
-        (window as any).ethereum.removeListener?.('connect', handleEthereumReady);
+        (window as any).ethereum.removeListener?.('accountsChanged', handleAccountsChanged);
       }
+      try {
+        if (sdk?.wallet?.ethProvider?.removeListener) {
+          sdk.wallet.ethProvider.removeListener('accountsChanged', handleAccountsChanged);
+        }
+      } catch (e) { }
     };
   }, []);
 
