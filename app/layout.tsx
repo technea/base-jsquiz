@@ -20,20 +20,20 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Master JavaScript in 10 levels of quizzes",
-  description: "10 levels of JavaScript quizzes to master your coding skills.",
+  title: "JAZZMINI | The Ultimate JS Blueprint",
+  description: "Master JavaScript through 10 immersive levels of technical challenges and Web3 rewards.",
   other: {
     'fc:miniapp': JSON.stringify({
       version: '1',
       imageUrl: 'https://base-jsquiz.vercel.app/og-pro.png',
       button: {
-        title: 'Launch Quiz',
+        title: 'Enter Nexus',
         action: {
           type: 'launch_miniapp',
-          name: 'JavaScript Quiz Miniapp',
+          name: 'JAZZMINI Quiz',
           url: 'https://base-jsquiz.vercel.app',
           splashImageUrl: 'https://base-jsquiz.vercel.app/splash-pro.png',
-          splashBackgroundColor: '#0f172a',
+          splashBackgroundColor: '#020617',
         },
       },
     }),
@@ -46,16 +46,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <meta charSet="utf-8" />
-        <meta name="theme-color" content="#0f172a" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#6366f1" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>

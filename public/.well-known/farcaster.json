@@ -9,14 +9,14 @@
   },
   "miniapp": {
     "version": "1",
-    "name": "JavaScript Quiz Miniapp",
+    "name": "JAZZMINI | The Ultimate JS Blueprint",
     "homeUrl": "https://base-jsquiz.vercel.app",
     "iconUrl": "https://base-jsquiz.vercel.app/icon-pro.png",
     "splashImageUrl": "https://base-jsquiz.vercel.app/splash-pro.png",
-    "splashBackgroundColor": "#0f172a",
+    "splashBackgroundColor": "#020617",
     "webhookUrl": "https://base-jsquiz.vercel.app/api/webhook",
-    "subtitle": "Test Your Skills",
-    "description": "Ten levels of JavaScript quiz",
+    "subtitle": "Master JS & Unlock Web3 Rewards",
+    "description": "Test your JavaScript skills through 10 immersive levels. Earn on-chain credentials and verifiable proof of your technical expertise.",
     "screenshotUrls": [
       "https://base-jsquiz.vercel.app/og-pro.png",
       "https://base-jsquiz.vercel.app/splash-pro.png"
@@ -25,14 +25,15 @@
     "tags": [
       "javascript",
       "quiz",
+      "web3",
       "education",
-      "learning",
-      "base"
+      "base",
+      "blockchain"
     ],
     "heroImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
-    "tagline": "Master JavaScript",
-    "ogTitle": "JavaScript Quiz App",
-    "ogDescription": "Master JavaScript with ten quiz",
+    "tagline": "Master JavaScript, Verifiable and Social",
+    "ogTitle": "JAZZMINI | Master Your JavaScript Skills",
+    "ogDescription": "10 Technical Challenges, Verified on Base.",
     "ogImageUrl": "https://base-jsquiz.vercel.app/og-pro.png",
     "noindex": false
   }
