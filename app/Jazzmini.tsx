@@ -745,6 +745,36 @@ export default function JSQuizApp() {
                 </button>
               ))}
             </nav>
+
+            {/* 🔥 Professional Connect Wallet Button in Header */}
+            {connectedAddress ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 cursor-default"
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span className="font-mono text-xs font-bold text-emerald-400 hidden sm:block">
+                  {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
+                </span>
+                <Award className="w-4 h-4 text-emerald-400 sm:hidden" />
+              </motion.div>
+            ) : (
+              <motion.button
+                onClick={connectWallet}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-premium text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:shadow-xl transition-all group"
+              >
+                <Wallet className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                <span className="hidden sm:inline">Connect Wallet</span>
+                <span className="sm:hidden">Connect</span>
+              </motion.button>
+            )}
+
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-3 glass-card hover:bg-primary/10 hover:text-primary rounded-2xl transition-all"
