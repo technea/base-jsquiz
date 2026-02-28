@@ -243,8 +243,12 @@ export default function JSQuizApp() {
   // Attempt tracking & social unlock
   const [levelAttempts, setLevelAttempts] = useState<Record<number, number>>({});
   const [levelScores, setLevelScores] = useState<Record<number, number>>({});
-  const [showSocialModal, setShowSocialModal] = useState(false);
-  const [socialUnlocked, setSocialUnlocked] = useState<Record<number, boolean>>({});
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paidLevels, setPaidLevels] = useState<Record<number, boolean>>({});
+  // Keep social for backward compat (now unused but keeps localStorage logic safe)
+  const socialUnlocked: Record<number, boolean> = {};
 
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<'quiz' | 'learn' | 'dashboard'>('quiz');
@@ -259,14 +263,14 @@ export default function JSQuizApp() {
       if (savedTheme === 'light') setIsDarkMode(false);
       setThemeLoaded(true);
 
-      // Load attempts, scores, social unlocks
+      // Load attempts, scores, paid levels
       try {
         const savedAttempts = localStorage.getItem('quizAttempts');
         if (savedAttempts) setLevelAttempts(JSON.parse(savedAttempts));
         const savedScores = localStorage.getItem('quizScores');
         if (savedScores) setLevelScores(JSON.parse(savedScores));
-        const savedSocial = localStorage.getItem('quizSocialUnlocked');
-        if (savedSocial) setSocialUnlocked(JSON.parse(savedSocial));
+        const savedPaid = localStorage.getItem('quizPaidLevels');
+        if (savedPaid) setPaidLevels(JSON.parse(savedPaid));
       } catch { }
     }
   }, []);
@@ -628,10 +632,12 @@ export default function JSQuizApp() {
 
   const startQuiz = useCallback((level: number) => {
     const attempts = levelAttempts[level] || 0;
-    const unlocked = socialUnlocked[level];
-    if (attempts >= MAX_FREE_ATTEMPTS && !unlocked) {
+    const paid = paidLevels[level];
+    if (attempts >= MAX_FREE_ATTEMPTS && !paid) {
       setCurrentLevel(level);
-      setShowSocialModal(true);
+      setPaymentStatus('idle');
+      setPaymentError(null);
+      setShowPaymentModal(true);
       return;
     }
     setCurrentLevel(level);
@@ -639,25 +645,111 @@ export default function JSQuizApp() {
     setLevelPassed(false);
     setQuizState('in_progress');
     setShowMetaMaskHelp(false);
-  }, [levelAttempts, socialUnlocked]);
+  }, [levelAttempts, paidLevels]);
 
-  const handleSocialUnlock = useCallback((level: number) => {
-    // Simulate social share — open Twitter share
-    const tweetText = encodeURIComponent(`🚀 I'm mastering JavaScript Level ${level} on JAZZMINI Quiz! Test your JS skills at`);
-    const tweetUrl = encodeURIComponent('https://base-jsquiz.vercel.app');
-    window.open(`https://twitter.com/intent/tweet?text=${tweetText}&url=${tweetUrl}`, '_blank');
-    // Unlock after social share
-    setTimeout(() => {
-      const newUnlocked = { ...socialUnlocked, [level]: true };
-      setSocialUnlocked(newUnlocked);
-      localStorage.setItem('quizSocialUnlocked', JSON.stringify(newUnlocked));
-      setShowSocialModal(false);
+  // $0.05 payment = ~0.00002 ETH on Base (in wei: 20000000000000)
+  const PAYMENT_WEI = '0x1DFD14000'; // 0.00002 ETH in hex wei ≈ $0.05
+  const PAYMENT_RECEIVER = '0x0881e4c7b81dC36Fc4Fc1c82cE0e97bBB0134F93'; // Owner wallet
+
+  const handlePaymentUnlock = useCallback(async (level: number) => {
+    setPaymentStatus('pending');
+    setPaymentError(null);
+
+    try {
+      // First ensure wallet is connected
+      let provider = getWalletProvider();
+      if (!provider) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        provider = getWalletProvider();
+      }
+      if (!provider) {
+        setPaymentError('No wallet detected. Please connect MetaMask or Coinbase Wallet first.');
+        setPaymentStatus('error');
+        return;
+      }
+
+      // Get connected account
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) {
+        setPaymentError('No wallet account found. Please unlock your wallet.');
+        setPaymentStatus('error');
+        return;
+      }
+      const account = accounts[0];
+      setConnectedAddress(account);
+
+      // Switch to Base Mainnet
+      try {
+        await provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }],
+        });
+      } catch (switchErr: any) {
+        // If chain not added, add it
+        if (switchErr.code === 4902) {
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2105',
+              chainName: 'Base',
+              nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org'],
+            }],
+          });
+        }
+      }
+
+      // Send $0.05 ETH payment
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: account,
+          to: PAYMENT_RECEIVER,
+          value: PAYMENT_WEI,
+          gas: '21000',
+          chainId: '0x2105',
+        }],
+      });
+
+      if (!txHash) {
+        setPaymentError('Transaction failed. Please try again.');
+        setPaymentStatus('error');
+        return;
+      }
+
+      // Payment successful — unlock level
+      setPaymentStatus('success');
+      const newPaid = { ...paidLevels, [level]: true };
+      setPaidLevels(newPaid);
+      localStorage.setItem('quizPaidLevels', JSON.stringify(newPaid));
+
       // Reset attempt count for this level
       const newAttempts = { ...levelAttempts, [level]: 0 };
       setLevelAttempts(newAttempts);
       localStorage.setItem('quizAttempts', JSON.stringify(newAttempts));
-    }, 1500);
-  }, [socialUnlocked, levelAttempts]);
+
+      // Auto-close modal and start quiz after 2s
+      setTimeout(() => {
+        setShowPaymentModal(false);
+        setPaymentStatus('idle');
+        setCurrentLevel(level);
+        setTxStatus('');
+        setLevelPassed(false);
+        setQuizState('in_progress');
+        setShowMetaMaskHelp(false);
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Payment error:', err);
+      if (err.code === 4001 || err.message?.includes('rejected') || err.message?.includes('cancel')) {
+        setPaymentError('Payment cancelled. Try again when ready.');
+      } else {
+        setPaymentError(err.message?.slice(0, 80) || 'Payment failed. Please try again.');
+      }
+      setPaymentStatus('error');
+    }
+  }, [paidLevels, levelAttempts]);
 
   // Auto-advance to next level after transaction completes
   useEffect(() => {
@@ -1256,15 +1348,15 @@ export default function JSQuizApp() {
           </motion.div>
         )}
 
-        {/* Social Modal */}
+        {/* 💳 Payment Modal — $0.05 to unlock more attempts */}
         <AnimatePresence>
-          {showSocialModal && (
+          {showPaymentModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setShowSocialModal(false)}
+                onClick={() => paymentStatus !== 'pending' && setShowPaymentModal(false)}
                 className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
               />
               <motion.div
@@ -1273,30 +1365,105 @@ export default function JSQuizApp() {
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
                 className="relative w-full max-w-sm glass-card p-8 text-center space-y-6 overflow-hidden"
               >
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-premium" />
-                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center">
-                  <Lock className="w-8 h-8 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-black uppercase tracking-tighter">Attempts Exhausted</h3>
-                  <p className="text-slate-400 text-sm">
-                    You've used your 2 free attempts for Level {currentLevel}. Share your progress on X (Twitter) to unlock 2 more!
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => handleSocialUnlock(currentLevel)}
-                    className="w-full py-4 bg-[#1DA1F2] hover:bg-[#1a91da] text-white font-black rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#1DA1F2]/20"
-                  >
-                    Share on X to Unlock
-                  </button>
-                  <button
-                    onClick={() => setShowSocialModal(false)}
-                    className="w-full py-3 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-all"
-                  >
-                    Maybe Later
-                  </button>
-                </div>
+                {/* Top gradient bar */}
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
+
+                {paymentStatus === 'success' ? (
+                  <>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="w-20 h-20 mx-auto bg-emerald-500/15 rounded-full flex items-center justify-center border-4 border-emerald-500/30"
+                    >
+                      <CheckCircle className="w-10 h-10 text-emerald-400" />
+                    </motion.div>
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-black text-emerald-400 uppercase tracking-tighter">Payment Confirmed!</h3>
+                      <p className="text-slate-400 text-sm">Level {currentLevel} attempts reset. Starting quiz now...</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 mx-auto bg-amber-500/10 rounded-full flex items-center justify-center border-4 border-amber-500/20 relative">
+                      <Lock className="w-10 h-10 text-amber-400" />
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                        className="absolute inset-0 rounded-full border-2 border-dashed border-amber-500/30"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-black uppercase tracking-tighter">Attempts Exhausted</h3>
+                      <p className="text-slate-400 text-sm">
+                        You've used your <span className="text-white font-bold">2 free attempts</span> for Level {currentLevel}.
+                        Unlock unlimited retries with a small payment.
+                      </p>
+                    </div>
+
+                    {/* Price Card */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 flex items-center justify-between">
+                      <div className="text-left">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Unlock Price</p>
+                        <p className="text-3xl font-black text-amber-400">$0.05</p>
+                        <p className="text-[10px] text-slate-500 font-mono">≈ 0.00002 ETH on Base</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">You Get</p>
+                        <p className="text-xl font-black text-white">∞ Retries</p>
+                        <p className="text-[10px] text-slate-500">for Level {currentLevel}</p>
+                      </div>
+                    </div>
+
+                    {/* Error Message */}
+                    {paymentError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium text-left"
+                      >
+                        ⚠️ {paymentError}
+                      </motion.div>
+                    )}
+
+                    <div className="space-y-3">
+                      <motion.button
+                        whileHover={paymentStatus !== 'pending' ? { scale: 1.02 } : {}}
+                        whileTap={paymentStatus !== 'pending' ? { scale: 0.98 } : {}}
+                        onClick={() => handlePaymentUnlock(currentLevel)}
+                        disabled={paymentStatus === 'pending'}
+                        className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 transition-all shadow-lg ${paymentStatus === 'pending'
+                          ? 'bg-amber-500/50 cursor-not-allowed shadow-amber-500/10'
+                          : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-amber-500/40 hover:shadow-xl'
+                          }`}
+                      >
+                        {paymentStatus === 'pending' ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                            />
+                            Confirm in Wallet...
+                          </>
+                        ) : (
+                          <>
+                            <Wallet className="w-5 h-5" />
+                            Pay $0.05 &amp; Unlock
+                          </>
+                        )}
+                      </motion.button>
+
+                      <button
+                        onClick={() => setShowPaymentModal(false)}
+                        disabled={paymentStatus === 'pending'}
+                        className="w-full py-3 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-all disabled:opacity-40"
+                      >
+                        Maybe Later
+                      </button>
+                    </div>
+                  </>
+                )}
               </motion.div>
             </div>
           )}
