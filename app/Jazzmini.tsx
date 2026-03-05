@@ -20,10 +20,11 @@ import {
   limit,
   getDocs
 } from 'firebase/firestore';
-import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet, Sun, Moon, ArrowRight, Award, Timer, Users, Star } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet, Sun, Moon, ArrowRight, Award, Timer, Users, Star, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { QUIZ_DATA } from './quizData';
+import { getTodaysDailyQuestion, getTodayDateKey, DailyQuestion } from './dailyQuizData';
 
 // Type definitions for Ethereum provider
 interface EthereumProvider {
@@ -356,38 +357,134 @@ const LEARNING_CONTENT: Record<number, { title: string; points: string[]; code: 
 
 const MAX_FREE_ATTEMPTS = 2;
 
-// ✅ Daily JS Quiz Questions Pool (rotates by day)
-const DAILY_QUESTIONS = [
-  { q: 'What does `typeof null` return?', opts: ['"null"', '"object"', '"undefined"', '"boolean"'], ans: '"object"' },
-  { q: 'Which method converts JSON string to object?', opts: ['JSON.stringify()', 'JSON.parse()', 'JSON.convert()', 'JSON.objectify()'], ans: 'JSON.parse()' },
-  { q: 'What is `NaN === NaN`?', opts: ['true', 'false', 'undefined', 'Error'], ans: 'false' },
-  { q: 'What does `Array.isArray([])` return?', opts: ['true', 'false', 'undefined', '[]'], ans: 'true' },
-  { q: 'Which keyword declares a block-scoped variable?', opts: ['var', 'let', 'function', 'define'], ans: 'let' },
-  { q: 'What does `"5" + 3` evaluate to?', opts: ['8', '"53"', 'NaN', 'Error'], ans: '"53"' },
-  { q: 'What is the output of `!!""` ?', opts: ['true', 'false', '""', 'undefined'], ans: 'false' },
-  { q: 'Which method removes the last element of an array?', opts: ['.shift()', '.pop()', '.splice()', '.slice()'], ans: '.pop()' },
-  { q: 'What does `===` check?', opts: ['Value only', 'Type only', 'Value & Type', 'Reference'], ans: 'Value & Type' },
-  { q: 'What is a closure in JS?', opts: ['A loop', 'A function with access to outer scope', 'A class', 'An error handler'], ans: 'A function with access to outer scope' },
-  { q: 'What does `void 0` return?', opts: ['0', 'null', 'undefined', 'NaN'], ans: 'undefined' },
-  { q: 'Which is NOT a primitive type?', opts: ['string', 'number', 'object', 'boolean'], ans: 'object' },
-  { q: 'What does `[1,2,3].map(x => x*2)` return?', opts: ['[1,2,3]', '[2,4,6]', '[1,4,9]', 'undefined'], ans: '[2,4,6]' },
-  { q: '`const` prevents reassignment. Can you mutate the value?', opts: ['Yes for objects/arrays', 'No, never', 'Only strings', 'Only numbers'], ans: 'Yes for objects/arrays' },
-  { q: 'What is `Promise.all()` used for?', opts: ['Run promises sequentially', 'Run all promises in parallel', 'Cancel promises', 'Retry failed promises'], ans: 'Run all promises in parallel' },
-  { q: 'What does `this` refer to in an arrow function?', opts: ['The function itself', 'The caller', 'The enclosing scope', 'window always'], ans: 'The enclosing scope' },
-  { q: 'What is event bubbling?', opts: ['Events go from child to parent', 'Events go from parent to child', 'Events are cancelled', 'Events run twice'], ans: 'Events go from child to parent' },
-  { q: 'Which array method does NOT mutate the original?', opts: ['.push()', '.sort()', '.filter()', '.splice()'], ans: '.filter()' },
-  { q: 'What does `Object.keys({a:1, b:2})` return?', opts: ['[1, 2]', '["a", "b"]', '{a:1, b:2}', '["a":1, "b":2]'], ans: '["a", "b"]' },
-  { q: 'What is the default value of an uninitialized variable?', opts: ['null', '0', 'undefined', '""'], ans: 'undefined' },
-  { q: 'What does `setTimeout(() => {}, 0)` do?', opts: ['Runs immediately', 'Runs after current call stack', 'Never runs', 'Throws error'], ans: 'Runs after current call stack' },
-  { q: 'Which loop is best for iterating object properties?', opts: ['for', 'while', 'for...in', 'for...of'], ans: 'for...in' },
-  { q: 'What is `Symbol` used for?', opts: ['Math operations', 'Creating unique identifiers', 'String formatting', 'Class inheritance'], ans: 'Creating unique identifiers' },
-  { q: 'What does the spread operator `...` do?', opts: ['Copies elements', 'Deletes elements', 'Sorts elements', 'Filters elements'], ans: 'Copies elements' },
-  { q: 'What is `async/await` syntactic sugar for?', opts: ['Callbacks', 'Promises', 'Generators', 'Events'], ans: 'Promises' },
-  { q: 'What does `Array.from("hello")` return?', opts: ['"hello"', '["h","e","l","l","o"]', '5', 'Error'], ans: '["h","e","l","l","o"]' },
-  { q: 'Which is falsy in JS?', opts: ['"0"', '[]', '0', '{}'], ans: '0' },
-  { q: 'What is `Map` vs `Object` difference?', opts: ['Map has ordered keys', 'Object has ordered keys', 'No difference', 'Map only stores strings'], ans: 'Map has ordered keys' },
-  { q: 'What does `delete obj.key` do?', opts: ['Returns the value', 'Removes the property', 'Sets to null', 'Throws error'], ans: 'Removes the property' },
-  { q: 'What is `WeakRef` used for?', opts: ['Strong references', 'Weak references to objects', 'Memory leaks', 'Event handling'], ans: 'Weak references to objects' },
+// ✅ Daily JS Quiz — 120 NEW unique questions (Easy/Medium/Hard rotate daily)
+const DAILY_EASY = [
+  { q: 'What keyword creates a variable that can be reassigned?', opts: ['const', 'let', 'final', 'static'], ans: 'let' },
+  { q: 'How do you write a single-line comment in JS?', opts: ['<!-- -->', '/* */', '//', '#'], ans: '//' },
+  { q: 'What does `console.log()` do?', opts: ['Shows an alert', 'Prints to console', 'Writes to file', 'Sends email'], ans: 'Prints to console' },
+  { q: 'Which is a valid string?', opts: ['hello', '"hello"', 'hello()', '{hello}'], ans: '"hello"' },
+  { q: 'What type is `42`?', opts: ['string', 'number', 'boolean', 'object'], ans: 'number' },
+  { q: 'What does `true && false` return?', opts: ['true', 'false', 'null', 'undefined'], ans: 'false' },
+  { q: 'How to declare a function?', opts: ['func greet(){}', 'def greet(){}', 'function greet(){}', 'fn greet(){}'], ans: 'function greet(){}' },
+  { q: 'What is `5 > 3`?', opts: ['true', 'false', '5', '3'], ans: 'true' },
+  { q: 'Which creates an array?', opts: ['{}', '()', '[]', '<>'], ans: '[]' },
+  { q: 'What is `"hello".length`?', opts: ['4', '5', '6', 'error'], ans: '5' },
+  { q: 'Which operator adds two numbers?', opts: ['+', '&', '|', '~'], ans: '+' },
+  { q: 'What does `parseInt("10")` return?', opts: ['"10"', '10', 'NaN', 'null'], ans: '10' },
+  { q: 'What is `!true`?', opts: ['true', 'false', '1', '0'], ans: 'false' },
+  { q: 'How to access array first item?', opts: ['arr[0]', 'arr[1]', 'arr.first', 'arr.get(0)'], ans: 'arr[0]' },
+  { q: 'What is `typeof "hello"`?', opts: ['"string"', '"text"', '"char"', '"word"'], ans: '"string"' },
+  { q: 'What does `Math.round(4.6)` return?', opts: ['4', '5', '4.6', 'NaN'], ans: '5' },
+  { q: 'Which is a boolean value?', opts: ['"yes"', '0', 'true', 'null'], ans: 'true' },
+  { q: 'How to concatenate strings?', opts: ['+', '-', '*', '/'], ans: '+' },
+  { q: 'What is `10 % 3`?', opts: ['3', '1', '0', '10'], ans: '1' },
+  { q: 'Which method adds item to end of array?', opts: ['.push()', '.add()', '.append()', '.insert()'], ans: '.push()' },
+  { q: 'What is `null == undefined`?', opts: ['true', 'false', 'error', 'null'], ans: 'true' },
+  { q: 'How to write an if statement?', opts: ['if x > 5:', 'if (x > 5) {}', 'when x > 5 {}', 'check x > 5 {}'], ans: 'if (x > 5) {}' },
+  { q: 'What does `String(123)` return?', opts: ['123', '"123"', 'NaN', 'error'], ans: '"123"' },
+  { q: 'Which loops through array items?', opts: ['for...in', 'for...of', 'for...at', 'for...each'], ans: 'for...of' },
+  { q: 'What is `Math.max(1, 5, 3)`?', opts: ['1', '3', '5', '9'], ans: '5' },
+  { q: 'What does `.toUpperCase()` do?', opts: ['Lowercases', 'Uppercases', 'Reverses', 'Trims'], ans: 'Uppercases' },
+  { q: 'Which is NOT a data type?', opts: ['string', 'number', 'element', 'boolean'], ans: 'element' },
+  { q: 'What does `break` do in a loop?', opts: ['Skips iteration', 'Exits loop', 'Pauses loop', 'Restarts loop'], ans: 'Exits loop' },
+  { q: 'What is `Number("abc")`?', opts: ['0', 'abc', 'null', 'NaN'], ans: 'NaN' },
+  { q: 'What does `[1,2].includes(2)` return?', opts: ['true', 'false', '2', '1'], ans: 'true' },
+  { q: 'How to get current year?', opts: ['Date.year()', 'new Date().getFullYear()', 'Date.now().year', 'getYear()'], ans: 'new Date().getFullYear()' },
+  { q: 'Which converts string to number?', opts: ['Number()', 'String()', 'Boolean()', 'Array()'], ans: 'Number()' },
+  { q: 'What is `"ab" + "cd"`?', opts: ['"abcd"', '"ab cd"', 'NaN', 'error'], ans: '"abcd"' },
+  { q: 'What does `continue` do?', opts: ['Exits loop', 'Skips to next iteration', 'Pauses', 'Restarts'], ans: 'Skips to next iteration' },
+  { q: 'How do you check if x is an array?', opts: ['typeof x', 'x.isArray', 'Array.isArray(x)', 'x instanceof []'], ans: 'Array.isArray(x)' },
+  { q: 'What is `"5" * 2`?', opts: ['"52"', '10', 'NaN', 'error'], ans: '10' },
+  { q: 'What does `.trim()` remove?', opts: ['Spaces from start/end', 'All spaces', 'Special chars', 'Numbers'], ans: 'Spaces from start/end' },
+  { q: 'Which is an object?', opts: ['42', '"hi"', '{}', 'true'], ans: '{}' },
+  { q: 'What is `[3,1,2].sort()[0]`?', opts: ['3', '1', '2', 'undefined'], ans: '1' },
+  { q: 'How to write a template literal?', opts: ['"text"', "'text'", '`text`', '/text/'], ans: '`text`' },
+];
+
+const DAILY_MEDIUM = [
+  { q: 'What does `Object.freeze()` do?', opts: ['Copies object', 'Prevents modification', 'Deletes properties', 'Converts to array'], ans: 'Prevents modification' },
+  { q: 'What is a higher-order function?', opts: ['Uses loops', 'Takes/returns functions', 'Uses classes', 'Has many params'], ans: 'Takes/returns functions' },
+  { q: 'What does `Array.from({length:3})` create?', opts: ['[1,2,3]', '[undefined,undefined,undefined]', '[]', 'error'], ans: '[undefined,undefined,undefined]' },
+  { q: 'What is destructuring?', opts: ['Deleting objects', 'Extracting values from arrays/objects', 'Sorting data', 'Typeof check'], ans: 'Extracting values from arrays/objects' },
+  { q: 'What does `??` (nullish coalescing) do?', opts: ['OR operator', 'Returns right if left is null/undefined', 'Type check', 'AND operator'], ans: 'Returns right if left is null/undefined' },
+  { q: 'What is `Set` used for?', opts: ['Ordered list', 'Unique values collection', 'Key-value pairs', 'Queue'], ans: 'Unique values collection' },
+  { q: 'What does `?.` (optional chaining) prevent?', opts: ['Looping', 'Null reference errors', 'Type errors', 'Infinite recursion'], ans: 'Null reference errors' },
+  { q: 'What is `JSON.stringify()` output?', opts: ['Object', 'String', 'Array', 'Number'], ans: 'String' },
+  { q: 'What does `.reduce()` do?', opts: ['Filters array', 'Maps array', 'Accumulates to single value', 'Sorts array'], ans: 'Accumulates to single value' },
+  { q: 'What is `arguments` in a function?', opts: ['Array of params', 'Array-like of all args', 'First param', 'Return value'], ans: 'Array-like of all args' },
+  { q: 'What does `new Map()` create?', opts: ['Array', 'Object', 'Key-value collection', 'Set'], ans: 'Key-value collection' },
+  { q: 'What is `this` in a method?', opts: ['The function', 'The object owning method', 'Global scope', 'undefined'], ans: 'The object owning method' },
+  { q: 'What does `.findIndex()` return?', opts: ['Element', 'Index of first match', 'Boolean', 'New array'], ans: 'Index of first match' },
+  { q: 'What is a `WeakMap`?', opts: ['Map with string keys', 'Map with object keys, weakly held', 'Smaller Map', 'Readonly Map'], ans: 'Map with object keys, weakly held' },
+  { q: 'What does `structuredClone()` do?', opts: ['Shallow copy', 'Deep clone', 'Type check', 'Stringify'], ans: 'Deep clone' },
+  { q: 'What is `yield` used in?', opts: ['Promises', 'Generators', 'Classes', 'Loops'], ans: 'Generators' },
+  { q: 'What does `.flat()` do?', opts: ['Sorts array', 'Flattens nested arrays', 'Reverses', 'Removes duplicates'], ans: 'Flattens nested arrays' },
+  { q: 'What is `Symbol.iterator` for?', opts: ['Creating symbols', 'Making objects iterable', 'Math operations', 'Error handling'], ans: 'Making objects iterable' },
+  { q: 'What does `Object.entries()` return?', opts: ['Keys array', 'Values array', 'Array of [key, value] pairs', 'Object copy'], ans: 'Array of [key, value] pairs' },
+  { q: 'What is the event loop?', opts: ['A for loop', 'Mechanism that manages async execution', 'A timer', 'DOM event'], ans: 'Mechanism that manages async execution' },
+  { q: 'What does `Promise.race()` do?', opts: ['Runs all promises', 'Returns first settled promise', 'Cancels promises', 'Chains promises'], ans: 'Returns first settled promise' },
+  { q: 'What is `Object.assign()` used for?', opts: ['Deep copy', 'Shallow merge objects', 'Delete properties', 'Compare objects'], ans: 'Shallow merge objects' },
+  { q: 'What does `Number.isInteger(4.0)` return?', opts: ['true', 'false', '4', 'error'], ans: 'true' },
+  { q: 'What is `Proxy` used for?', opts: ['Network requests', 'Intercepting object operations', 'CSS styling', 'File I/O'], ans: 'Intercepting object operations' },
+  { q: 'What does `.every()` check?', opts: ['Any match', 'All elements pass test', 'First element', 'Last element'], ans: 'All elements pass test' },
+  { q: 'What is `AbortController` for?', opts: ['Stopping loops', 'Cancelling fetch requests', 'Error handling', 'DOM manipulation'], ans: 'Cancelling fetch requests' },
+  { q: 'What does `Intl.NumberFormat` do?', opts: ['Parses numbers', 'Formats numbers by locale', 'Math operations', 'Validates numbers'], ans: 'Formats numbers by locale' },
+  { q: 'What is a `WeakSet`?', opts: ['Set with weak object refs', 'Small Set', 'Immutable Set', 'Sorted Set'], ans: 'Set with weak object refs' },
+  { q: 'What does `.at(-1)` return?', opts: ['First element', 'Last element', '-1', 'undefined'], ans: 'Last element' },
+  { q: 'What is `queueMicrotask()` for?', opts: ['Scheduling macro task', 'Scheduling microtask', 'Creating queue', 'DOM update'], ans: 'Scheduling microtask' },
+  { q: 'What does `globalThis` refer to?', opts: ['Current function', 'Global object (any environment)', 'DOM', 'Module'], ans: 'Global object (any environment)' },
+  { q: 'What is `Reflect` API for?', opts: ['Mirrors', 'Interceptable object operations', 'CSS reflections', 'Testing'], ans: 'Interceptable object operations' },
+  { q: 'What does `.some()` check?', opts: ['All pass test', 'At least one passes test', 'None pass', 'Count matching'], ans: 'At least one passes test' },
+  { q: 'What is `import.meta` in modules?', opts: ['Module metadata', 'Import list', 'Export list', 'Package.json'], ans: 'Module metadata' },
+  { q: 'What does `Object.create(null)` make?', opts: ['Empty array', 'Object with no prototype', 'null', 'Error'], ans: 'Object with no prototype' },
+  { q: 'What is `Atomics` used for?', opts: ['Chemistry', 'Shared memory thread-safe ops', 'Small operations', 'CSS atoms'], ans: 'Shared memory thread-safe ops' },
+  { q: 'What does `.padStart(5, "0")` do to "42"?', opts: ['"42000"', '"00042"', '"42"', 'error'], ans: '"00042"' },
+  { q: 'What is `BigInt` for?', opts: ['Large fonts', 'Integers beyond Number.MAX_SAFE_INTEGER', 'Big arrays', 'Memory management'], ans: 'Integers beyond Number.MAX_SAFE_INTEGER' },
+  { q: 'What does `String.raw` do?', opts: ['Raw HTML', 'Template literal without escape processing', 'Remove formatting', 'Encode string'], ans: 'Template literal without escape processing' },
+  { q: 'What is `FinalizationRegistry` for?', opts: ['Cleanup callbacks when objects are garbage collected', 'Form validation', 'Final variables', 'Registry pattern'], ans: 'Cleanup callbacks when objects are garbage collected' },
+];
+
+const DAILY_HARD = [
+  { q: 'What is the temporal dead zone (TDZ)?', opts: ['Time between midnight', 'Period before let/const declaration where access throws', 'Timezone variable', 'Async delay'], ans: 'Period before let/const declaration where access throws' },
+  { q: 'What does `new.target` check?', opts: ['New objects', 'Whether function was called with new', 'Target element', 'Event target'], ans: 'Whether function was called with new' },
+  { q: 'What is tail call optimization?', opts: ['Optimizing arrays', 'Reusing stack frame for last function call', 'Removing dead code', 'Loop unrolling'], ans: 'Reusing stack frame for last function call' },
+  { q: 'What does `Symbol.toPrimitive` control?', opts: ['Symbol creation', 'How object converts to primitive', 'Type checking', 'Iterator protocol'], ans: 'How object converts to primitive' },
+  { q: 'What is `SharedArrayBuffer`?', opts: ['Shared UI buffer', 'Shared memory between threads', 'Array copy', 'Buffer stream'], ans: 'Shared memory between threads' },
+  { q: 'What happens with `(0, obj.method)()`?', opts: ['Same as obj.method()', 'Calls with global this', 'Error', 'Returns 0'], ans: 'Calls with global this' },
+  { q: 'What is a tagged template literal?', opts: ['HTML template', 'Function processing template strings', 'CSS tag', 'Label'], ans: 'Function processing template strings' },
+  { q: 'What does `Reflect.ownKeys()` include?', opts: ['Only strings', 'Strings + Symbols (all own)', 'Only enumerable', 'Inherited too'], ans: 'Strings + Symbols (all own)' },
+  { q: 'What is `Symbol.hasInstance` for?', opts: ['Checking symbols', 'Customizing instanceof behavior', 'Creating instances', 'Type narrowing'], ans: 'Customizing instanceof behavior' },
+  { q: 'What does `with` statement do (deprecated)?', opts: ['Async/await', 'Extends scope chain', 'Creates closure', 'Module import'], ans: 'Extends scope chain' },
+  { q: 'What is the difference between microtask and macrotask?', opts: ['No difference', 'Microtasks run before macrotasks per cycle', 'Macrotasks first', 'Alternating'], ans: 'Microtasks run before macrotasks per cycle' },
+  { q: 'What does `Object.getOwnPropertyDescriptors()` return?', opts: ['Property names', 'All own property descriptors', 'Prototype chain', 'Property values'], ans: 'All own property descriptors' },
+  { q: 'What is `Symbol.species` used for?', opts: ['Biology', 'Controlling constructor for derived objects', 'Unique IDs', 'Iteration'], ans: 'Controlling constructor for derived objects' },
+  { q: 'What does `void 0` reliably return?', opts: ['0', 'null', 'undefined (guaranteed)', 'NaN'], ans: 'undefined (guaranteed)' },
+  { q: 'What is the prototype chain?', opts: ['CSS chain', 'Linked list of objects for property lookup', 'Promise chain', 'Event chain'], ans: 'Linked list of objects for property lookup' },
+  { q: 'When does `finally` block NOT run?', opts: ['On error', 'On return', 'On process.exit()', 'Never skips'], ans: 'On process.exit()' },
+  { q: 'What is `eval()` dangerous for?', opts: ['Performance', 'Code injection attacks', 'Memory leaks', 'All of the above'], ans: 'All of the above' },
+  { q: 'What does `Object.is(NaN, NaN)` return?', opts: ['false', 'true', 'NaN', 'error'], ans: 'true' },
+  { q: 'What is a `Proxy` handler trap?', opts: ['Error handler', 'Method intercepting object operation', 'Try-catch', 'Event listener'], ans: 'Method intercepting object operation' },
+  { q: 'What does `Intl.Segmenter` do?', opts: ['Segments arrays', 'Locale-aware text segmentation', 'Number formatting', 'Date parsing'], ans: 'Locale-aware text segmentation' },
+  { q: 'What is hoisting for `var` vs `let`?', opts: ['Both hoist same way', 'var hoists with undefined, let has TDZ', 'Neither hoists', 'let hoists, var does not'], ans: 'var hoists with undefined, let has TDZ' },
+  { q: 'What does `AsyncGenerator` combine?', opts: ['Arrays + Objects', 'Generators + Promises (async iteration)', 'Classes + Modules', 'Events + Timers'], ans: 'Generators + Promises (async iteration)' },
+  { q: 'What is `import()` (dynamic import)?', opts: ['Static import', 'Runtime module loading returning Promise', 'CSS import', 'JSON import'], ans: 'Runtime module loading returning Promise' },
+  { q: 'What does `Proxy` revocable mean?', opts: ['Cannot be revoked', 'Proxy that can be permanently disabled', 'Auto-revokes', 'Revokes on error'], ans: 'Proxy that can be permanently disabled' },
+  { q: 'What is `Symbol.asyncIterator` for?', opts: ['Async symbols', 'Making objects async-iterable (for await)', 'Async loops only', 'Promise iteration'], ans: 'Making objects async-iterable (for await)' },
+  { q: 'What does `Atomics.wait()` do?', opts: ['Waits for DOM', 'Blocks thread until notified on shared memory', 'setTimeout', 'Async wait'], ans: 'Blocks thread until notified on shared memory' },
+  { q: 'What is the `#` prefix for in classes?', opts: ['Comments', 'Private class fields', 'ID selector', 'Decorators'], ans: 'Private class fields' },
+  { q: 'What does `using` declaration proposal do?', opts: ['Imports modules', 'Auto-disposes resources via Symbol.dispose', 'Creates variables', 'Type annotations'], ans: 'Auto-disposes resources via Symbol.dispose' },
+  { q: 'What is `structuredClone` limitation?', opts: ['Cannot clone arrays', 'Cannot clone functions', 'Cannot clone strings', 'Cannot clone numbers'], ans: 'Cannot clone functions' },
+  { q: 'What does `Error.cause` property do?', opts: ['Error code', 'Chains errors with original cause', 'Error name', 'Stack trace'], ans: 'Chains errors with original cause' },
+  { q: 'What is `Iterator.from()` proposal?', opts: ['Creates arrays', 'Creates iterator from iterable/iterator-like', 'For loops', 'Generator wrapper'], ans: 'Creates iterator from iterable/iterator-like' },
+  { q: 'What does `ArrayBuffer.transfer()` do?', opts: ['Copies buffer', 'Moves ownership of buffer memory', 'Resizes buffer', 'Deletes buffer'], ans: 'Moves ownership of buffer memory' },
+  { q: 'What is `WeakRef.deref()` for?', opts: ['Dereferences pointer', 'Gets object if not garbage collected, else undefined', 'Deletes ref', 'Creates weak copy'], ans: 'Gets object if not garbage collected, else undefined' },
+  { q: 'What does `Promise.allSettled` return?', opts: ['First resolved', 'All results (fulfilled/rejected)', 'Only fulfilled', 'Only rejected'], ans: 'All results (fulfilled/rejected)' },
+  { q: 'What is `Temporal` API for?', opts: ['Timers', 'Modern date/time replacement for Date', 'Animation timing', 'Async scheduling'], ans: 'Modern date/time replacement for Date' },
+  { q: 'What does label + break do? `outer: for...`', opts: ['Nothing', 'Breaks out of labeled outer loop', 'Labels variable', 'CSS label'], ans: 'Breaks out of labeled outer loop' },
+  { q: 'What is `in` operator for objects?', opts: ['Checks value exists', 'Checks if property name exists in object', 'Iterates', 'Deletes property'], ans: 'Checks if property name exists in object' },
+  { q: 'What does `Object.fromEntries()` do?', opts: ['Creates entries', 'Converts [key,val] pairs to object', 'Copies object', 'Validates entries'], ans: 'Converts [key,val] pairs to object' },
+  { q: 'What is `AggregateError`?', opts: ['Single error', 'Error wrapping multiple errors', 'Error count', 'Warning'], ans: 'Error wrapping multiple errors' },
+  { q: 'What does V8 hidden class optimization do?', opts: ['Hides classes', 'Optimizes property access with shape transitions', 'CSS class hiding', 'Minification'], ans: 'Optimizes property access with shape transitions' },
 ];
 
 export default function JSQuizApp() {
@@ -436,54 +533,30 @@ export default function JSQuizApp() {
   // Support payment state (after Level 1)
   const [supportStatus, setSupportStatus] = useState<'idle' | 'pending' | 'success' | 'skipped' | 'error'>('idle');
 
-  // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'quiz' | 'learn' | 'dashboard' | 'leaderboard' | 'daily'>('quiz');
-  const [learningLevel, setLearningLevel] = useState(1);
-
-  // Daily GM & Streak
-  const [streak, setStreak] = useState(0);
+  // 🔥 Daily GM & Streak State
+  const [dailyStreak, setDailyStreak] = useState(0);
   const [lastGmDate, setLastGmDate] = useState<string | null>(null);
   const [gmDoneToday, setGmDoneToday] = useState(false);
-  const [dailyQuizDone, setDailyQuizDone] = useState(false);
-  const [dailyQuizCorrect, setDailyQuizCorrect] = useState(false);
-  const [dailySelectedOpt, setDailySelectedOpt] = useState<string | null>(null);
-  const [streakBroken, setStreakBroken] = useState(false);
-  const [streakPaymentStatus, setStreakPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [showDailyQuiz, setShowDailyQuiz] = useState(false);
+  const [dailyQuizAnswer, setDailyQuizAnswer] = useState<string | null>(null);
+  const [dailyQuizResult, setDailyQuizResult] = useState<'correct' | 'wrong' | null>(null);
+  const [streakMissed, setStreakMissed] = useState(false);
+  const [streakRecoveryStatus, setStreakRecoveryStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [todayQuestion, setTodayQuestion] = useState<DailyQuestion | null>(null);
+
+  // Navigation tabs
+  const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard'>('quiz');
+  const [learningLevel, setLearningLevel] = useState(1);
 
   const contractAddedRef = useRef(false);
 
-  // Get today's date key
-  const getTodayKey = () => new Date().toISOString().split('T')[0];
-
-  // Get today's daily question (unique per date, no repeats for 130+ days)
-  const getDailyQuestion = () => {
-    const today = getTodayKey(); // e.g. "2026-03-05"
-    // Simple hash from date string for deterministic but unique daily pick
-    let hash = 0;
-    for (let i = 0; i < today.length; i++) {
-      hash = ((hash << 5) - hash) + today.charCodeAt(i);
-      hash |= 0;
-    }
-    hash = Math.abs(hash);
-
-    // Build combined pool: DAILY_QUESTIONS + all QUIZ_DATA questions
-    const quizPool = QUIZ_DATA.map(q => ({
-      q: q.question,
-      opts: q.options,
-      ans: q.answer
-    }));
-    const allQuestions = [...DAILY_QUESTIONS, ...quizPool];
-    return allQuestions[hash % allQuestions.length];
-  };
-
-  // --- Load theme preference from localStorage ---
+  // --- Load theme + streak from localStorage ---
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('quizTheme');
       if (savedTheme === 'light') setIsDarkMode(false);
       setThemeLoaded(true);
 
-      // Load attempts, scores, paid levels
       try {
         const savedAttempts = localStorage.getItem('quizAttempts');
         if (savedAttempts) setLevelAttempts(JSON.parse(savedAttempts));
@@ -491,31 +564,36 @@ export default function JSQuizApp() {
         if (savedScores) setLevelScores(JSON.parse(savedScores));
         const savedPaid = localStorage.getItem('quizPaidLevels');
         if (savedPaid) setPaidLevels(JSON.parse(savedPaid));
-
-        // Load streak data
-        const savedStreak = localStorage.getItem('jm_streak');
-        const savedLastGm = localStorage.getItem('jm_lastGm');
-        const savedDailyQuiz = localStorage.getItem('jm_dailyQuizDone');
-        const today = new Date().toISOString().split('T')[0];
-
-        if (savedStreak) setStreak(parseInt(savedStreak));
-        if (savedLastGm) {
-          setLastGmDate(savedLastGm);
-          if (savedLastGm === today) setGmDoneToday(true);
-          // Check if streak is broken (missed yesterday)
-          const lastDate = new Date(savedLastGm);
-          const todayDate = new Date(today);
-          const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / 86400000);
-          if (diffDays > 1 && parseInt(savedStreak || '0') > 0) {
-            setStreakBroken(true);
-          }
-        }
-        if (savedDailyQuiz === today) {
-          setDailyQuizDone(true);
-          const savedCorrect = localStorage.getItem('jm_dailyCorrect');
-          if (savedCorrect === 'true') setDailyQuizCorrect(true);
-        }
       } catch { }
+
+      // Load streak data
+      const today = getTodayDateKey();
+      const savedStreak = parseInt(localStorage.getItem('dailyStreak') || '0', 10);
+      const savedLastGm = localStorage.getItem('lastGmDate');
+      const savedDailyDone = localStorage.getItem('dailyQuizDone');
+
+      setDailyStreak(savedStreak);
+      if (savedLastGm) setLastGmDate(savedLastGm);
+
+      if (savedLastGm === today) {
+        setGmDoneToday(true);
+      } else if (savedLastGm && savedStreak > 0) {
+        const lastDate = new Date(savedLastGm);
+        const todayDate = new Date(today);
+        const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / 86400000);
+        if (diffDays > 1) {
+          setStreakMissed(true);
+        }
+      }
+
+      if (savedDailyDone === today) {
+        setDailyQuizAnswer('done');
+        const savedResult = localStorage.getItem('dailyQuizResult');
+        if (savedResult === 'correct') setDailyQuizResult('correct');
+        else if (savedResult === 'wrong') setDailyQuizResult('wrong');
+      }
+
+      setTodayQuestion(getTodaysDailyQuestion());
     }
   }, []);
 
@@ -1025,55 +1103,64 @@ export default function JSQuizApp() {
     '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
     (50000).toString(16).padStart(64, '0'); // 50000 = $0.05 USDC
 
-  // ✅ Handle Daily GM
+  // ✅ Handle Daily GM — opens daily quiz
   const handleGm = useCallback(() => {
-    const today = getTodayKey();
     if (gmDoneToday) return;
+    setShowDailyQuiz(true);
+  }, [gmDoneToday]);
 
-    const newStreak = streakBroken ? 0 : streak + 1;
-    setStreak(newStreak);
-    setLastGmDate(today);
-    setGmDoneToday(true);
-    setStreakBroken(false);
-
-    localStorage.setItem('jm_streak', newStreak.toString());
-    localStorage.setItem('jm_lastGm', today);
-
-    confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 }, colors: ['#FFD700', '#0052FF', '#10B981'] });
-  }, [gmDoneToday, streak, streakBroken]);
-
-  // ✅ Handle Daily Quiz Answer
+  // ✅ Handle Daily Quiz Answer (1 attempt only)
   const handleDailyAnswer = useCallback((opt: string) => {
-    if (dailyQuizDone) return;
-    const question = getDailyQuestion();
-    const isCorrect = opt === question.ans;
-    const today = getTodayKey();
+    if (dailyQuizAnswer) return; // already answered
+    if (!todayQuestion) return;
 
-    setDailySelectedOpt(opt);
-    setDailyQuizDone(true);
-    setDailyQuizCorrect(isCorrect);
+    const isCorrect = opt === todayQuestion.answer;
+    const today = getTodayDateKey();
 
-    localStorage.setItem('jm_dailyQuizDone', today);
-    localStorage.setItem('jm_dailyCorrect', isCorrect.toString());
+    setDailyQuizAnswer(opt);
+    setDailyQuizResult(isCorrect ? 'correct' : 'wrong');
+
+    localStorage.setItem('dailyQuizDone', today);
+    localStorage.setItem('dailyQuizResult', isCorrect ? 'correct' : 'wrong');
 
     if (isCorrect) {
-      // Streak continues, bonus points
-      confetti({ particleCount: 40, spread: 40, origin: { y: 0.6 }, colors: ['#10B981', '#0052FF'] });
+      // Streak continues!
+      const newStreak = dailyStreak + 1;
+      setDailyStreak(newStreak);
+      setLastGmDate(today);
+      setGmDoneToday(true);
+      setStreakMissed(false);
+      localStorage.setItem('dailyStreak', newStreak.toString());
+      localStorage.setItem('lastGmDate', today);
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#10B981', '#FFD700', '#0052FF'] });
+
+      // Sync with Firestore if connected
+      if (connectedAddress) {
+        updateLeaderboard(false);
+      }
     } else {
-      // Wrong answer = streak broken
-      setStreak(0);
-      localStorage.setItem('jm_streak', '0');
+      // Wrong = streak resets to zero
+      setDailyStreak(0);
+      setLastGmDate(today);
+      setGmDoneToday(true);
+      localStorage.setItem('dailyStreak', '0');
+      localStorage.setItem('lastGmDate', today);
+
+      // Sync with Firestore if connected
+      if (connectedAddress) {
+        updateLeaderboard(false);
+      }
     }
-  }, [dailyQuizDone]);
+  }, [dailyQuizAnswer, todayQuestion, dailyStreak, connectedAddress, updateLeaderboard]);
 
   // ✅ Handle Streak Restore Payment ($0.05 USDC)
   const handleStreakRestore = useCallback(async () => {
-    setStreakPaymentStatus('pending');
+    setStreakRecoveryStatus('pending');
     try {
       const provider = getWalletProvider();
-      if (!provider) { setStreakPaymentStatus('error'); return; }
+      if (!provider) { setStreakRecoveryStatus('error'); return; }
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
-      if (!accounts || accounts.length === 0) { setStreakPaymentStatus('error'); return; }
+      if (!accounts || accounts.length === 0) { setStreakRecoveryStatus('error'); return; }
       const account = accounts[0];
       setConnectedAddress(account);
 
@@ -1092,18 +1179,15 @@ export default function JSQuizApp() {
       });
 
       if (txHash) {
-        setStreakPaymentStatus('success');
-        setStreakBroken(false);
-        // Restore streak (keep old value)
-        const savedStreak = localStorage.getItem('jm_streak');
-        const restoredStreak = parseInt(savedStreak || '0');
-        setStreak(restoredStreak);
+        setStreakRecoveryStatus('success');
+        setStreakMissed(false);
+        // Keep old streak value restored
       } else {
-        setStreakPaymentStatus('error');
+        setStreakRecoveryStatus('error');
       }
     } catch (err) {
       console.error('Streak restore error:', err);
-      setStreakPaymentStatus('idle');
+      setStreakRecoveryStatus('idle');
     }
   }, [STREAK_USDC_DATA, USDC_BASE]);
 
@@ -1117,6 +1201,7 @@ export default function JSQuizApp() {
         basename: basename,
         totalPoints: totalPoints,
         highestLevel: globalStats.highestLevel,
+        streak: dailyStreak,
         isPaid: isPaid,
         lastUpdated: new Date().toISOString()
       }, { merge: true });
@@ -1403,24 +1488,34 @@ export default function JSQuizApp() {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:py-20">
-        {/* Header */}
+        {/* Header - Responsive Layout */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-16"
+          className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 sm:mb-16"
         >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-premium rounded-2xl shadow-lg shadow-primary/20">
-              <Trophy className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 sm:p-3 bg-gradient-premium rounded-2xl shadow-lg shadow-primary/20">
+                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none">JAZZ<span className="text-primary italic">MINI</span></h1>
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest opacity-50">v2.0 Premium Experience</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight leading-none">JAZZ<span className="text-primary italic">MINI</span></h1>
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">v2.0 Premium Experience</p>
-            </div>
+
+            {/* Mobile-only Theme Toggle */}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="sm:hidden p-2.5 glass-card rounded-xl"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <nav className="hidden sm:flex items-center glass-card p-1 rounded-2xl mr-2">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
+            <nav className="flex items-center glass-card p-1 rounded-2xl overflow-x-auto no-scrollbar max-w-[calc(100vw-48px)] sm:max-w-none">
               {(['quiz', 'daily', 'learn', 'dashboard', 'leaderboard'] as const).map((tab) => (
                 <button
                   key={tab}
@@ -1428,7 +1523,7 @@ export default function JSQuizApp() {
                     setActiveTab(tab);
                     setQuizState('start');
                   }}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab
                     ? 'bg-primary text-white shadow-lg'
                     : 'text-slate-500 hover:text-primary'
                     }`}
@@ -1438,62 +1533,55 @@ export default function JSQuizApp() {
               ))}
             </nav>
 
-            {/* 🔥 Professional Connect Wallet Button in Header */}
-            {connectedAddress ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 cursor-default"
-              >
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <span className="font-mono text-xs font-bold text-emerald-400 hidden sm:block">
-                  {basename || `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`}
-                </span>
-                <Award className="w-4 h-4 text-emerald-400 sm:hidden" />
-              </motion.div>
-            ) : (
-              <motion.button
-                onClick={connectWallet}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-premium text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:shadow-xl transition-all group"
-              >
-                <Wallet className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                <span className="hidden sm:inline">Connect Wallet</span>
-                <span className="sm:hidden">Connect</span>
-              </motion.button>
-            )}
+            <div className="hidden sm:flex items-center gap-3">
+              {connectedAddress ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10"
+                >
+                  <span className="font-mono text-xs font-bold text-emerald-400">
+                    {basename || `${connectedAddress.slice(0, 6)}...`}
+                  </span>
+                </motion.div>
+              ) : (
+                <button
+                  onClick={connectWallet}
+                  className="px-4 py-2.5 rounded-2xl bg-gradient-premium text-white text-xs font-black uppercase tracking-widest"
+                >
+                  Connect
+                </button>
+              )}
 
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-3 glass-card hover:bg-primary/10 hover:text-primary rounded-2xl transition-all"
-            >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="p-3 glass-card hover:bg-primary/10 rounded-2xl transition-all"
+              >
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
         </motion.div>
 
-        {/* Navigation for Mobile */}
-        <div className="flex sm:hidden justify-center mb-8 gap-2">
-          {(['quiz', 'daily', 'learn', 'dashboard', 'leaderboard'] as const).map((tab) => (
+        {/* Wallet Support for Mobile */}
+        {!connectedAddress && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="sm:hidden mb-8 p-4 glass-card border-primary/20 bg-primary/5 flex items-center justify-between gap-4"
+          >
+            <div className="flex-1">
+              <p className="text-[10px] font-black uppercase text-primary tracking-widest">Web3 Gaming</p>
+              <p className="text-xs font-bold">Connect to save progress</p>
+            </div>
             <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setQuizState('start');
-              }}
-              className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all ${activeTab === tab
-                ? 'bg-primary text-white'
-                : 'glass-card text-slate-500'
-                }`}
+              onClick={connectWallet}
+              className="px-4 py-2 bg-primary text-white text-[10px] font-black uppercase rounded-xl"
             >
-              {tab}
+              Connect
             </button>
-          ))}
-        </div>
+          </motion.div>
+        )}
 
         {activeTab === 'quiz' && quizState === 'start' && (
           <motion.div
@@ -1564,10 +1652,10 @@ export default function JSQuizApp() {
               )}
             </motion.div>
 
-            {/* Level Grid */}
+            {/* Level Grid - Optimized for Mobile */}
             <div className="space-y-4 pt-4">
-              <h3 className={`text-sm font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Level Selection</h3>
-              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+              <h3 className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Level Selection</h3>
+              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 sm:gap-3">
                 {[...Array(TOTAL_LEVELS)].map((_, i) => {
                   const level = i + 1;
                   const unlocked = level <= globalStats.highestLevel;
@@ -1621,19 +1709,19 @@ export default function JSQuizApp() {
             {/* 🔥 Streak Display */}
             <div className="glass-card p-6 text-center space-y-3">
               <div className="flex items-center justify-center gap-3">
-                <span className="text-4xl">🔥</span>
+                <Flame className={`w-10 h-10 ${dailyStreak > 0 ? 'text-amber-500 animate-pulse' : 'text-slate-600'}`} />
                 <div>
-                  <p className="text-5xl font-black text-amber-500">{streak}</p>
+                  <p className="text-5xl font-black text-amber-500">{dailyStreak}</p>
                   <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Day Streak</p>
                 </div>
               </div>
               {lastGmDate && (
-                <p className="text-[10px] text-slate-500 font-mono">Last GM: {lastGmDate}</p>
+                <p className="text-[10px] text-slate-500 font-mono italic opacity-50">Last GM: {lastGmDate}</p>
               )}
             </div>
 
-            {/* ⚠️ Streak Broken Warning */}
-            {streakBroken && streakPaymentStatus !== 'success' && (
+            {/* ⚠️ Streak Missed Warning */}
+            {streakMissed && streakRecoveryStatus !== 'success' && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -1641,9 +1729,9 @@ export default function JSQuizApp() {
               >
                 <div className="text-3xl">💔</div>
                 <div>
-                  <p className="font-black text-rose-500 uppercase tracking-widest text-sm">Streak Broken!</p>
+                  <p className="font-black text-rose-500 uppercase tracking-widest text-sm">Streak Missed!</p>
                   <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                    You missed a day! Pay <span className="text-amber-400 font-black">$0.05 USDC</span> to restore your streak, or it resets to 0.
+                    You missed a day! Pay <span className="text-amber-400 font-black">$0.05 USDC</span> to restore your steak, or it resets to 0.
                   </p>
                 </div>
 
@@ -1651,17 +1739,14 @@ export default function JSQuizApp() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleStreakRestore}
-                  disabled={streakPaymentStatus === 'pending'}
-                  className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg ${streakPaymentStatus === 'pending'
+                  disabled={streakRecoveryStatus === 'pending'}
+                  className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg ${streakRecoveryStatus === 'pending'
                     ? 'bg-rose-500/50 cursor-not-allowed'
                     : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:shadow-rose-500/40'
                     }`}
                 >
-                  {streakPaymentStatus === 'pending' ? (
-                    <>
-                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                      Confirming...
-                    </>
+                  {streakRecoveryStatus === 'pending' ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
                       <Wallet className="w-5 h-5" />
@@ -1672,131 +1757,62 @@ export default function JSQuizApp() {
 
                 <button
                   onClick={() => {
-                    setStreakBroken(false);
-                    setStreak(0);
-                    localStorage.setItem('jm_streak', '0');
+                    setStreakMissed(false);
+                    setDailyStreak(0);
+                    localStorage.setItem('dailyStreak', '0');
                   }}
-                  className="w-full py-2 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-rose-400 transition-all"
+                  className="w-full py-2 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-rose-400 transition-all underline underline-offset-4"
                 >
-                  Accept Reset (Streak → 0)
+                  No thanks, reset my streak
                 </button>
               </motion.div>
             )}
 
-            {streakPaymentStatus === 'success' && (
+            {streakRecoveryStatus === 'success' && (
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                <p className="text-xs font-bold text-emerald-500">✅ Streak Restored! Keep going!</p>
+                <p className="text-xs font-bold text-emerald-500">✅ Streak Restored! Don't miss again! 🔥</p>
               </div>
             )}
 
             {/* 🌅 GM Button */}
-            <div className="glass-card p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🌅</span>
-                <div>
-                  <p className="font-black text-sm uppercase tracking-widest">Daily GM</p>
-                  <p className={`text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Check in daily to keep your streak alive</p>
+            {!gmDoneToday && (
+              <div className="glass-card p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Sun className="w-6 h-6 text-amber-500" />
+                  <div>
+                    <p className="font-black text-sm uppercase tracking-widest">Daily GM</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Punch in for the day</p>
+                  </div>
                 </div>
-              </div>
 
-              {gmDoneToday ? (
-                <div className="py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                  <p className="text-lg font-black text-emerald-500">✅ GM Done Today!</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Come back tomorrow for Day {streak + 1}</p>
-                </div>
-              ) : (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleGm}
-                  disabled={streakBroken}
-                  className={`w-full py-5 rounded-xl text-white font-black text-xl flex items-center justify-center gap-3 shadow-lg transition-all ${streakBroken
-                    ? 'bg-slate-500/30 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-amber-500/40'
-                    }`}
+                  className="w-full py-5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xl flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20"
                 >
                   ☀️ Send GM
                 </motion.button>
-              )}
-            </div>
-
-            {/* 📝 Daily JS Quiz (1 question, 1 attempt) */}
-            <div className="glass-card overflow-hidden">
-              <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-primary" />
-                  <h3 className="font-black uppercase tracking-widest text-xs">Daily JS Challenge</h3>
-                </div>
-                <span className="text-[10px] font-mono text-slate-500">1 Attempt Only</span>
               </div>
+            )}
 
-              <div className="p-6 space-y-5">
-                {(() => {
-                  const dq = getDailyQuestion();
-                  return (
-                    <>
-                      <p className={`text-lg font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                        {dq.q}
-                      </p>
-
-                      <div className="grid grid-cols-1 gap-2">
-                        {dq.opts.map((opt, i) => {
-                          const isCorrect = opt === dq.ans;
-                          const isSelected = opt === dailySelectedOpt;
-                          const answered = dailyQuizDone;
-
-                          let btnClass = 'glass-card hover:bg-white/5';
-                          if (answered) {
-                            if (isCorrect) btnClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
-                            else if (isSelected) btnClass = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
-                            else btnClass = 'opacity-30';
-                          }
-
-                          return (
-                            <motion.button
-                              key={i}
-                              whileHover={!answered ? { scale: 1.01 } : {}}
-                              whileTap={!answered ? { scale: 0.99 } : {}}
-                              onClick={() => handleDailyAnswer(opt)}
-                              disabled={answered}
-                              className={`p-4 rounded-xl border text-left font-bold text-sm transition-all flex justify-between items-center ${btnClass}`}
-                            >
-                              <span>{opt}</span>
-                              {answered && isCorrect && <CheckCircle className="w-5 h-5 text-emerald-500" />}
-                              {answered && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-rose-500" />}
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-
-                      {dailyQuizDone && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`p-4 rounded-xl text-center ${dailyQuizCorrect
-                            ? 'bg-emerald-500/10 border border-emerald-500/20'
-                            : 'bg-rose-500/10 border border-rose-500/20'
-                            }`}
-                        >
-                          {dailyQuizCorrect ? (
-                            <p className="text-sm font-bold text-emerald-500">🎯 Correct! Streak continues! 🔥</p>
-                          ) : (
-                            <p className="text-sm font-bold text-rose-500">❌ Wrong! Streak reset to 0.</p>
-                          )}
-                        </motion.div>
-                      )}
-                    </>
-                  );
-                })()}
+            {gmDoneToday && (
+              <div className="py-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-2">
+                <p className="text-2xl font-black text-emerald-500 flex items-center justify-center gap-2">
+                  <CheckCircle className="w-6 h-6" /> GM Complete!
+                </p>
+                <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Come back tomorrow for Day {dailyStreak + 1}</p>
               </div>
-            </div>
+            )}
 
-            {/* Info */}
-            <div className={`text-center space-y-1 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-              <p className="text-[10px] uppercase font-bold tracking-widest">How Streaks Work</p>
-              <p className="text-[10px]">✅ GM daily + correct quiz = streak grows</p>
-              <p className="text-[10px]">❌ Wrong answer = streak resets to 0</p>
-              <p className="text-[10px]">⏰ Miss a day = pay $0.05 USDC or streak resets</p>
+            {/* Daily Stats Info */}
+            <div className={`p-4 rounded-xl border border-dashed text-center space-y-1 ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-black/10 text-slate-400'}`}>
+              <p className="text-[10px] uppercase font-black tracking-widest">The Daily Loop</p>
+              <p className="text-[10px] leading-relaxed">
+                1. GM to unlock Daily Quiz<br />
+                2. One chance to answer correctly<br />
+                3. Success = Streak grows 🔥 • Fail = Reset to 0 💔
+              </p>
             </div>
           </motion.div>
         )}
@@ -2039,8 +2055,14 @@ export default function JSQuizApp() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-lg font-black ${leaderboardTab === 'elite' ? 'text-amber-400' : 'text-emerald-500'}`}>{player.totalPoints} pts</p>
-                        <p className="text-[9px] text-slate-600 font-mono italic">
+                        <p className={`text-lg font-black ${leaderboardTab === 'elite' ? 'text-amber-400' : 'text-emerald-500'}`}>
+                          {player.totalPoints} pts
+                        </p>
+                        <div className="flex items-center gap-1 justify-end">
+                          <Flame className="w-3 h-3 text-orange-500" />
+                          <span className="text-[10px] font-mono text-slate-500">{player.streak || 0}d</span>
+                        </div>
+                        <p className="text-[9px] text-slate-600 font-mono italic mt-1">
                           {player.lastUpdated ? new Date(player.lastUpdated).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
@@ -2060,6 +2082,96 @@ export default function JSQuizApp() {
             </p>
           </motion.div>
         )}
+
+        {/* 📝 Daily Quiz Modal Overlay */}
+        <AnimatePresence>
+          {showDailyQuiz && todayQuestion && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="glass-card max-w-md w-full p-6 sm:p-8 space-y-6 relative overflow-hidden m-2"
+              >
+                {/* Decoration */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-2xl font-black text-primary uppercase">Daily Challenge</h3>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Answer correctly to keep your streak!</p>
+                  </div>
+                  <button
+                    onClick={() => setShowDailyQuiz(false)}
+                    className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                  >
+                    <XCircle className="w-6 h-6 text-slate-500" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-lg font-bold text-white leading-tight">
+                    {todayQuestion.question}
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    {todayQuestion.options.map((opt, i) => {
+                      const isCorrect = opt === todayQuestion.answer;
+                      const isSelected = opt === dailyQuizAnswer;
+                      const answered = !!dailyQuizAnswer;
+
+                      let btnClass = 'glass-card border-white/5 hover:border-primary/50';
+                      if (answered) {
+                        if (isCorrect) btnClass = 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]';
+                        else if (isSelected) btnClass = 'bg-rose-500/20 border-rose-500 text-rose-400';
+                        else btnClass = 'opacity-40 grayscale';
+                      }
+
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleDailyAnswer(opt)}
+                          disabled={answered}
+                          className={`p-4 rounded-xl border text-left font-bold text-sm transition-all flex justify-between items-center ${btnClass}`}
+                        >
+                          <span>{opt}</span>
+                          {answered && isCorrect && <CheckCircle className="w-4 h-4" />}
+                          {answered && isSelected && !isCorrect && <XCircle className="w-4 h-4" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {dailyQuizAnswer && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className={`p-4 rounded-xl space-y-2 ${dailyQuizResult === 'correct' ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-rose-500/10 border border-rose-500/20'}`}
+                  >
+                    <p className={`text-sm font-black uppercase tracking-widest ${dailyQuizResult === 'correct' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {dailyQuizResult === 'correct' ? '🎯 Perfect! Streak Saved' : '❌ Wrong Answer'}
+                    </p>
+                    <p className="text-xs text-slate-400 leading-relaxed italic">
+                      "{todayQuestion.explanation}"
+                    </p>
+                    <button
+                      onClick={() => setShowDailyQuiz(false)}
+                      className="w-full mt-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black uppercase tracking-widest transition-all"
+                    >
+                      Close Arena
+                    </button>
+                  </motion.div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {quizState === 'in_progress' && currentQuestion && (
