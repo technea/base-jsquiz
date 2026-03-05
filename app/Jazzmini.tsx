@@ -371,6 +371,7 @@ export default function JSQuizApp() {
 
   // Wallet connection state
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  const [basename, setBasename] = useState<string | null>(null);
   const [availableWallets, setAvailableWallets] = useState<string[]>([]);
   const [walletError, setWalletError] = useState<string | null>(null);
 
@@ -533,6 +534,36 @@ export default function JSQuizApp() {
       } catch (e) { }
     };
   }, []);
+
+  // ✅ NEW: Fetch Basename (ENS on Base) for the connected address
+  useEffect(() => {
+    const fetchBasename = async () => {
+      if (!connectedAddress) {
+        setBasename(null);
+        return;
+      }
+
+      try {
+        // Basenames use the ENS architecture on Base. 
+        // We use the Blockscout API as a reliable L2 resolver proxy for miniapps.
+        const response = await fetch(`https://base.blockscout.com/api/v2/addresses/${connectedAddress}/names`);
+        const data = await response.json();
+
+        if (data && data.items && data.items.length > 0) {
+          // Look for a name ending in .base
+          const baseNameItem = data.items.find((item: any) => item.name.endsWith('.base'));
+          if (baseNameItem) {
+            setBasename(baseNameItem.name);
+            console.log('Basename found:', baseNameItem.name);
+          }
+        }
+      } catch (error) {
+        console.log('Error fetching Basename:', error);
+      }
+    };
+
+    fetchBasename();
+  }, [connectedAddress]);
 
   // --- Global Stats Listener ---
   useEffect(() => {
@@ -1113,7 +1144,7 @@ export default function JSQuizApp() {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
                 <span className="font-mono text-xs font-bold text-emerald-400 hidden sm:block">
-                  {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
+                  {basename || `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`}
                 </span>
                 <Award className="w-4 h-4 text-emerald-400 sm:hidden" />
               </motion.div>
@@ -1206,7 +1237,7 @@ export default function JSQuizApp() {
               {connectedAddress ? (
                 <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                   <div>
-                    <p className="text-sm font-bold text-emerald-500">Connected</p>
+                    <p className="text-sm font-bold text-emerald-500">{basename || 'Connected'}</p>
                     <p className="font-mono text-xs opacity-70">{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
                   </div>
                   <Award className="text-emerald-500 w-5 h-5" />
