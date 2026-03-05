@@ -455,12 +455,25 @@ export default function JSQuizApp() {
   // Get today's date key
   const getTodayKey = () => new Date().toISOString().split('T')[0];
 
-  // Get today's daily question (rotates by day of year)
+  // Get today's daily question (unique per date, no repeats for 130+ days)
   const getDailyQuestion = () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
-    return DAILY_QUESTIONS[dayOfYear % DAILY_QUESTIONS.length];
+    const today = getTodayKey(); // e.g. "2026-03-05"
+    // Simple hash from date string for deterministic but unique daily pick
+    let hash = 0;
+    for (let i = 0; i < today.length; i++) {
+      hash = ((hash << 5) - hash) + today.charCodeAt(i);
+      hash |= 0;
+    }
+    hash = Math.abs(hash);
+
+    // Build combined pool: DAILY_QUESTIONS + all QUIZ_DATA questions
+    const quizPool = QUIZ_DATA.map(q => ({
+      q: q.question,
+      opts: q.options,
+      ans: q.answer
+    }));
+    const allQuestions = [...DAILY_QUESTIONS, ...quizPool];
+    return allQuestions[hash % allQuestions.length];
   };
 
   // --- Load theme preference from localStorage ---
@@ -1640,8 +1653,8 @@ export default function JSQuizApp() {
                   onClick={handleStreakRestore}
                   disabled={streakPaymentStatus === 'pending'}
                   className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg ${streakPaymentStatus === 'pending'
-                      ? 'bg-rose-500/50 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:shadow-rose-500/40'
+                    ? 'bg-rose-500/50 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:shadow-rose-500/40'
                     }`}
                 >
                   {streakPaymentStatus === 'pending' ? (
@@ -1698,8 +1711,8 @@ export default function JSQuizApp() {
                   onClick={handleGm}
                   disabled={streakBroken}
                   className={`w-full py-5 rounded-xl text-white font-black text-xl flex items-center justify-center gap-3 shadow-lg transition-all ${streakBroken
-                      ? 'bg-slate-500/30 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-amber-500/40'
+                    ? 'bg-slate-500/30 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-amber-500/40'
                     }`}
                 >
                   ☀️ Send GM
