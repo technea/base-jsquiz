@@ -874,6 +874,7 @@ export default function JSQuizApp() {
         });
         setAutoProgressing(true);
         await userCompleteLevel(earnedPoints); // Save points on-chain
+        await updateLeaderboard(); // Auto-update leaderboard for every user
       }
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
@@ -1918,83 +1919,24 @@ export default function JSQuizApp() {
                   )}
 
                   <div className="flex flex-col gap-3">
-                    {/* Pay $0.03 USDC per level to get on Leaderboard */}
-                    {levelPassed && supportStatus !== 'success' && supportStatus !== 'skipped' ? (
-                      <>
-                        <div className="p-4 rounded-2xl border border-[#0052FF]/20 bg-[#0052FF]/5 text-center space-y-2">
-                          <p className="text-xs font-black text-[#0052FF] uppercase tracking-widest">Get on the Leaderboard</p>
-                          <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Pay $0.03 USDC to get your score listed on the Global Leaderboard! Skipping means no leaderboard entry.</p>
-                        </div>
+                    {!txStatus || txStatus.includes('❌') ? (
+                      <button
+                        onClick={() => userCompleteLevel(score)}
+                        className="w-full py-4 bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:from-[#0038B2] hover:to-[#002A80] text-white font-bold rounded-xl shadow-lg shadow-[#0052FF]/30 flex items-center justify-center gap-2 transition-all"
+                      >
+                        <Zap className="w-5 h-5" />
+                        Sync Score on Base
+                      </button>
+                    ) : null}
 
-                        <motion.button
-                          whileHover={supportStatus !== 'pending' ? { scale: 1.02 } : {}}
-                          whileTap={supportStatus !== 'pending' ? { scale: 0.98 } : {}}
-                          onClick={handleSupportPayment}
-                          disabled={supportStatus === 'pending'}
-                          className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 transition-all shadow-lg ${supportStatus === 'pending'
-                            ? 'bg-[#0052FF]/50 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:shadow-[#0052FF]/40 hover:shadow-xl'
-                            }`}
-                        >
-                          {supportStatus === 'pending' ? (
-                            <>
-                              <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                              />
-                              Confirming in Wallet...
-                            </>
-                          ) : (
-                            <>
-                              <Wallet className="w-5 h-5" />
-                              Pay $0.03 USDC & Join Leaderboard
-                            </>
-                          )}
-                        </motion.button>
-
-                        <button
-                          onClick={() => {
-                            setSupportStatus('skipped');
-                            if (currentLevel < TOTAL_LEVELS) {
-                              setTimeout(() => startQuiz(currentLevel + 1), 500);
-                            }
-                          }}
-                          disabled={supportStatus === 'pending'}
-                          className="w-full py-3 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-[#0052FF] transition-all disabled:opacity-40"
-                        >
-                          Skip — No Leaderboard →
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {/* Normal flow for other levels or after support decision */}
-                        {supportStatus === 'success' && (
-                          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                            <p className="text-xs font-bold text-emerald-500">🎉 Payment confirmed! You are now on the Global Leaderboard!</p>
-                          </div>
-                        )}
-
-                        {!txStatus || txStatus.includes('❌') ? (
-                          <button
-                            onClick={() => userCompleteLevel(score)}
-                            className="w-full py-4 bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:from-[#0038B2] hover:to-[#002A80] text-white font-bold rounded-xl shadow-lg shadow-[#0052FF]/30 flex items-center justify-center gap-2 transition-all"
-                          >
-                            <Zap className="w-5 h-5" />
-                            Sync Score on Base
-                          </button>
-                        ) : null}
-
-                        {currentLevel < TOTAL_LEVELS && (
-                          <button
-                            onClick={() => startQuiz(currentLevel + 1)}
-                            className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all group"
-                          >
-                            Ascend to Level {currentLevel + 1}
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                          </button>
-                        )}
-                      </>
+                    {currentLevel < TOTAL_LEVELS && (
+                      <button
+                        onClick={() => startQuiz(currentLevel + 1)}
+                        className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all group"
+                      >
+                        Ascend to Level {currentLevel + 1}
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </button>
                     )}
                   </div>
                 </>
