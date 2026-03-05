@@ -12,9 +12,14 @@ import {
   doc,
   setDoc,
   onSnapshot,
-  Firestore
+  Firestore,
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs
 } from 'firebase/firestore';
-import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet, Sun, Moon, ArrowRight, Award, Timer } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet, Sun, Moon, ArrowRight, Award, Timer, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { QUIZ_DATA } from './quizData';
@@ -354,6 +359,7 @@ export default function JSQuizApp() {
   const [db, setDb] = useState<Firestore | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [globalStats, setGlobalStats] = useState<GlobalStats>({ maxScore: 0, highestLevel: 1 });
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [authReady, setAuthReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [themeLoaded, setThemeLoaded] = useState(false);
@@ -580,6 +586,30 @@ export default function JSQuizApp() {
     return () => unsubscribe();
   }, [authReady, db]);
 
+  // ✅ NEW: Fetch Global Leaderboard (Top 5)
+  useEffect(() => {
+    if (!db) return;
+
+    const fetchLeaderboard = async () => {
+      try {
+        const lbQuery = query(
+          collection(db, 'leaderboard'),
+          orderBy('totalPoints', 'desc'),
+          limit(5)
+        );
+        const snapshot = await getDocs(lbQuery);
+        const data = snapshot.docs.map(doc => doc.data());
+        setLeaderboard(data);
+      } catch (err) {
+        console.error('Leaderboard fetch error:', err);
+      }
+    };
+
+    fetchLeaderboard();
+    // Re-fetch when entering dashboard
+    if (activeTab === 'dashboard') fetchLeaderboard();
+  }, [db, activeTab]);
+
   const levelQuestions = useMemo(() => QUIZ_DATA.filter(q => q.level === currentLevel), [currentLevel]);
   const currentQuestion = levelQuestions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === levelQuestions.length - 1;
@@ -750,6 +780,18 @@ export default function JSQuizApp() {
           setTxStatus('❌ Transaction failed: Invalid response from wallet');
           setAutoProgressing(false);
           return;
+        }
+
+        // Sync with Firestore (Global Leaderboard)
+        if (db && account) {
+          const totalPoints = Object.values(levelScores).reduce((a, b) => a + b, 0) + (activeScore > (levelScores[currentLevel] || 0) ? (activeScore - (levelScores[currentLevel] || 0)) : 0);
+          await setDoc(doc(db, 'leaderboard', account.toLowerCase()), {
+            address: account,
+            basename: basename,
+            totalPoints: totalPoints,
+            highestLevel: Math.max(globalStats.highestLevel, currentLevel),
+            lastUpdated: new Date().toISOString()
+          }, { merge: true });
         }
 
         setTxStatus(`🚀 Transaction sent! Hash: ${txHash.slice(0, 10)}...`);
@@ -1417,6 +1459,39 @@ export default function JSQuizApp() {
             animate={{ opacity: 1, scale: 1 }}
             className="space-y-8"
           >
+            {/* 🏆 Global Leaderboard Section */}
+            <div className="glass-card overflow-hidden">
+              <div className="p-4 border-b border-[#0052FF]/20 bg-gradient-to-r from-[#0052FF]/5 to-transparent flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <h3 className="font-black uppercase tracking-widest text-xs">Global Arena Top Picks</h3>
+                </div>
+                <Users className="w-4 h-4 text-[#0052FF]" />
+              </div>
+              <div className="divide-y divide-white/5">
+                {leaderboard.length > 0 ? leaderboard.map((player, idx) => (
+                  <div key={idx} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <span className={`w-6 text-center font-black ${idx === 0 ? 'text-amber-500' : 'text-slate-500'}`}>
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-white">{player.basename || `${player.address.slice(0, 6)}...${player.address.slice(-4)}`}</p>
+                        <p className="text-[10px] text-slate-500 font-mono">Expertise: Level {player.highestLevel}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-black text-emerald-500">{player.totalPoints} pts</p>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="p-8 text-center text-slate-500 text-xs italic">
+                    Loading champions...
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-6 glass-card text-center space-y-1">
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Mastery Level</p>
