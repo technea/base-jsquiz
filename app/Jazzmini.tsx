@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
@@ -159,56 +159,178 @@ const LEVEL_TOPICS = [
   'Advanced Concepts', 'Expert Topics'
 ];
 
-const LEARNING_CONTENT: Record<number, { title: string; points: string[] }[]> = {
+const LEVEL_ICONS = ['🟡', '🔧', '📦', '🗂️', '⏳', '🖥️', '🛡️', '🏛️', '🧠', '🚀'];
+
+const LEARNING_CONTENT: Record<number, { title: string; points: string[]; code: string }[]> = {
   1: [
-    { title: 'var vs let vs const', points: ['`var` is function-scoped and hoisted', '`let` is block-scoped, can be reassigned', '`const` is block-scoped, cannot be reassigned', 'Prefer `const` by default, use `let` when needed'] },
-    { title: 'Type Coercion', points: ['`2 + "2"` equals `"22"` (string concat)', '`==` converts types before comparing', '`===` checks value AND type', 'Use `===` to avoid bugs'] },
-    { title: 'Arrays', points: ['`push()` adds to end, `pop()` removes from end', '`shift()` removes from start, `unshift()` adds to start', '`typeof []` returns `"object"` — arrays are objects', 'Use `Array.isArray()` to check for arrays'] },
+    {
+      title: 'var vs let vs const',
+      points: ['`var` is function-scoped and gets hoisted to top', '`let` is block-scoped — use it when value changes', '`const` is block-scoped — use it when value is fixed', '✅ Rule: Always prefer `const`, use `let` only when needed'],
+      code: 'var x = 1;      // hoisted, function-scoped\nlet y = 2;      // block-scoped, reassignable\nconst z = 3;    // block-scoped, fixed\n\n// z = 4; ❌ Error! Cannot reassign const'
+    },
+    {
+      title: 'Type Coercion & Equality',
+      points: ['`==` converts types before comparing (loose)', '`===` checks both value AND type (strict)', '`2 + "2"` gives `"22"` — JS converts number to string', '✅ Always use `===` to avoid sneaky bugs'],
+      code: '2 == "2"   // ✅ true  (coercion happens)\n2 === "2"  // ❌ false (different types)\n\n2 + "2"   // "22" (string concat)\n2 - "2"   // 0    (math operation)'
+    },
+    {
+      title: 'Arrays — The Basics',
+      points: ['`push()` adds to end, `pop()` removes from end', '`shift()` removes from start, `unshift()` adds to start', '`typeof []` returns `"object"` — surprising but true!', '✅ Use `Array.isArray(x)` to reliably check for arrays'],
+      code: 'const arr = [1, 2, 3];\narr.push(4);        // [1, 2, 3, 4]\narr.pop();          // [1, 2, 3]\narr.unshift(0);     // [0, 1, 2, 3]\n\nArray.isArray(arr); // true ✅'
+    },
   ],
   2: [
-    { title: 'Function Types', points: ['Function declarations are hoisted', 'Function expressions are NOT hoisted', 'Arrow functions inherit `this` from parent scope', 'IIFE: Immediately Invoked Function Expression'] },
-    { title: 'Closures', points: ['A closure gives access to outer scope from inner function', 'Closures are created every time a function is made', 'Useful for data privacy and factory functions', 'Callbacks use closures to access outer variables'] },
-    { title: 'Spread & Destructuring', points: ['Spread `...` expands arrays/objects', 'Destructuring extracts values: `const {a, b} = obj`', 'Array destructuring: `const [x, y] = arr`', 'Default values: `const {a = 10} = obj`'] },
+    {
+      title: 'Function Types',
+      points: ['Function declarations are hoisted — usable before defined', 'Function expressions are NOT hoisted', 'Arrow functions inherit `this` from surrounding code', '✅ Use arrow functions for callbacks, declarations for main logic'],
+      code: '// Declaration (hoisted) ✅\nfunction greet() { return "Hi"; }\n\n// Expression (NOT hoisted)\nconst greet2 = function() { return "Hi"; };\n\n// Arrow function\nconst greet3 = () => "Hi";'
+    },
+    {
+      title: 'Closures',
+      points: ['A closure is when inner function "remembers" outer variables', 'Every function creates a new closure when called', 'Great for keeping data private (encapsulation)', '✅ Counter pattern is the classic closure example'],
+      code: 'function makeCounter() {\n  let count = 0; // private!\n  return () => ++count;\n}\n\nconst counter = makeCounter();\ncounter(); // 1\ncounter(); // 2\ncounter(); // 3'
+    },
+    {
+      title: 'Spread & Destructuring',
+      points: ['Spread `...` expands array/object into individual items', 'Destructuring lets you extract values cleanly', 'You can set default values in destructuring', '✅ Use spread to copy arrays/objects without mutating'],
+      code: 'const [a, b, ...rest] = [1, 2, 3, 4];\n// a=1, b=2, rest=[3,4]\n\nconst { name, age = 25 } = { name: "Ali" };\n// name="Ali", age=25 (default)\n\nconst copy = [...arr]; // safe copy'
+    },
   ],
   3: [
-    { title: 'Objects', points: ['Objects are key-value pairs', '`Object.keys()` returns array of keys', '`Object.assign()` copies properties', '`Object.freeze()` prevents modification'] },
-    { title: 'Prototypes', points: ['Every object has a `__proto__` (prototype)', 'Prototypes enable inheritance in JS', '`Object.create(proto)` sets prototype explicitly', 'Classes use prototypes under the hood'] },
-    { title: 'null vs undefined', points: ['`undefined` = variable declared but not assigned', '`null` = intentional absence of value', '`typeof null` is `"object"` (a historical JS bug)', 'Use `== null` to check for both null and undefined'] },
+    {
+      title: 'Objects',
+      points: ['Objects store related data as key-value pairs', '`Object.keys()` returns array of keys', '`Object.assign()` merges objects without mutation', '✅ Use spread `{...obj}` for clean shallow copies'],
+      code: 'const user = { name: "Ali", age: 22 };\n\nObject.keys(user);     // ["name", "age"]\nObject.values(user);   // ["Ali", 22]\n\nconst updated = { ...user, age: 23 }; // copy + update'
+    },
+    {
+      title: 'Prototypes & Inheritance',
+      points: ['Every JS object has a hidden `__proto__` link', 'Prototypes form a chain — this is how inheritance works', '`Object.create(proto)` sets the prototype explicitly', '✅ ES6 classes use prototypes under the hood — same thing!'],
+      code: 'const animal = { speak() { return "..." } };\nconst dog = Object.create(animal);\ndog.breed = "Husky";\n\ndog.speak(); // works! (from prototype)\ndog.hasOwnProperty("breed"); // true'
+    },
+    {
+      title: 'null vs undefined',
+      points: ['`undefined` — variable declared but never given a value', '`null` — intentionally set to "nothing"', '`typeof null` is `"object"` — a famous JS bug from 1995!', '✅ Use `value == null` to check for both at once'],
+      code: 'let a;           // undefined (not set)\nlet b = null;    // null (intentional)\n\ntypeof undefined // "undefined"\ntypeof null      // "object" (JS bug!)\n\na == null  // true (catches both)'
+    },
   ],
   4: [
-    { title: 'Array Methods', points: ['`map()` transforms each element — returns new array', '`filter()` keeps elements that pass a test', '`reduce()` folds array into single value', '`find()` returns first match, `some()` returns boolean'] },
-    { title: 'Chaining', points: ['Array methods return new arrays — chainable', '`arr.filter(x => x > 2).map(x => x * 2)`', 'Avoid mutating original array', '`slice()` is safe, `splice()` mutates in place'] },
-    { title: 'Immutability', points: ['Prefer non-mutating methods: map, filter, reduce', 'Use spread to copy: `[...arr]` or `{...obj}`', 'Never sort original: sort a copy first', '`Array.from()` creates a new array from iterable'] },
+    {
+      title: 'Array Higher-Order Methods',
+      points: ['`map()` — transform every item, returns new array', '`filter()` — keep only items that pass the test', '`reduce()` — collapse array into one value', '✅ These never modify the original array — safe to use!'],
+      code: 'const nums = [1, 2, 3, 4, 5];\n\nnums.map(x => x * 2);      // [2,4,6,8,10]\nnums.filter(x => x > 2);   // [3,4,5]\nnums.reduce((a, b) => a + b, 0); // 15'
+    },
+    {
+      title: 'Chaining Methods',
+      points: ['Array methods return new arrays — so you can chain them!', 'Chain multiple operations in one readable line', '`slice()` is safe (no mutation), `splice()` mutates', '✅ Chain pattern: filter first, then map for best performance'],
+      code: 'const data = [1, 2, 3, 4, 5, 6];\n\ndata\n  .filter(x => x % 2 === 0) // [2, 4, 6]\n  .map(x => x * 10)          // [20, 40, 60]\n  .slice(0, 2);              // [20, 40]'
+    },
+    {
+      title: 'Immutability Patterns',
+      points: ['Always copy before modifying to avoid side effects', 'Use spread `[...arr]` to copy arrays', 'Use spread `{...obj}` to copy objects', '✅ Sort a copy: `[...arr].sort()` not `arr.sort()`!'],
+      code: 'const original = [3, 1, 2];\n\n// ❌ BAD: mutates original\noriginal.sort();\n\n// ✅ GOOD: sort a copy\nconst sorted = [...original].sort();\nconsole.log(original); // unchanged!'
+    },
   ],
   5: [
-    { title: 'Promises', points: ['A Promise is either pending, fulfilled, or rejected', '`.then()` handles success, `.catch()` handles errors', '`.finally()` runs regardless of outcome', '`Promise.all()` waits for all, fails fast on any rejection'] },
-    { title: 'Async/Await', points: ['`async` functions always return a Promise', '`await` pauses execution until Promise settles', 'Wrap in `try/catch` to handle errors', 'Much cleaner than nested `.then()` chains'] },
-    { title: 'Event Loop', points: ['Call Stack runs synchronous code', 'Web APIs handle async tasks (timers, fetch)', 'Microtask queue (Promises) runs before macrotask queue', 'Event loop checks stack, then microtasks, then macrotasks'] },
+    {
+      title: 'Promises',
+      points: ['A Promise represents a future value — pending/fulfilled/rejected', '`.then()` for success, `.catch()` for errors', '`.finally()` always runs regardless of outcome', '✅ `Promise.all([...])` runs multiple promises in parallel'],
+      code: 'fetch("https://api.com/data")\n  .then(res => res.json())   // success\n  .then(data => console.log(data))\n  .catch(err => console.error(err)) // error\n  .finally(() => console.log("Done!"))'
+    },
+    {
+      title: 'Async / Await',
+      points: ['`async` before a function makes it return a Promise', '`await` pauses until the Promise resolves', 'Use `try/catch` to handle errors with async/await', '✅ Much cleaner than chaining `.then().then().then()`'],
+      code: 'async function loadUser() {\n  try {\n    const res = await fetch("/api/user");\n    const user = await res.json();\n    return user;\n  } catch (err) {\n    console.error("Failed:", err);\n  }\n}'
+    },
+    {
+      title: 'The Event Loop',
+      points: ['JS is single-threaded — one thing at a time', 'Call Stack runs your synchronous code', 'Promises go to Microtask Queue (runs first)', '✅ setTimeout goes to Macrotask Queue (runs last)'],
+      code: 'console.log("1");           // runs first\n\nsetTimeout(() => {\n  console.log("3");          // runs last\n}, 0);\n\nPromise.resolve().then(() => {\n  console.log("2");          // runs second\n});\n// Output: 1, 2, 3'
+    },
   ],
   6: [
-    { title: 'DOM Selection', points: ['`getElementById()` — fastest for single element', '`querySelector()` — CSS selector, first match', '`querySelectorAll()` — returns NodeList', '`getElementsByClassName()` — live HTMLCollection'] },
-    { title: 'Events', points: ['`addEventListener()` attaches event handlers', 'Event bubbles up from child → parent', 'Event capturing goes parent → child', '`stopPropagation()` stops bubbling'] },
-    { title: 'Storage', points: ['`localStorage` persists across sessions', '`sessionStorage` cleared when tab closes', 'Both store strings — use `JSON.stringify/parse`', 'Max ~5MB storage, not for sensitive data'] },
+    {
+      title: 'DOM Selection',
+      points: ['`getElementById()` — fastest, for unique elements', '`querySelector()` — CSS selector syntax, first match only', '`querySelectorAll()` — returns all matches as NodeList', '✅ Use `querySelector` for modern, flexible selection'],
+      code: 'document.getElementById("btn");\ndocument.querySelector(".card");      // first match\ndocument.querySelectorAll("li");      // all <li>\n\n// Convert NodeList to Array\n[...document.querySelectorAll("li")]'
+    },
+    {
+      title: 'Events & Listeners',
+      points: ['`addEventListener()` attaches handler without overwriting others', 'Events bubble up: child → parent → document', 'Use `event.stopPropagation()` to stop bubbling', '✅ Remove listeners when not needed to prevent memory leaks'],
+      code: 'const btn = document.querySelector("#btn");\n\nbtn.addEventListener("click", (e) => {\n  console.log("Clicked!", e.target);\n  e.stopPropagation(); // stop bubbling\n});'
+    },
+    {
+      title: 'Web Storage',
+      points: ['`localStorage` — persists even after browser closes', '`sessionStorage` — cleared when tab/browser closes', 'Both only store strings — JSON needed for objects', '✅ Never store passwords or tokens in localStorage!'],
+      code: '// Save data\nlocalStorage.setItem("user", JSON.stringify({ name: "Ali" }));\n\n// Read data\nconst user = JSON.parse(localStorage.getItem("user"));\n\n// Remove\nlocalStorage.removeItem("user");'
+    },
   ],
   7: [
-    { title: 'Error Handling', points: ['`try/catch` catches runtime errors', '`finally` always executes', 'Throw custom errors: `throw new Error("msg")`', 'Error types: TypeError, RangeError, SyntaxError'] },
-    { title: 'Debugging', points: ['`console.log/warn/error/table` for inspection', '`debugger` statement pauses execution', 'Browser DevTools → Sources → Breakpoints', 'Stack trace shows the call chain to the error'] },
-    { title: 'Type Checking', points: ['`typeof` checks primitive types', '`instanceof` checks object constructor', '`Number.isNaN()` is safer than global `isNaN()`', 'Use TypeScript for compile-time type safety'] },
+    {
+      title: 'Error Handling',
+      points: ['`try/catch` catches runtime errors gracefully', '`finally` block always runs — perfect for cleanup', 'Throw custom errors with `throw new Error("message")`', '✅ Error types: TypeError, RangeError, ReferenceError'],
+      code: 'try {\n  const data = JSON.parse("invalid json");\n} catch (err) {\n  console.error(err.message); // logs error\n} finally {\n  console.log("Always runs"); // cleanup\n}'
+    },
+    {
+      title: 'Debugging Like a Pro',
+      points: ['`console.log/warn/error/table` — different log levels', '`console.table(arr)` shows data as a table — very useful!', '`debugger` statement pauses execution in DevTools', '✅ Use browser DevTools → Sources to set breakpoints'],
+      code: 'console.log("Value:", x);\nconsole.warn("Careful!");\nconsole.error("Something broke!");\nconsole.table([{name:"Ali", age:22}]);\n\ndebugger; // pause here in DevTools'
+    },
+    {
+      title: 'Type Checking',
+      points: ['`typeof` returns a string: "number", "string", "boolean" etc.', '`instanceof` checks if object was created by a constructor', '`Number.isNaN()` is safer than `isNaN()` (global is buggy)', '✅ Use TypeScript for full type safety at compile time'],
+      code: 'typeof 42           // "number"\ntypeof "hello"      // "string"\ntypeof null         // "object" (bug!)\ntypeof undefined    // "undefined"\n\n[] instanceof Array  // true\nNumber.isNaN(NaN)   // true ✅'
+    },
   ],
   8: [
-    { title: 'Classes', points: ['`class` is syntactic sugar over prototypes', '`constructor()` runs on instantiation', '`extends` for inheritance, `super()` to call parent', 'Static methods belong to the class, not instances'] },
-    { title: 'OOP Principles', points: ['Encapsulation: bundle data + methods', 'Inheritance: child class extends parent', 'Polymorphism: same method, different behavior', 'Abstraction: hide complexity, expose interface'] },
-    { title: 'Getters & Setters', points: ['`get` keyword defines a getter property', '`set` keyword defines a setter property', 'Allows computed properties with dot notation', 'Useful for validation on property assignment'] },
+    {
+      title: 'ES6 Classes',
+      points: ['`class` is clean syntax over JavaScript prototypes', '`constructor()` runs automatically when you create an instance', '`extends` for inheritance, `super()` calls parent constructor', '✅ Static methods belong to the class, not objects'],
+      code: 'class Animal {\n  constructor(name) { this.name = name; }\n  speak() { return `${this.name} speaks`; }\n}\n\nclass Dog extends Animal {\n  speak() { return `${this.name} barks!`; }\n}\n\nconst d = new Dog("Rex");\nd.speak(); // "Rex barks!"'
+    },
+    {
+      title: 'OOP — 4 Core Principles',
+      points: ['🔒 Encapsulation: keep data + methods together in one class', '👨‍👧 Inheritance: child class reuses parent class code', '🔄 Polymorphism: same method name, different behaviour', '🙈 Abstraction: hide the complexity, show only what is needed'],
+      code: '// Polymorphism example\nclass Shape {\n  area() { return 0; }\n}\nclass Circle extends Shape {\n  constructor(r) { super(); this.r = r; }\n  area() { return Math.PI * this.r ** 2; }\n}'
+    },
+    {
+      title: 'Getters & Setters',
+      points: ['`get` — read a computed value like a regular property', '`set` — intercept assignment and add validation', 'Accessed with dot notation — looks like a property!', '✅ Perfect for validation or computed properties'],
+      code: 'class User {\n  constructor(name) { this._name = name; }\n\n  get name() { return this._name.toUpperCase(); }\n  set name(val) {\n    if (val.length < 2) throw new Error("Too short!");\n    this._name = val;\n  }\n}'
+    },
   ],
   9: [
-    { title: 'Advanced Functions', points: ['Currying: `f(a)(b)` instead of `f(a,b)`', 'Memoization: cache results of expensive calls', 'Throttle: limit calls per time period', 'Debounce: delay until no more events'] },
-    { title: 'Symbols & Iterators', points: ['`Symbol()` creates a unique, immutable identifier', 'Symbols as object keys avoid name collisions', 'Iterators implement `Symbol.iterator` protocol', '`for...of` uses the iterator protocol'] },
-    { title: 'Proxies', points: ['`Proxy` wraps an object and intercepts operations', 'Useful for validation, logging, reactive state', '`Reflect` provides default behavior for trapped ops', 'The basis of Vue 3 reactivity system'] },
+    {
+      title: 'Advanced Function Patterns',
+      points: ['Currying: break a function into chain of single-argument calls', 'Memoization: cache results so expensive work is not repeated', 'Debounce: wait until user stops typing before calling function', '✅ Throttle: ensure function runs at most once per interval'],
+      code: '// Currying\nconst add = a => b => a + b;\nadd(2)(3); // 5\n\n// Memoization\nfunction memoize(fn) {\n  const cache = {};\n  return x => cache[x] ?? (cache[x] = fn(x));\n}'
+    },
+    {
+      title: 'Symbols & Iterators',
+      points: ['`Symbol()` creates a globally unique key — never clashes', 'Symbols as object keys avoid accidental overwrites', 'Iterators implement `Symbol.iterator` protocol', '✅ `for...of` works on anything with `Symbol.iterator`'],
+      code: 'const id = Symbol("id");\nconst user = { [id]: 123, name: "Ali" };\n\n// Custom iterator\nconst range = {\n  [Symbol.iterator]() {\n    let n = 0;\n    return { next: () => ({ value: n++, done: n > 3 }) };\n  }\n};\'\n[...range]; // [0, 1, 2]'
+    },
+    {
+      title: 'Proxies & Reflect',
+      points: ['`Proxy` wraps any object and intercepts get/set/delete', 'Great for validation, logging, and reactive state', '`Reflect` gives you the default behaviour inside traps', '✅ Vue 3 uses Proxy for its entire reactivity system'],
+      code: 'const handler = {\n  get(target, key) {\n    console.log(`Reading: ${key}`);\n    return Reflect.get(target, key);\n  }\n};\n\nconst proxy = new Proxy({ x: 1 }, handler);\nproxy.x; // logs "Reading: x", returns 1'
+    },
   ],
   10: [
-    { title: 'call, apply, bind', points: ['All three explicitly set `this`', '`call(thisArg, arg1, arg2)` — invokes immediately', '`apply(thisArg, [args])` — invokes with array', '`bind(thisArg)` — returns a new bound function'] },
-    { title: 'Generators', points: ['`function*` defines a generator', '`yield` pauses and returns a value', '`next()` resumes execution', 'Supports lazy evaluation of sequences'] },
-    { title: 'Memory & Performance', points: ['Memory leak: references prevent garbage collection', 'GC automatically frees unreachable objects', 'JIT: JS engines compile hot code to machine code', 'Avoid excessive closures holding large data'] },
+    {
+      title: 'call, apply, bind',
+      points: ['All three let you manually set what `this` refers to', '`call(ctx, arg1, arg2)` — invokes immediately with separate args', '`apply(ctx, [args])` — same but args as array', '`bind(ctx)` — returns a NEW function, does not call immediately'],
+      code: 'function greet(greeting) {\n  return `${greeting}, ${this.name}!`;\n}\nconst user = { name: "Ali" };\n\ngreet.call(user, "Hello");    // "Hello, Ali!"\ngreet.apply(user, ["Hi"]);   // "Hi, Ali!"\nconst fn = greet.bind(user); // new function\nfn("Hey");                   // "Hey, Ali!"'
+    },
+    {
+      title: 'Generators',
+      points: ['`function*` creates a generator — a pausable function', '`yield` pauses and sends a value out', '`next()` resumes from where it paused', '✅ Great for lazy sequences, infinite data, and async flows'],
+      code: 'function* count() {\n  yield 1;\n  yield 2;\n  yield 3;\n}\n\nconst gen = count();\ngen.next(); // { value: 1, done: false }\ngen.next(); // { value: 2, done: false }\ngen.next(); // { value: 3, done: false }\ngen.next(); // { value: undefined, done: true }'
+    },
+    {
+      title: 'Memory & Performance',
+      points: ['Memory leak: old references block garbage collection', 'Garbage Collector frees memory when nothing references the object', 'JIT: JS engines compile hot code to fast machine code', '✅ Avoid large closures holding data you no longer need'],
+      code: '// Memory leak example (avoid this!)\nconst cache = [];\nfunction leaky() {\n  cache.push(new Array(1000000)); // never freed!\n}\n\n// Good: clear when done\nfunction safe() {\n  let big = new Array(1000000);\n  // ... use it ...\n  big = null; // freed!\n}'
+    },
   ],
 };
 
@@ -247,6 +369,11 @@ export default function JSQuizApp() {
   const [paidLevels, setPaidLevels] = useState<Record<number, boolean>>({});
   // Keep social for backward compat (now unused but keeps localStorage logic safe)
   const socialUnlocked: Record<number, boolean> = {};
+
+  // Level 1 reward state
+  const [rewardStatus, setRewardStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [rewardTxHash, setRewardTxHash] = useState<string | null>(null);
+  const [rewardError, setRewardError] = useState<string | null>(null);
 
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<'quiz' | 'learn' | 'dashboard'>('quiz');
@@ -678,6 +805,14 @@ export default function JSQuizApp() {
   const PAYMENT_WEI = '0x1DFD14000'; // 0.00002 ETH in hex wei ≈ $0.05
   const PAYMENT_RECEIVER = '0x0881e4c7b81dC36Fc4Fc1c82cE0e97bBB0134F93'; // Owner wallet
 
+  // Level 1 Reward: $0.03 USDC on Base (6 decimals → 30000 = $0.03)
+  const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC contract on Base
+  const REWARD_RECEIVER = '0x0881e4c7b81dC36Fc4Fc1c82cE0e97bBB0134F93'; // Owner wallet
+  // ERC-20 transfer(address,uint256) selector = 0xa9059cbb
+  const REWARD_USDC_DATA = '0xa9059cbb' +
+    '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
+    (30000).toString(16).padStart(64, '0'); // 30000 = $0.03 USDC
+
   const handlePaymentUnlock = useCallback(async (level: number) => {
     setPaymentStatus('pending');
     setPaymentError(null);
@@ -777,6 +912,87 @@ export default function JSQuizApp() {
       setPaymentStatus('error');
     }
   }, [paidLevels, levelAttempts]);
+
+  // ✅ Level 1 Optional Reward Handler — user voluntarily pays $0.03 to support learning
+  const handleLevel1Reward = useCallback(async () => {
+    setRewardStatus('pending');
+    setRewardError(null);
+
+    try {
+      let provider = getWalletProvider();
+      if (!provider) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        provider = getWalletProvider();
+      }
+      if (!provider) {
+        setRewardError('No wallet detected. Please connect MetaMask or Coinbase Wallet first.');
+        setRewardStatus('error');
+        return;
+      }
+
+      // Get connected account
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) {
+        setRewardError('No wallet account found. Please unlock your wallet.');
+        setRewardStatus('error');
+        return;
+      }
+      const account = accounts[0];
+      setConnectedAddress(account);
+
+      // Switch to Base Mainnet
+      try {
+        await provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }],
+        });
+      } catch (switchErr: any) {
+        if (switchErr.code === 4902) {
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2105',
+              chainName: 'Base',
+              nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org'],
+            }],
+          });
+        }
+      }
+
+      // Send $0.03 USDC wallet-to-wallet on Base via ERC-20 transfer
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: account,
+          to: USDC_BASE,          // USDC token contract
+          value: '0x0',           // No ETH — token transfer
+          data: REWARD_USDC_DATA, // transfer(owner, 30000)
+          gas: '0xF424',          // 62500 gas — enough for ERC-20
+          chainId: '0x2105',      // Base Mainnet
+        }],
+      });
+
+      if (!txHash) {
+        setRewardError('Transaction failed. Please try again.');
+        setRewardStatus('error');
+        return;
+      }
+
+      setRewardTxHash(txHash);
+      setRewardStatus('success');
+
+    } catch (err: any) {
+      console.error('Reward payment error:', err);
+      if (err.code === 4001 || err.message?.includes('rejected') || err.message?.includes('cancel')) {
+        setRewardError('Payment cancelled. No worries, you can always support later!');
+      } else {
+        setRewardError(err.message?.slice(0, 80) || 'Payment failed. Please try again.');
+      }
+      setRewardStatus('error');
+    }
+  }, [REWARD_USDC_DATA, USDC_BASE]);
 
   // Auto-advance to next level after transaction completes
   useEffect(() => {
@@ -1026,48 +1242,91 @@ export default function JSQuizApp() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-8"
           >
+            {/* Level Tabs */}
             <div className="flex flex-wrap gap-2 justify-center">
-              {[...Array(TOTAL_LEVELS)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setLearningLevel(i + 1)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${learningLevel === i + 1
-                    ? 'bg-primary text-white'
-                    : 'glass-card text-slate-500 hover:text-primary'
-                    }`}
-                >
-                  Lvl {i + 1}
-                </button>
-              ))}
+              {[...Array(TOTAL_LEVELS)].map((_, i) => {
+                const lvl = i + 1;
+                const attempted = (levelAttempts[lvl] || 0) > 0;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setLearningLevel(lvl)}
+                    className={`relative px-4 py-2 rounded-xl text-xs font-bold transition-all ${learningLevel === lvl
+                        ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                        : 'glass-card text-slate-500 hover:text-primary'
+                      }`}
+                  >
+                    {LEVEL_ICONS[i]} Lvl {lvl}
+                    {attempted && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-slate-900" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="space-y-6">
-              <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black text-primary uppercase tracking-tighter">Level {learningLevel}: {LEVEL_TOPICS[learningLevel - 1]}</h2>
-                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Master the Core Concepts</p>
+              {/* Header */}
+              <div className={`p-5 glass-card flex items-center gap-4`}>
+                <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl shrink-0">
+                  {LEVEL_ICONS[learningLevel - 1]}
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Level {learningLevel} — Study Guide</p>
+                  <h2 className="text-2xl font-black text-primary">{LEVEL_TOPICS[learningLevel - 1]}</h2>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold">Topics</p>
+                  <p className="text-2xl font-black">{LEARNING_CONTENT[learningLevel]?.length}</p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Cards */}
+              <div className="grid grid-cols-1 gap-5">
                 {LEARNING_CONTENT[learningLevel]?.map((item, idx) => (
                   <motion.div
                     key={idx}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="p-6 glass-card border-l-4 border-primary"
+                    className="glass-card overflow-hidden"
                   >
-                    <h4 className="font-black text-lg mb-3 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      {item.title}
-                    </h4>
-                    <ul className="space-y-2">
-                      {item.points.map((p, pIdx) => (
-                        <li key={pIdx} className="text-sm text-slate-400 flex gap-2">
-                          <span className="text-primary">•</span>
-                          {p.replace(/`([^`]+)`/g, (m, c) => `(${c})`)}
-                        </li>
-                      ))}
-                    </ul>
+                    {/* Card Header */}
+                    <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3 bg-white/5">
+                      <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-black text-xs shrink-0">
+                        {idx + 1}
+                      </div>
+                      <h4 className="font-black text-base">{item.title}</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2">
+                      {/* Key Points */}
+                      <div className="p-5 space-y-2.5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">📌 Key Points</p>
+                        {item.points.map((p, pIdx) => {
+                          // Render inline code (backtick syntax)
+                          const parts = p.split(/`([^`]+)`/);
+                          return (
+                            <div key={pIdx} className="flex gap-2.5 items-start">
+                              <span className="text-primary mt-0.5 shrink-0 text-xs">▸</span>
+                              <p className="text-sm leading-relaxed text-slate-300">
+                                {parts.map((part, pi) =>
+                                  pi % 2 === 1
+                                    ? <code key={pi} className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary font-mono text-[11px] border border-primary/20">{part}</code>
+                                    : <span key={pi}>{part}</span>
+                                )}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Code Example */}
+                      <div className="border-t sm:border-t-0 sm:border-l border-white/5 p-5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">💻 Code Example</p>
+                        <pre className="text-[11px] font-mono leading-relaxed text-emerald-300 bg-slate-950/60 p-3 rounded-xl overflow-x-auto border border-white/5 whitespace-pre-wrap">{item.code}</pre>
+                      </div>
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -1077,9 +1336,10 @@ export default function JSQuizApp() {
                   setActiveTab('quiz');
                   startQuiz(learningLevel);
                 }}
-                className="w-full py-4 bg-gradient-premium rounded-2xl text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                className="w-full py-4 bg-gradient-premium rounded-2xl text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20 flex items-center justify-center gap-2 group"
               >
-                Start Level {learningLevel} Challenge
+                🎯 Start Level {learningLevel} Quiz
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
           </motion.div>
@@ -1310,6 +1570,101 @@ export default function JSQuizApp() {
                       className="p-4 bg-slate-500/5 rounded-xl border border-slate-500/10"
                     >
                       <p className="text-xs font-mono break-all opacity-70 leading-relaxed">{txStatus}</p>
+                    </motion.div>
+                  )}
+
+                  {/* 🎁 Level 1 Optional Reward Section */}
+                  {currentLevel === 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="p-5 rounded-2xl border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-orange-500/5 text-left space-y-3"
+                    >
+                      {rewardStatus === 'success' ? (
+                        <motion.div
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="text-center space-y-2 py-2"
+                        >
+                          <div className="text-3xl">🏅</div>
+                          <p className="font-black text-amber-400 uppercase tracking-tight">Learning Hero Badge Earned!</p>
+                          <p className="text-xs text-slate-400">Thank you for supporting JS learning! ❤️</p>
+                          {rewardTxHash && (
+                            <a
+                              href={`https://basescan.org/tx/${rewardTxHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-mono text-amber-500 underline opacity-70 hover:opacity-100 transition-opacity block"
+                            >
+                              View on BaseScan ↗
+                            </a>
+                          )}
+                        </motion.div>
+                      ) : (
+                        <>
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl">🎁</span>
+                            <div>
+                              <p className="font-black text-sm text-[#0052FF] uppercase tracking-tight">⚡ Optional Learning Support</p>
+                              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                You just completed Level 1! Support JS learning with a tiny reward and earn an exclusive <span className="text-amber-400 font-bold">Learning Hero Badge</span>.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 rounded-xl">
+                            <div>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Reward Amount</p>
+                              <p className="text-xl font-black text-[#0052FF]">$0.03 USDC</p>
+                              <p className="text-[10px] text-slate-500 font-mono">on Base Network</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">You Earn</p>
+                              <p className="text-sm font-black text-white">🏅 Hero Badge</p>
+                              <p className="text-[10px] text-slate-500">100% Optional</p>
+                            </div>
+                          </div>
+
+                          {rewardError && (
+                            <motion.p
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="text-xs text-rose-400 bg-rose-500/10 rounded-lg px-3 py-2 border border-rose-500/20"
+                            >
+                              ⚠️ {rewardError}
+                            </motion.p>
+                          )}
+
+                          <motion.button
+                            whileHover={rewardStatus !== 'pending' ? { scale: 1.02 } : {}}
+                            whileTap={rewardStatus !== 'pending' ? { scale: 0.98 } : {}}
+                            onClick={handleLevel1Reward}
+                            disabled={rewardStatus === 'pending'}
+                            className={`w-full py-3 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 transition-all ${rewardStatus === 'pending'
+                              ? 'bg-amber-500/40 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg hover:shadow-amber-500/30'
+                              }`}
+                          >
+                            {rewardStatus === 'pending' ? (
+                              <>
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                                />
+                                Confirm in Wallet...
+                              </>
+                            ) : (
+                              <>
+                                <Wallet className="w-4 h-4" />
+                                Send $0.03 USDC & Earn Badge
+                              </>
+                            )}
+                          </motion.button>
+                          <p className="text-[10px] text-center text-slate-600">Completely optional. No pressure at all! 😊</p>
+                        </>
+                      )}
                     </motion.div>
                   )}
 
