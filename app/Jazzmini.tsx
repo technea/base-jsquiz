@@ -15,11 +15,12 @@ import {
   Firestore,
   collection,
   query,
+  where,
   orderBy,
   limit,
   getDocs
 } from 'firebase/firestore';
-import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet, Sun, Moon, ArrowRight, Award, Timer, Users } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Trophy, BookOpen, Lock, Unlock, Zap, AlertCircle, Wallet, Sun, Moon, ArrowRight, Award, Timer, Users, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { QUIZ_DATA } from './quizData';
@@ -355,11 +356,47 @@ const LEARNING_CONTENT: Record<number, { title: string; points: string[]; code: 
 
 const MAX_FREE_ATTEMPTS = 2;
 
+// ✅ Daily JS Quiz Questions Pool (rotates by day)
+const DAILY_QUESTIONS = [
+  { q: 'What does `typeof null` return?', opts: ['"null"', '"object"', '"undefined"', '"boolean"'], ans: '"object"' },
+  { q: 'Which method converts JSON string to object?', opts: ['JSON.stringify()', 'JSON.parse()', 'JSON.convert()', 'JSON.objectify()'], ans: 'JSON.parse()' },
+  { q: 'What is `NaN === NaN`?', opts: ['true', 'false', 'undefined', 'Error'], ans: 'false' },
+  { q: 'What does `Array.isArray([])` return?', opts: ['true', 'false', 'undefined', '[]'], ans: 'true' },
+  { q: 'Which keyword declares a block-scoped variable?', opts: ['var', 'let', 'function', 'define'], ans: 'let' },
+  { q: 'What does `"5" + 3` evaluate to?', opts: ['8', '"53"', 'NaN', 'Error'], ans: '"53"' },
+  { q: 'What is the output of `!!""` ?', opts: ['true', 'false', '""', 'undefined'], ans: 'false' },
+  { q: 'Which method removes the last element of an array?', opts: ['.shift()', '.pop()', '.splice()', '.slice()'], ans: '.pop()' },
+  { q: 'What does `===` check?', opts: ['Value only', 'Type only', 'Value & Type', 'Reference'], ans: 'Value & Type' },
+  { q: 'What is a closure in JS?', opts: ['A loop', 'A function with access to outer scope', 'A class', 'An error handler'], ans: 'A function with access to outer scope' },
+  { q: 'What does `void 0` return?', opts: ['0', 'null', 'undefined', 'NaN'], ans: 'undefined' },
+  { q: 'Which is NOT a primitive type?', opts: ['string', 'number', 'object', 'boolean'], ans: 'object' },
+  { q: 'What does `[1,2,3].map(x => x*2)` return?', opts: ['[1,2,3]', '[2,4,6]', '[1,4,9]', 'undefined'], ans: '[2,4,6]' },
+  { q: '`const` prevents reassignment. Can you mutate the value?', opts: ['Yes for objects/arrays', 'No, never', 'Only strings', 'Only numbers'], ans: 'Yes for objects/arrays' },
+  { q: 'What is `Promise.all()` used for?', opts: ['Run promises sequentially', 'Run all promises in parallel', 'Cancel promises', 'Retry failed promises'], ans: 'Run all promises in parallel' },
+  { q: 'What does `this` refer to in an arrow function?', opts: ['The function itself', 'The caller', 'The enclosing scope', 'window always'], ans: 'The enclosing scope' },
+  { q: 'What is event bubbling?', opts: ['Events go from child to parent', 'Events go from parent to child', 'Events are cancelled', 'Events run twice'], ans: 'Events go from child to parent' },
+  { q: 'Which array method does NOT mutate the original?', opts: ['.push()', '.sort()', '.filter()', '.splice()'], ans: '.filter()' },
+  { q: 'What does `Object.keys({a:1, b:2})` return?', opts: ['[1, 2]', '["a", "b"]', '{a:1, b:2}', '["a":1, "b":2]'], ans: '["a", "b"]' },
+  { q: 'What is the default value of an uninitialized variable?', opts: ['null', '0', 'undefined', '""'], ans: 'undefined' },
+  { q: 'What does `setTimeout(() => {}, 0)` do?', opts: ['Runs immediately', 'Runs after current call stack', 'Never runs', 'Throws error'], ans: 'Runs after current call stack' },
+  { q: 'Which loop is best for iterating object properties?', opts: ['for', 'while', 'for...in', 'for...of'], ans: 'for...in' },
+  { q: 'What is `Symbol` used for?', opts: ['Math operations', 'Creating unique identifiers', 'String formatting', 'Class inheritance'], ans: 'Creating unique identifiers' },
+  { q: 'What does the spread operator `...` do?', opts: ['Copies elements', 'Deletes elements', 'Sorts elements', 'Filters elements'], ans: 'Copies elements' },
+  { q: 'What is `async/await` syntactic sugar for?', opts: ['Callbacks', 'Promises', 'Generators', 'Events'], ans: 'Promises' },
+  { q: 'What does `Array.from("hello")` return?', opts: ['"hello"', '["h","e","l","l","o"]', '5', 'Error'], ans: '["h","e","l","l","o"]' },
+  { q: 'Which is falsy in JS?', opts: ['"0"', '[]', '0', '{}'], ans: '0' },
+  { q: 'What is `Map` vs `Object` difference?', opts: ['Map has ordered keys', 'Object has ordered keys', 'No difference', 'Map only stores strings'], ans: 'Map has ordered keys' },
+  { q: 'What does `delete obj.key` do?', opts: ['Returns the value', 'Removes the property', 'Sets to null', 'Throws error'], ans: 'Removes the property' },
+  { q: 'What is `WeakRef` used for?', opts: ['Strong references', 'Weak references to objects', 'Memory leaks', 'Event handling'], ans: 'Weak references to objects' },
+];
+
 export default function JSQuizApp() {
   const [db, setDb] = useState<Firestore | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [globalStats, setGlobalStats] = useState<GlobalStats>({ maxScore: 0, highestLevel: 1 });
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboardElite, setLeaderboardElite] = useState<any[]>([]);
+  const [leaderboardFree, setLeaderboardFree] = useState<any[]>([]);
+  const [leaderboardTab, setLeaderboardTab] = useState<'free' | 'elite'>('elite');
   const [authReady, setAuthReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [themeLoaded, setThemeLoaded] = useState(false);
@@ -400,10 +437,31 @@ export default function JSQuizApp() {
   const [supportStatus, setSupportStatus] = useState<'idle' | 'pending' | 'success' | 'skipped' | 'error'>('idle');
 
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'quiz' | 'learn' | 'dashboard'>('quiz');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'learn' | 'dashboard' | 'leaderboard' | 'daily'>('quiz');
   const [learningLevel, setLearningLevel] = useState(1);
 
+  // Daily GM & Streak
+  const [streak, setStreak] = useState(0);
+  const [lastGmDate, setLastGmDate] = useState<string | null>(null);
+  const [gmDoneToday, setGmDoneToday] = useState(false);
+  const [dailyQuizDone, setDailyQuizDone] = useState(false);
+  const [dailyQuizCorrect, setDailyQuizCorrect] = useState(false);
+  const [dailySelectedOpt, setDailySelectedOpt] = useState<string | null>(null);
+  const [streakBroken, setStreakBroken] = useState(false);
+  const [streakPaymentStatus, setStreakPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+
   const contractAddedRef = useRef(false);
+
+  // Get today's date key
+  const getTodayKey = () => new Date().toISOString().split('T')[0];
+
+  // Get today's daily question (rotates by day of year)
+  const getDailyQuestion = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
+    return DAILY_QUESTIONS[dayOfYear % DAILY_QUESTIONS.length];
+  };
 
   // --- Load theme preference from localStorage ---
   useEffect(() => {
@@ -420,6 +478,30 @@ export default function JSQuizApp() {
         if (savedScores) setLevelScores(JSON.parse(savedScores));
         const savedPaid = localStorage.getItem('quizPaidLevels');
         if (savedPaid) setPaidLevels(JSON.parse(savedPaid));
+
+        // Load streak data
+        const savedStreak = localStorage.getItem('jm_streak');
+        const savedLastGm = localStorage.getItem('jm_lastGm');
+        const savedDailyQuiz = localStorage.getItem('jm_dailyQuizDone');
+        const today = new Date().toISOString().split('T')[0];
+
+        if (savedStreak) setStreak(parseInt(savedStreak));
+        if (savedLastGm) {
+          setLastGmDate(savedLastGm);
+          if (savedLastGm === today) setGmDoneToday(true);
+          // Check if streak is broken (missed yesterday)
+          const lastDate = new Date(savedLastGm);
+          const todayDate = new Date(today);
+          const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / 86400000);
+          if (diffDays > 1 && parseInt(savedStreak || '0') > 0) {
+            setStreakBroken(true);
+          }
+        }
+        if (savedDailyQuiz === today) {
+          setDailyQuizDone(true);
+          const savedCorrect = localStorage.getItem('jm_dailyCorrect');
+          if (savedCorrect === 'true') setDailyQuizCorrect(true);
+        }
       } catch { }
     }
   }, []);
@@ -589,28 +671,38 @@ export default function JSQuizApp() {
     return () => unsubscribe();
   }, [authReady, db]);
 
-  // ✅ NEW: Fetch Global Leaderboard (Top 5)
+  // ✅ NEW: Fetch Global Leaderboards
   useEffect(() => {
     if (!db) return;
 
-    const fetchLeaderboard = async () => {
+    const fetchLeaderboards = async () => {
       try {
-        const lbQuery = query(
+        // Fetch Elite (Paid)
+        const eliteQuery = query(
           collection(db, 'leaderboard'),
+          where('isPaid', '==', true),
           orderBy('totalPoints', 'desc'),
-          limit(5)
+          limit(10)
         );
-        const snapshot = await getDocs(lbQuery);
-        const data = snapshot.docs.map(doc => doc.data());
-        setLeaderboard(data);
+        const eliteSnap = await getDocs(eliteQuery);
+        setLeaderboardElite(eliteSnap.docs.map(doc => doc.data()));
+
+        // Fetch Free
+        const freeQuery = query(
+          collection(db, 'leaderboard'),
+          where('isPaid', '==', false),
+          orderBy('totalPoints', 'desc'),
+          limit(10)
+        );
+        const freeSnap = await getDocs(freeQuery);
+        setLeaderboardFree(freeSnap.docs.map(doc => doc.data()));
       } catch (err) {
         console.error('Leaderboard fetch error:', err);
       }
     };
 
-    fetchLeaderboard();
-    // Re-fetch when entering dashboard
-    if (activeTab === 'dashboard') fetchLeaderboard();
+    fetchLeaderboards();
+    if (activeTab === 'leaderboard' || activeTab === 'dashboard') fetchLeaderboards();
   }, [db, activeTab]);
 
   const levelQuestions = useMemo(() => QUIZ_DATA.filter(q => q.level === currentLevel), [currentLevel]);
@@ -915,8 +1007,95 @@ export default function JSQuizApp() {
     '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
     (30000).toString(16).padStart(64, '0'); // 30000 = $0.03 USDC
 
-  // ✅ Update Leaderboard on Firestore (without blockchain tx)
-  const updateLeaderboard = useCallback(async () => {
+  // $0.05 USDC Streak Restore Payment (6 decimals → 50000 = $0.05)
+  const STREAK_USDC_DATA = '0xa9059cbb' +
+    '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
+    (50000).toString(16).padStart(64, '0'); // 50000 = $0.05 USDC
+
+  // ✅ Handle Daily GM
+  const handleGm = useCallback(() => {
+    const today = getTodayKey();
+    if (gmDoneToday) return;
+
+    const newStreak = streakBroken ? 0 : streak + 1;
+    setStreak(newStreak);
+    setLastGmDate(today);
+    setGmDoneToday(true);
+    setStreakBroken(false);
+
+    localStorage.setItem('jm_streak', newStreak.toString());
+    localStorage.setItem('jm_lastGm', today);
+
+    confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 }, colors: ['#FFD700', '#0052FF', '#10B981'] });
+  }, [gmDoneToday, streak, streakBroken]);
+
+  // ✅ Handle Daily Quiz Answer
+  const handleDailyAnswer = useCallback((opt: string) => {
+    if (dailyQuizDone) return;
+    const question = getDailyQuestion();
+    const isCorrect = opt === question.ans;
+    const today = getTodayKey();
+
+    setDailySelectedOpt(opt);
+    setDailyQuizDone(true);
+    setDailyQuizCorrect(isCorrect);
+
+    localStorage.setItem('jm_dailyQuizDone', today);
+    localStorage.setItem('jm_dailyCorrect', isCorrect.toString());
+
+    if (isCorrect) {
+      // Streak continues, bonus points
+      confetti({ particleCount: 40, spread: 40, origin: { y: 0.6 }, colors: ['#10B981', '#0052FF'] });
+    } else {
+      // Wrong answer = streak broken
+      setStreak(0);
+      localStorage.setItem('jm_streak', '0');
+    }
+  }, [dailyQuizDone]);
+
+  // ✅ Handle Streak Restore Payment ($0.05 USDC)
+  const handleStreakRestore = useCallback(async () => {
+    setStreakPaymentStatus('pending');
+    try {
+      const provider = getWalletProvider();
+      if (!provider) { setStreakPaymentStatus('error'); return; }
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) { setStreakPaymentStatus('error'); return; }
+      const account = accounts[0];
+      setConnectedAddress(account);
+
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }] }).catch(async (e: any) => {
+        if (e.code === 4902) {
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{ chainId: '0x2105', chainName: 'Base', nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://mainnet.base.org'], blockExplorerUrls: ['https://basescan.org'] }]
+          });
+        }
+      });
+
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: account, to: USDC_BASE, value: '0x0', data: STREAK_USDC_DATA, gas: '0xF424', chainId: '0x2105' }]
+      });
+
+      if (txHash) {
+        setStreakPaymentStatus('success');
+        setStreakBroken(false);
+        // Restore streak (keep old value)
+        const savedStreak = localStorage.getItem('jm_streak');
+        const restoredStreak = parseInt(savedStreak || '0');
+        setStreak(restoredStreak);
+      } else {
+        setStreakPaymentStatus('error');
+      }
+    } catch (err) {
+      console.error('Streak restore error:', err);
+      setStreakPaymentStatus('idle');
+    }
+  }, [STREAK_USDC_DATA, USDC_BASE]);
+
+  // ✅ Update Leaderboard on Firestore
+  const updateLeaderboard = useCallback(async (isPaid: boolean = false) => {
     if (!db || !connectedAddress) return;
     try {
       const totalPoints = Object.values(levelScores).reduce((a, b) => a + b, 0);
@@ -925,28 +1104,24 @@ export default function JSQuizApp() {
         basename: basename,
         totalPoints: totalPoints,
         highestLevel: globalStats.highestLevel,
+        isPaid: isPaid,
         lastUpdated: new Date().toISOString()
       }, { merge: true });
-      console.log('Leaderboard updated (skip path)');
+      console.log(`Leaderboard updated. Status: ${isPaid ? 'Elite' : 'Free'}`);
     } catch (err) {
       console.error('Leaderboard update error:', err);
     }
   }, [db, connectedAddress, basename, levelScores, globalStats]);
 
-  // ✅ Handle $0.05 USDC Support Payment (wallet-to-wallet)
+  // ✅ Handle $0.03 USDC Support Payment (Elite Status)
   const handleSupportPayment = useCallback(async () => {
     setSupportStatus('pending');
     try {
-      let provider = getWalletProvider();
-      if (!provider) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        provider = getWalletProvider();
-      }
+      const provider = getWalletProvider();
       if (!provider) {
         setSupportStatus('error');
         return;
       }
-
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
       if (!accounts || accounts.length === 0) {
         setSupportStatus('error');
@@ -955,54 +1130,30 @@ export default function JSQuizApp() {
       const account = accounts[0];
       setConnectedAddress(account);
 
-      // Switch to Base Mainnet
-      try {
-        await provider.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2105' }],
-        });
-      } catch (switchErr: any) {
-        if (switchErr.code === 4902) {
+      // Switch to Base
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }] }).catch(async (e) => {
+        if (e.code === 4902) {
           await provider.request({
             method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x2105',
-              chainName: 'Base',
-              nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
-              rpcUrls: ['https://mainnet.base.org'],
-              blockExplorerUrls: ['https://basescan.org'],
-            }],
+            params: [{ chainId: '0x2105', chainName: 'Base', nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://mainnet.base.org'], blockExplorerUrls: ['https://basescan.org'] }]
           });
         }
-      }
+      });
 
-      // Send $0.05 USDC wallet-to-wallet via ERC-20 transfer
       const txHash = await provider.request({
         method: 'eth_sendTransaction',
-        params: [{
-          from: account,
-          to: USDC_BASE,
-          value: '0x0',
-          data: SUPPORT_USDC_DATA,
-          gas: '0xF424',
-          chainId: '0x2105',
-        }],
+        params: [{ from: account, to: USDC_BASE, value: '0x0', data: SUPPORT_USDC_DATA, gas: '0xF424', chainId: '0x2105' }]
       });
 
       if (txHash) {
         setSupportStatus('success');
-        // Update leaderboard after successful payment
-        await updateLeaderboard();
+        await updateLeaderboard(true); // Join Elite
       } else {
         setSupportStatus('error');
       }
-    } catch (err: any) {
-      console.error('Support payment error:', err);
-      if (err.code === 4001 || err.message?.includes('rejected')) {
-        setSupportStatus('idle'); // Let them try again or skip
-      } else {
-        setSupportStatus('error');
-      }
+    } catch (err) {
+      console.error('Support error:', err);
+      setSupportStatus('idle');
     }
   }, [SUPPORT_USDC_DATA, USDC_BASE, updateLeaderboard]);
 
@@ -1257,7 +1408,7 @@ export default function JSQuizApp() {
 
           <div className="flex items-center gap-3">
             <nav className="hidden sm:flex items-center glass-card p-1 rounded-2xl mr-2">
-              {(['quiz', 'learn', 'dashboard'] as const).map((tab) => (
+              {(['quiz', 'daily', 'learn', 'dashboard', 'leaderboard'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => {
@@ -1314,7 +1465,7 @@ export default function JSQuizApp() {
 
         {/* Navigation for Mobile */}
         <div className="flex sm:hidden justify-center mb-8 gap-2">
-          {(['quiz', 'learn', 'dashboard'] as const).map((tab) => (
+          {(['quiz', 'daily', 'learn', 'dashboard', 'leaderboard'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -1439,6 +1590,204 @@ export default function JSQuizApp() {
           </motion.div>
         )}
 
+        {/* 🌅 Daily Tab — GM + Streak + Daily Quiz */}
+        {activeTab === 'daily' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6 max-w-lg mx-auto"
+          >
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-black text-primary uppercase tracking-tighter">Daily Arena</h2>
+              <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                GM • Streak • Daily Challenge
+              </p>
+            </div>
+
+            {/* 🔥 Streak Display */}
+            <div className="glass-card p-6 text-center space-y-3">
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-4xl">🔥</span>
+                <div>
+                  <p className="text-5xl font-black text-amber-500">{streak}</p>
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Day Streak</p>
+                </div>
+              </div>
+              {lastGmDate && (
+                <p className="text-[10px] text-slate-500 font-mono">Last GM: {lastGmDate}</p>
+              )}
+            </div>
+
+            {/* ⚠️ Streak Broken Warning */}
+            {streakBroken && streakPaymentStatus !== 'success' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="glass-card p-6 border-2 border-rose-500/30 bg-rose-500/5 space-y-4 text-center"
+              >
+                <div className="text-3xl">💔</div>
+                <div>
+                  <p className="font-black text-rose-500 uppercase tracking-widest text-sm">Streak Broken!</p>
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    You missed a day! Pay <span className="text-amber-400 font-black">$0.05 USDC</span> to restore your streak, or it resets to 0.
+                  </p>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleStreakRestore}
+                  disabled={streakPaymentStatus === 'pending'}
+                  className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg ${streakPaymentStatus === 'pending'
+                      ? 'bg-rose-500/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:shadow-rose-500/40'
+                    }`}
+                >
+                  {streakPaymentStatus === 'pending' ? (
+                    <>
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                      Confirming...
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="w-5 h-5" />
+                      Restore Streak — $0.05 USDC
+                    </>
+                  )}
+                </motion.button>
+
+                <button
+                  onClick={() => {
+                    setStreakBroken(false);
+                    setStreak(0);
+                    localStorage.setItem('jm_streak', '0');
+                  }}
+                  className="w-full py-2 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-rose-400 transition-all"
+                >
+                  Accept Reset (Streak → 0)
+                </button>
+              </motion.div>
+            )}
+
+            {streakPaymentStatus === 'success' && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <p className="text-xs font-bold text-emerald-500">✅ Streak Restored! Keep going!</p>
+              </div>
+            )}
+
+            {/* 🌅 GM Button */}
+            <div className="glass-card p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🌅</span>
+                <div>
+                  <p className="font-black text-sm uppercase tracking-widest">Daily GM</p>
+                  <p className={`text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Check in daily to keep your streak alive</p>
+                </div>
+              </div>
+
+              {gmDoneToday ? (
+                <div className="py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <p className="text-lg font-black text-emerald-500">✅ GM Done Today!</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Come back tomorrow for Day {streak + 1}</p>
+                </div>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleGm}
+                  disabled={streakBroken}
+                  className={`w-full py-5 rounded-xl text-white font-black text-xl flex items-center justify-center gap-3 shadow-lg transition-all ${streakBroken
+                      ? 'bg-slate-500/30 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-amber-500/40'
+                    }`}
+                >
+                  ☀️ Send GM
+                </motion.button>
+              )}
+            </div>
+
+            {/* 📝 Daily JS Quiz (1 question, 1 attempt) */}
+            <div className="glass-card overflow-hidden">
+              <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <h3 className="font-black uppercase tracking-widest text-xs">Daily JS Challenge</h3>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">1 Attempt Only</span>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {(() => {
+                  const dq = getDailyQuestion();
+                  return (
+                    <>
+                      <p className={`text-lg font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                        {dq.q}
+                      </p>
+
+                      <div className="grid grid-cols-1 gap-2">
+                        {dq.opts.map((opt, i) => {
+                          const isCorrect = opt === dq.ans;
+                          const isSelected = opt === dailySelectedOpt;
+                          const answered = dailyQuizDone;
+
+                          let btnClass = 'glass-card hover:bg-white/5';
+                          if (answered) {
+                            if (isCorrect) btnClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+                            else if (isSelected) btnClass = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+                            else btnClass = 'opacity-30';
+                          }
+
+                          return (
+                            <motion.button
+                              key={i}
+                              whileHover={!answered ? { scale: 1.01 } : {}}
+                              whileTap={!answered ? { scale: 0.99 } : {}}
+                              onClick={() => handleDailyAnswer(opt)}
+                              disabled={answered}
+                              className={`p-4 rounded-xl border text-left font-bold text-sm transition-all flex justify-between items-center ${btnClass}`}
+                            >
+                              <span>{opt}</span>
+                              {answered && isCorrect && <CheckCircle className="w-5 h-5 text-emerald-500" />}
+                              {answered && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-rose-500" />}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {dailyQuizDone && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`p-4 rounded-xl text-center ${dailyQuizCorrect
+                            ? 'bg-emerald-500/10 border border-emerald-500/20'
+                            : 'bg-rose-500/10 border border-rose-500/20'
+                            }`}
+                        >
+                          {dailyQuizCorrect ? (
+                            <p className="text-sm font-bold text-emerald-500">🎯 Correct! Streak continues! 🔥</p>
+                          ) : (
+                            <p className="text-sm font-bold text-rose-500">❌ Wrong! Streak reset to 0.</p>
+                          )}
+                        </motion.div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className={`text-center space-y-1 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+              <p className="text-[10px] uppercase font-bold tracking-widest">How Streaks Work</p>
+              <p className="text-[10px]">✅ GM daily + correct quiz = streak grows</p>
+              <p className="text-[10px]">❌ Wrong answer = streak resets to 0</p>
+              <p className="text-[10px]">⏰ Miss a day = pay $0.05 USDC or streak resets</p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Learning View */}
         {activeTab === 'learn' && (
           <motion.div
@@ -1559,53 +1908,20 @@ export default function JSQuizApp() {
             animate={{ opacity: 1, scale: 1 }}
             className="space-y-8"
           >
-            {/* 🏆 Global Leaderboard Section */}
-            <div className="glass-card overflow-hidden">
-              <div className="p-4 border-b border-[#0052FF]/20 bg-gradient-to-r from-[#0052FF]/5 to-transparent flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-amber-500" />
-                  <h3 className="font-black uppercase tracking-widest text-xs">Global Arena Top Picks</h3>
-                </div>
-                <Users className="w-4 h-4 text-[#0052FF]" />
-              </div>
-              <div className="divide-y divide-white/5">
-                {leaderboard.length > 0 ? leaderboard.map((player, idx) => (
-                  <div key={idx} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <span className={`w-6 text-center font-black ${idx === 0 ? 'text-amber-500' : 'text-slate-500'}`}>
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold text-white">{player.basename || `${player.address.slice(0, 6)}...${player.address.slice(-4)}`}</p>
-                        <p className="text-[10px] text-slate-500 font-mono">Expertise: Level {player.highestLevel}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-black text-emerald-500">{player.totalPoints} pts</p>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="p-8 text-center text-slate-500 text-xs italic">
-                    Loading champions...
-                  </div>
-                )}
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-6 glass-card text-center space-y-1">
+              <div className="p-6 glass-card text-center space-y-1 border-t-4 border-primary">
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Mastery Level</p>
                 <p className="text-4xl font-black text-primary">{globalStats.highestLevel}</p>
                 <div className="h-1 w-12 bg-primary/20 mx-auto rounded-full" />
               </div>
-              <div className="p-6 glass-card text-center space-y-1">
+              <div className="p-6 glass-card text-center space-y-1 border-t-4 border-rose-500">
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Total Attempts</p>
                 <p className="text-4xl font-black text-rose-500">
                   {Object.values(levelAttempts).reduce((a, b) => a + b, 0)}
                 </p>
                 <div className="h-1 w-12 bg-rose-500/20 mx-auto rounded-full" />
               </div>
-              <div className="p-6 glass-card text-center space-y-1">
+              <div className="p-6 glass-card text-center space-y-1 border-t-4 border-emerald-500">
                 <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Leaderboard Score</p>
                 <p className="text-4xl font-black text-emerald-500">
                   {Object.keys(levelScores).length > 0
@@ -1655,6 +1971,80 @@ export default function JSQuizApp() {
                 })}
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* 🏆 Leaderboard View (Global Ranks) */}
+        {activeTab === 'leaderboard' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-black text-primary uppercase tracking-tighter">Global Arena Ranks</h2>
+              <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                Compete with the world's best developers
+              </p>
+            </div>
+
+            {/* Toggle Switch */}
+            <div className="flex justify-center">
+              <div className="inline-flex p-1 glass-card rounded-2xl">
+                <button
+                  onClick={() => setLeaderboardTab('elite')}
+                  className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${leaderboardTab === 'elite' ? 'bg-gradient-premium text-white shadow-lg' : 'text-slate-500'}`}
+                >
+                  <Star className={`w-4 h-4 ${leaderboardTab === 'elite' ? 'text-amber-300' : ''}`} />
+                  Elite
+                </button>
+                <button
+                  onClick={() => setLeaderboardTab('free')}
+                  className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${leaderboardTab === 'free' ? 'bg-primary text-white shadow-lg' : 'text-slate-500'}`}
+                >
+                  Free
+                </button>
+              </div>
+            </div>
+
+            {/* Ranking List */}
+            <div className="glass-card overflow-hidden max-w-2xl mx-auto">
+              <div className="divide-y divide-white/5">
+                {(leaderboardTab === 'elite' ? leaderboardElite : leaderboardFree).length > 0 ? (
+                  (leaderboardTab === 'elite' ? leaderboardElite : leaderboardFree).map((player, idx) => (
+                    <div key={idx} className="p-5 flex items-center justify-between hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-5">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-amber-500 text-white' : idx === 1 ? 'bg-slate-300 text-slate-800' : idx === 2 ? 'bg-amber-700 text-white' : 'glass-card text-slate-500'}`}>
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white flex items-center gap-2">
+                            {player.basename || (player.address ? `${player.address.slice(0, 6)}...${player.address.slice(-4)}` : 'Anonymous')}
+                            {player.isPaid && <Star className="w-3 h-3 text-amber-400 fill-amber-400" />}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-mono tracking-wider uppercase">Mastery: Level {player.highestLevel}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-lg font-black ${leaderboardTab === 'elite' ? 'text-amber-400' : 'text-emerald-500'}`}>{player.totalPoints} pts</p>
+                        <p className="text-[9px] text-slate-600 font-mono italic">
+                          {player.lastUpdated ? new Date(player.lastUpdated).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-16 text-center space-y-4">
+                    <div className="w-16 h-16 bg-slate-500/10 rounded-full flex items-center justify-center mx-auto text-3xl">📭</div>
+                    <p className="text-slate-500 text-sm font-bold italic uppercase tracking-widest">No champions here yet...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[10px] text-center text-slate-600 uppercase font-bold tracking-tighter">
+              Updated in real-time • Verified on Base Mainnet
+            </p>
           </motion.div>
         )}
 
@@ -1919,24 +2309,65 @@ export default function JSQuizApp() {
                   )}
 
                   <div className="flex flex-col gap-3">
-                    {!txStatus || txStatus.includes('❌') ? (
-                      <button
-                        onClick={() => userCompleteLevel(score)}
-                        className="w-full py-4 bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:from-[#0038B2] hover:to-[#002A80] text-white font-bold rounded-xl shadow-lg shadow-[#0052FF]/30 flex items-center justify-center gap-2 transition-all"
-                      >
-                        <Zap className="w-5 h-5" />
-                        Sync Score on Base
-                      </button>
-                    ) : null}
+                    {/* Choose Leaderboard Rank after level pass */}
+                    {levelPassed && supportStatus !== 'success' && supportStatus !== 'skipped' ? (
+                      <>
+                        <div className="p-4 rounded-2xl border border-[#0052FF]/20 bg-[#0052FF]/5 text-center space-y-2">
+                          <p className="text-xs font-black text-[#0052FF] uppercase tracking-widest">Select Your Rank</p>
+                          <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Join the Elite Ranks by supporting the project, or continue as a Free Challenger.</p>
+                        </div>
 
-                    {currentLevel < TOTAL_LEVELS && (
-                      <button
-                        onClick={() => startQuiz(currentLevel + 1)}
-                        className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all group"
-                      >
-                        Ascend to Level {currentLevel + 1}
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      </button>
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleSupportPayment}
+                          className="w-full py-4 bg-gradient-premium rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg"
+                        >
+                          <Star className="w-5 h-5 text-amber-300" />
+                          Join Elite Ranks ($0.03 USDC)
+                        </motion.button>
+
+                        <button
+                          onClick={async () => {
+                            setSupportStatus('skipped');
+                            await updateLeaderboard(false);
+                            if (currentLevel < TOTAL_LEVELS) {
+                              setTimeout(() => startQuiz(currentLevel + 1), 500);
+                            }
+                          }}
+                          className="w-full py-3 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-primary transition-all"
+                        >
+                          Continue to Free Ranks →
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {supportStatus === 'success' && (
+                          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                            <p className="text-xs font-bold text-emerald-500">🏆 ELITE RANK ACHIEVED! Check the Leaderboard.</p>
+                          </div>
+                        )}
+
+                        {!txStatus || txStatus.includes('❌') ? (
+                          <button
+                            onClick={() => userCompleteLevel(score)}
+                            className="w-full py-4 bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:from-[#0038B2] hover:to-[#002A80] text-white font-bold rounded-xl shadow-lg shadow-[#0052FF]/30 flex items-center justify-center gap-2 transition-all"
+                          >
+                            <Zap className="w-5 h-5" />
+                            Sync Score on Base
+                          </button>
+                        ) : null}
+
+                        {currentLevel < TOTAL_LEVELS && (
+                          <button
+                            onClick={() => startQuiz(currentLevel + 1)}
+                            className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all group"
+                          >
+                            Ascend to Level {currentLevel + 1}
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </>
