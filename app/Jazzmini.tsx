@@ -1753,10 +1753,10 @@ export default function JSQuizApp() {
                   </div>
 
                   <button
-                    onClick={() => startQuiz(currentLevel)}
+                    onClick={() => startQuiz(1)}
                     className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 transition-all"
                   >
-                    Retry Challenge
+                    Restart from Level 1
                   </button>
                 </>
               )}
