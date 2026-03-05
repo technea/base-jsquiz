@@ -909,10 +909,10 @@ export default function JSQuizApp() {
     '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
     (30000).toString(16).padStart(64, '0'); // 30000 = $0.03 USDC
 
-  // $0.05 USDC Support Payment (6 decimals → 50000 = $0.05)
+  // $0.03 USDC Support Payment per level (6 decimals → 30000 = $0.03)
   const SUPPORT_USDC_DATA = '0xa9059cbb' +
     '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
-    (50000).toString(16).padStart(64, '0'); // 50000 = $0.05 USDC
+    (30000).toString(16).padStart(64, '0'); // 30000 = $0.03 USDC
 
   // ✅ Update Leaderboard on Firestore (without blockchain tx)
   const updateLeaderboard = useCallback(async () => {
@@ -1918,12 +1918,12 @@ export default function JSQuizApp() {
                   )}
 
                   <div className="flex flex-col gap-3">
-                    {/* Level 1 Support Payment: Pay $0.05 USDC or Skip */}
-                    {currentLevel === 1 && levelPassed && supportStatus !== 'success' && supportStatus !== 'skipped' ? (
+                    {/* Pay $0.03 USDC per level to get on Leaderboard */}
+                    {levelPassed && supportStatus !== 'success' && supportStatus !== 'skipped' ? (
                       <>
                         <div className="p-4 rounded-2xl border border-[#0052FF]/20 bg-[#0052FF]/5 text-center space-y-2">
                           <p className="text-xs font-black text-[#0052FF] uppercase tracking-widest">Get on the Leaderboard</p>
-                          <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Pay $0.05 USDC to get your score listed on the Global Leaderboard! Skipping means no leaderboard entry.</p>
+                          <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Pay $0.03 USDC to get your score listed on the Global Leaderboard! Skipping means no leaderboard entry.</p>
                         </div>
 
                         <motion.button
@@ -1948,7 +1948,7 @@ export default function JSQuizApp() {
                           ) : (
                             <>
                               <Wallet className="w-5 h-5" />
-                              Pay $0.05 USDC & Support
+                              Pay $0.03 USDC & Join Leaderboard
                             </>
                           )}
                         </motion.button>
