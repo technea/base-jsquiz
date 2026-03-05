@@ -1400,7 +1400,7 @@ export default function JSQuizApp() {
                 <div className="h-1 w-12 bg-rose-500/20 mx-auto rounded-full" />
               </div>
               <div className="p-6 glass-card text-center space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Global Score (Avg)</p>
+                <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Leaderboard Score</p>
                 <p className="text-4xl font-black text-emerald-500">
                   {Object.keys(levelScores).length > 0
                     ? Math.round(Object.values(levelScores).reduce((a, b) => a + b, 0) / Object.keys(levelScores).length)
@@ -1753,10 +1753,10 @@ export default function JSQuizApp() {
                   </div>
 
                   <button
-                    onClick={() => startQuiz(1)}
-                    className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 transition-all"
+                    onClick={() => startQuiz(currentLevel)}
+                    className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 transition-all font-black uppercase tracking-widest"
                   >
-                    Restart from Level 1
+                    Restart Level {currentLevel}
                   </button>
                 </>
               )}
