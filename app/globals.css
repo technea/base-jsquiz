@@ -3,8 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
-  --primary: #6366f1;
-  --secondary: #a855f7;
+  --primary: #0052FF;
+  /* Base Blue */
+  --secondary: #0038B2;
+  /* Darker Base Blue for gradients */
   --accent: #f43f5e;
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.5);
@@ -14,8 +16,10 @@
 .dark {
   --background: #020617;
   --foreground: #f8fafc;
-  --primary: #818cf8;
-  --secondary: #c084fc;
+  --primary: #0052FF;
+  /* Base Blue */
+  --secondary: #337AFF;
+  /* Lighter Base Blue for dark mode gradients */
   --accent: #fb7185;
   --glass-bg: rgba(15, 23, 42, 0.6);
   --glass-border: rgba(255, 255, 255, 0.1);
@@ -43,7 +47,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-outfit), 'Outfit', system-ui, -apple-system, sans-serif;
   line-height: 1.6;
   min-height: 100%;
   overflow-x: hidden;

@@ -140,6 +140,20 @@ const encodeFunctionCall = (functionSignature: string, params: any[]): string =>
     score.toString(16).padStart(64, '0');
 };
 
+// Official Base Blue Color Constant
+const BASE_BLUE = '#0052FF';
+
+const JS_QUOTES = [
+  "Any application that can be written in JavaScript, will eventually be written in JavaScript. — Atwood's Law",
+  "JavaScript is the duct tape of the Internet. — Charlie Campbell",
+  "Code is read much more often than it is written. — Guido van Rossum",
+  "It's not a bug. It's an undocumented feature!",
+  "Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live.",
+  "First, solve the problem. Then, write the code. — John Johnson",
+  "Make it work, make it right, make it fast. — Kent Beck",
+  "In theory, there is no difference between theory and practice. But, in practice, there is."
+];
+
 type QuizQuestion = {
   level: number;
   question: string;
@@ -761,11 +775,17 @@ export default function JSQuizApp() {
       setQuizState('result');
 
       // Track attempt count and best score
-      const newAttempts = { ...levelAttempts, [currentLevel]: (levelAttempts[currentLevel] || 0) + 1 };
+      const newAttemptsCount = (levelAttempts[currentLevel] || 0) + 1;
+      const newAttempts = { ...levelAttempts, [currentLevel]: newAttemptsCount };
       setLevelAttempts(newAttempts);
       localStorage.setItem('quizAttempts', JSON.stringify(newAttempts));
 
-      const newScores = { ...levelScores, [currentLevel]: Math.max(levelScores[currentLevel] || 0, score) };
+      let earnedPoints = score * 10; // e.g. 70 for failing score of 7
+      if (passed) {
+        earnedPoints = newAttemptsCount === 1 ? 100 : 80;
+      }
+
+      const newScores = { ...levelScores, [currentLevel]: Math.max(levelScores[currentLevel] || 0, earnedPoints) };
       setLevelScores(newScores);
       localStorage.setItem('quizScores', JSON.stringify(newScores));
 
@@ -774,10 +794,10 @@ export default function JSQuizApp() {
           particleCount: 150,
           spread: 70,
           origin: { y: 0.6 },
-          colors: ['#6366f1', '#a855f7', '#f43f5e']
+          colors: ['#0052FF', '#337AFF', '#0038B2']
         });
         setAutoProgressing(true);
-        await userCompleteLevel(score); // Save current score on-chain
+        await userCompleteLevel(earnedPoints); // Save points on-chain
       }
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
@@ -1156,8 +1176,19 @@ export default function JSQuizApp() {
                 JAZZMINI <span className="text-primary italic">Quiz</span>
               </h2>
               <p className={`text-lg sm:text-xl font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} max-w-2xl mx-auto`}>
-                Master JS with 2 attempts per level. Score {PASS_THRESHOLD}/{QUESTIONS_PER_LEVEL} to progress.
+                Prepare for your <span className="text-primary font-bold">JavaScript Interview</span>!
+                Master concepts with 2 attempts per level.
               </p>
+
+              {/* Motivational JS Quotes */}
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                className={`py-3 px-6 max-w-lg mx-auto rounded-full border border-dashed ${isDarkMode ? 'border-primary/30 bg-primary/5' : 'border-primary/40 bg-primary/5'}`}
+              >
+                <p className={`text-sm italic font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  "{JS_QUOTES[Math.floor(Math.random() * JS_QUOTES.length)]}"
+                </p>
+              </motion.div>
             </div>
 
             {/* Wallet Section */}
@@ -1187,7 +1218,7 @@ export default function JSQuizApp() {
                   </p>
                   <button
                     onClick={connectWallet}
-                    className="w-full py-4 bg-gradient-premium hover:shadow-xl hover:shadow-primary/40 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all group"
+                    className="w-full py-4 bg-[#0052FF] hover:bg-[#0041CC] hover:shadow-xl hover:shadow-blue-600/30 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all group"
                   >
                     Connect Wallet
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -1252,8 +1283,8 @@ export default function JSQuizApp() {
                     key={i}
                     onClick={() => setLearningLevel(lvl)}
                     className={`relative px-4 py-2 rounded-xl text-xs font-bold transition-all ${learningLevel === lvl
-                        ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                        : 'glass-card text-slate-500 hover:text-primary'
+                      ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                      : 'glass-card text-slate-500 hover:text-primary'
                       }`}
                   >
                     {LEVEL_ICONS[i]} Lvl {lvl}
@@ -1272,11 +1303,11 @@ export default function JSQuizApp() {
                   {LEVEL_ICONS[learningLevel - 1]}
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Level {learningLevel} — Study Guide</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Level {learningLevel} — Study Guide</p>
                   <h2 className="text-2xl font-black text-primary">{LEVEL_TOPICS[learningLevel - 1]}</h2>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold">Topics</p>
+                  <p className={`text-[10px] uppercase font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Topics</p>
                   <p className="text-2xl font-black">{LEARNING_CONTENT[learningLevel]?.length}</p>
                 </div>
               </div>
@@ -1309,10 +1340,13 @@ export default function JSQuizApp() {
                           return (
                             <div key={pIdx} className="flex gap-2.5 items-start">
                               <span className="text-primary mt-0.5 shrink-0 text-xs">▸</span>
-                              <p className="text-sm leading-relaxed text-slate-300">
+                              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
                                 {parts.map((part, pi) =>
                                   pi % 2 === 1
-                                    ? <code key={pi} className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary font-mono text-[11px] border border-primary/20">{part}</code>
+                                    ? <code key={pi} className={`px-1.5 py-0.5 rounded-md font-mono text-[11px] border ${isDarkMode
+                                      ? 'bg-primary/15 text-primary border-primary/20'
+                                      : 'bg-primary/10 text-primary border-primary/30'
+                                      }`}>{part}</code>
                                     : <span key={pi}>{part}</span>
                                 )}
                               </p>
@@ -1366,9 +1400,11 @@ export default function JSQuizApp() {
                 <div className="h-1 w-12 bg-rose-500/20 mx-auto rounded-full" />
               </div>
               <div className="p-6 glass-card text-center space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Best Accuracy</p>
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Global Score (Avg)</p>
                 <p className="text-4xl font-black text-emerald-500">
-                  {Math.round((Object.values(levelScores).reduce((a, b) => a + b, 0) / (Object.keys(levelScores).length * 10 || 1)) * 100)}%
+                  {Object.keys(levelScores).length > 0
+                    ? Math.round(Object.values(levelScores).reduce((a, b) => a + b, 0) / Object.keys(levelScores).length)
+                    : 0}
                 </p>
                 <div className="h-1 w-12 bg-emerald-500/20 mx-auto rounded-full" />
               </div>
@@ -1394,19 +1430,19 @@ export default function JSQuizApp() {
                       <div className="flex-1 space-y-1">
                         <div className="flex justify-between items-end">
                           <p className="text-xs font-bold">{LEVEL_TOPICS[i]}</p>
-                          <p className="text-[10px] font-mono opacity-50">{score}/10 pts</p>
+                          <p className="text-[10px] font-mono opacity-60 font-bold">{score}/100 pts</p>
                         </div>
-                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}>
                           <motion.div
                             initial={{ width: 0 }}
-                            animate={{ width: `${score * 10}%` }}
+                            animate={{ width: `${score}%` }}
                             className="h-full bg-primary"
                           />
                         </div>
                       </div>
                       <div className="w-20 text-right">
-                        <p className="text-[10px] font-black uppercase text-slate-500">Attempts</p>
-                        <p className="font-mono text-sm">{attempts}</p>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Attempts</p>
+                        <p className={`font-mono text-sm ${isDarkMode ? 'text-white' : 'text-slate-900 font-bold'}`}>{attempts}</p>
                       </div>
                     </div>
                   );
@@ -1556,11 +1592,17 @@ export default function JSQuizApp() {
                     <Trophy className="w-12 h-12 text-emerald-500" />
                   </motion.div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     <h2 className="text-3xl font-black text-emerald-500">Domain Mastered!</h2>
                     <p className={`font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                      You conquered Level {currentLevel} with a score of <span className="text-emerald-500 font-black">{score}/{QUESTIONS_PER_LEVEL}</span>
+                      You conquered Level {currentLevel} with <span className="text-emerald-500 font-black">{score}/{QUESTIONS_PER_LEVEL}</span> correct answers!
                     </p>
+                    <div className="py-3 px-6 bg-[#0052FF]/10 rounded-xl inline-block border border-[#0052FF]/20">
+                      <p className="text-[#0052FF] text-[10px] uppercase tracking-widest font-black mb-1">Points Earned</p>
+                      <p className="text-2xl font-black text-[#0052FF]">
+                        {levelAttempts[currentLevel] === 1 ? '100' : '80'} <span className="text-sm opacity-50">/ 100</span>
+                      </p>
+                    </div>
                   </div>
 
                   {txStatus && (
@@ -1573,13 +1615,13 @@ export default function JSQuizApp() {
                     </motion.div>
                   )}
 
-                  {/* 🎁 Level 1 Optional Reward Section */}
-                  {currentLevel === 1 && (
+                  {/* 🏅 Final Master Reward - Only after Level 10 */}
+                  {currentLevel === 10 && levelPassed && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="p-5 rounded-2xl border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-orange-500/5 text-left space-y-3"
+                      className="p-5 rounded-2xl border-2 border-[#0052FF]/30 bg-gradient-to-br from-[#0052FF]/10 to-blue-500/5 text-left space-y-3"
                     >
                       {rewardStatus === 'success' ? (
                         <motion.div
@@ -1587,41 +1629,43 @@ export default function JSQuizApp() {
                           animate={{ scale: 1, opacity: 1 }}
                           className="text-center space-y-2 py-2"
                         >
-                          <div className="text-3xl">🏅</div>
-                          <p className="font-black text-amber-400 uppercase tracking-tight">Learning Hero Badge Earned!</p>
-                          <p className="text-xs text-slate-400">Thank you for supporting JS learning! ❤️</p>
+                          <div className="text-3xl">🏆</div>
+                          <p className="font-black text-[#0052FF] uppercase tracking-tight text-lg">JS Master Rank Attained!</p>
+                          <p className="text-xs text-slate-400 font-bold italic">"You have conquered the entire JavaScript journey."</p>
                           {rewardTxHash && (
                             <a
                               href={`https://basescan.org/tx/${rewardTxHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] font-mono text-amber-500 underline opacity-70 hover:opacity-100 transition-opacity block"
+                              className="text-[10px] font-mono text-[#0052FF] underline opacity-70 hover:opacity-100 transition-opacity block"
                             >
-                              View on BaseScan ↗
+                              View Badge on BaseScan ↗
                             </a>
                           )}
                         </motion.div>
                       ) : (
                         <>
-                          <div className="flex items-start gap-3">
-                            <span className="text-2xl">🎁</span>
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 bg-[#0052FF]/20 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                              🏅
+                            </div>
                             <div>
-                              <p className="font-black text-sm text-[#0052FF] uppercase tracking-tight">⚡ Optional Learning Support</p>
+                              <p className="font-black text-sm text-[#0052FF] uppercase tracking-tight">Claim Master Status</p>
                               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                                You just completed Level 1! Support JS learning with a tiny reward and earn an exclusive <span className="text-amber-400 font-bold">Learning Hero Badge</span>.
+                                You just finished all 10 Levels! Mint your <span className="text-[#0052FF] font-bold">JS Master Badge</span> on-chain to celebrate your victory.
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 rounded-xl">
+                          <div className="flex items-center justify-between px-3 py-2 bg-[#0052FF]/10 rounded-xl border border-[#0052FF]/20">
                             <div>
-                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Reward Amount</p>
-                              <p className="text-xl font-black text-[#0052FF]">$0.03 USDC</p>
-                              <p className="text-[10px] text-slate-500 font-mono">on Base Network</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Claiming Fee</p>
+                              <p className="text-lg font-black text-[#0052FF]">$0.03 USDC</p>
+                              <p className="text-[10px] text-slate-500 font-mono">on Base Mainnet</p>
                             </div>
                             <div className="text-right">
                               <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">You Earn</p>
-                              <p className="text-sm font-black text-white">🏅 Hero Badge</p>
+                              <p className="text-sm font-black text-white italic">MASTER BADGE</p>
                               <p className="text-[10px] text-slate-500">100% Optional</p>
                             </div>
                           </div>
@@ -1641,9 +1685,9 @@ export default function JSQuizApp() {
                             whileTap={rewardStatus !== 'pending' ? { scale: 0.98 } : {}}
                             onClick={handleLevel1Reward}
                             disabled={rewardStatus === 'pending'}
-                            className={`w-full py-3 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 transition-all ${rewardStatus === 'pending'
-                              ? 'bg-amber-500/40 cursor-not-allowed'
-                              : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg hover:shadow-amber-500/30'
+                            className={`w-full py-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 transition-all shadow-lg ${rewardStatus === 'pending'
+                              ? 'bg-blue-600/50 cursor-not-allowed shadow-none'
+                              : 'bg-[#0052FF] hover:bg-[#0041CC] hover:shadow-blue-600/40 hover:shadow-xl'
                               }`}
                           >
                             {rewardStatus === 'pending' ? (
@@ -1653,16 +1697,16 @@ export default function JSQuizApp() {
                                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                                   className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
                                 />
-                                Confirm in Wallet...
+                                Minting Badge...
                               </>
                             ) : (
                               <>
                                 <Wallet className="w-4 h-4" />
-                                Send $0.03 USDC & Earn Badge
+                                Claim Master Achievement
                               </>
                             )}
                           </motion.button>
-                          <p className="text-[10px] text-center text-slate-600">Completely optional. No pressure at all! 😊</p>
+                          <p className="text-[10px] text-center text-slate-600">Voluntary reward to support JS learning. 😊</p>
                         </>
                       )}
                     </motion.div>
@@ -1672,7 +1716,7 @@ export default function JSQuizApp() {
                     {!txStatus || txStatus.includes('❌') ? (
                       <button
                         onClick={() => userCompleteLevel(score)}
-                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
+                        className="w-full py-4 bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:from-[#0038B2] hover:to-[#002A80] text-white font-bold rounded-xl shadow-lg shadow-[#0052FF]/30 flex items-center justify-center gap-2 transition-all"
                       >
                         <Zap className="w-5 h-5" />
                         Sync Score on Base
@@ -1850,6 +1894,22 @@ export default function JSQuizApp() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* Powered by Base Footer */}
+        <div className="mt-16 text-center pb-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border border-dashed text-xs font-bold uppercase tracking-widest transition-colors ${isDarkMode
+              ? 'border-[#0052FF]/30 text-[#0052FF] bg-[#0052FF]/5 hover:bg-[#0052FF]/10'
+              : 'border-[#0052FF]/40 text-[#0052FF] bg-[#0052FF]/5 hover:bg-[#0052FF]/10'
+              }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Powered by Base</span>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
