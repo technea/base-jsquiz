@@ -396,6 +396,9 @@ export default function JSQuizApp() {
   const [rewardTxHash, setRewardTxHash] = useState<string | null>(null);
   const [rewardError, setRewardError] = useState<string | null>(null);
 
+  // Support payment state (after Level 1)
+  const [supportStatus, setSupportStatus] = useState<'idle' | 'pending' | 'success' | 'skipped' | 'error'>('idle');
+
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<'quiz' | 'learn' | 'dashboard'>('quiz');
   const [learningLevel, setLearningLevel] = useState(1);
@@ -905,6 +908,102 @@ export default function JSQuizApp() {
   const REWARD_USDC_DATA = '0xa9059cbb' +
     '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
     (30000).toString(16).padStart(64, '0'); // 30000 = $0.03 USDC
+
+  // $0.05 USDC Support Payment (6 decimals → 50000 = $0.05)
+  const SUPPORT_USDC_DATA = '0xa9059cbb' +
+    '0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93'.padStart(64, '0') +
+    (50000).toString(16).padStart(64, '0'); // 50000 = $0.05 USDC
+
+  // ✅ Update Leaderboard on Firestore (without blockchain tx)
+  const updateLeaderboard = useCallback(async () => {
+    if (!db || !connectedAddress) return;
+    try {
+      const totalPoints = Object.values(levelScores).reduce((a, b) => a + b, 0);
+      await setDoc(doc(db, 'leaderboard', connectedAddress.toLowerCase()), {
+        address: connectedAddress,
+        basename: basename,
+        totalPoints: totalPoints,
+        highestLevel: globalStats.highestLevel,
+        lastUpdated: new Date().toISOString()
+      }, { merge: true });
+      console.log('Leaderboard updated (skip path)');
+    } catch (err) {
+      console.error('Leaderboard update error:', err);
+    }
+  }, [db, connectedAddress, basename, levelScores, globalStats]);
+
+  // ✅ Handle $0.05 USDC Support Payment (wallet-to-wallet)
+  const handleSupportPayment = useCallback(async () => {
+    setSupportStatus('pending');
+    try {
+      let provider = getWalletProvider();
+      if (!provider) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        provider = getWalletProvider();
+      }
+      if (!provider) {
+        setSupportStatus('error');
+        return;
+      }
+
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) {
+        setSupportStatus('error');
+        return;
+      }
+      const account = accounts[0];
+      setConnectedAddress(account);
+
+      // Switch to Base Mainnet
+      try {
+        await provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }],
+        });
+      } catch (switchErr: any) {
+        if (switchErr.code === 4902) {
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2105',
+              chainName: 'Base',
+              nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org'],
+            }],
+          });
+        }
+      }
+
+      // Send $0.05 USDC wallet-to-wallet via ERC-20 transfer
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: account,
+          to: USDC_BASE,
+          value: '0x0',
+          data: SUPPORT_USDC_DATA,
+          gas: '0xF424',
+          chainId: '0x2105',
+        }],
+      });
+
+      if (txHash) {
+        setSupportStatus('success');
+        // Update leaderboard after successful payment
+        await updateLeaderboard();
+      } else {
+        setSupportStatus('error');
+      }
+    } catch (err: any) {
+      console.error('Support payment error:', err);
+      if (err.code === 4001 || err.message?.includes('rejected')) {
+        setSupportStatus('idle'); // Let them try again or skip
+      } else {
+        setSupportStatus('error');
+      }
+    }
+  }, [SUPPORT_USDC_DATA, USDC_BASE, updateLeaderboard]);
 
   const handlePaymentUnlock = useCallback(async (level: number) => {
     setPaymentStatus('pending');
@@ -1819,24 +1918,83 @@ export default function JSQuizApp() {
                   )}
 
                   <div className="flex flex-col gap-3">
-                    {!txStatus || txStatus.includes('❌') ? (
-                      <button
-                        onClick={() => userCompleteLevel(score)}
-                        className="w-full py-4 bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:from-[#0038B2] hover:to-[#002A80] text-white font-bold rounded-xl shadow-lg shadow-[#0052FF]/30 flex items-center justify-center gap-2 transition-all"
-                      >
-                        <Zap className="w-5 h-5" />
-                        Sync Score on Base
-                      </button>
-                    ) : null}
+                    {/* Level 1 Support Payment: Pay $0.05 USDC or Skip */}
+                    {currentLevel === 1 && levelPassed && supportStatus !== 'success' && supportStatus !== 'skipped' ? (
+                      <>
+                        <div className="p-4 rounded-2xl border border-[#0052FF]/20 bg-[#0052FF]/5 text-center space-y-2">
+                          <p className="text-xs font-black text-[#0052FF] uppercase tracking-widest">Get on the Leaderboard</p>
+                          <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Pay $0.05 USDC to get your score listed on the Global Leaderboard! Skipping means no leaderboard entry.</p>
+                        </div>
 
-                    {currentLevel < TOTAL_LEVELS && (
-                      <button
-                        onClick={() => startQuiz(currentLevel + 1)}
-                        className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all group"
-                      >
-                        Ascend to Level {currentLevel + 1}
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      </button>
+                        <motion.button
+                          whileHover={supportStatus !== 'pending' ? { scale: 1.02 } : {}}
+                          whileTap={supportStatus !== 'pending' ? { scale: 0.98 } : {}}
+                          onClick={handleSupportPayment}
+                          disabled={supportStatus === 'pending'}
+                          className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 transition-all shadow-lg ${supportStatus === 'pending'
+                            ? 'bg-[#0052FF]/50 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:shadow-[#0052FF]/40 hover:shadow-xl'
+                            }`}
+                        >
+                          {supportStatus === 'pending' ? (
+                            <>
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                              />
+                              Confirming in Wallet...
+                            </>
+                          ) : (
+                            <>
+                              <Wallet className="w-5 h-5" />
+                              Pay $0.05 USDC & Support
+                            </>
+                          )}
+                        </motion.button>
+
+                        <button
+                          onClick={() => {
+                            setSupportStatus('skipped');
+                            if (currentLevel < TOTAL_LEVELS) {
+                              setTimeout(() => startQuiz(currentLevel + 1), 500);
+                            }
+                          }}
+                          disabled={supportStatus === 'pending'}
+                          className="w-full py-3 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-[#0052FF] transition-all disabled:opacity-40"
+                        >
+                          Skip — No Leaderboard →
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Normal flow for other levels or after support decision */}
+                        {supportStatus === 'success' && (
+                          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                            <p className="text-xs font-bold text-emerald-500">🎉 Payment confirmed! You are now on the Global Leaderboard!</p>
+                          </div>
+                        )}
+
+                        {!txStatus || txStatus.includes('❌') ? (
+                          <button
+                            onClick={() => userCompleteLevel(score)}
+                            className="w-full py-4 bg-gradient-to-r from-[#0052FF] to-[#0038B2] hover:from-[#0038B2] hover:to-[#002A80] text-white font-bold rounded-xl shadow-lg shadow-[#0052FF]/30 flex items-center justify-center gap-2 transition-all"
+                          >
+                            <Zap className="w-5 h-5" />
+                            Sync Score on Base
+                          </button>
+                        ) : null}
+
+                        {currentLevel < TOTAL_LEVELS && (
+                          <button
+                            onClick={() => startQuiz(currentLevel + 1)}
+                            className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all group"
+                          >
+                            Ascend to Level {currentLevel + 1}
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </>
