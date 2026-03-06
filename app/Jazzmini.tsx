@@ -282,18 +282,18 @@ export default function JSQuizApp() {
   // Logic Handlers
   const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
     try {
-      if (!db) return;
-      const id = (connectedAddress || userId || '').toLowerCase();
+      if (!db || !connectedAddress) return; // Only wallet-connected users on leaderboard
+      const id = connectedAddress.toLowerCase();
       const totalPoints = customTotal !== undefined ? customTotal : (Object.values(levelScores).reduce((a, b: any) => a + b, 0) + dailyPoints);
       const currentStreak = customStreak !== undefined ? customStreak : dailyStreak;
 
       const payload = {
-        address: connectedAddress ? connectedAddress.toLowerCase() : (userId || 'anonymous'),
-        basename: basename || (connectedAddress ? connectedAddress.slice(0, 8) : 'User_' + (userId?.slice(0, 5) || 'Guest')),
+        address: connectedAddress.toLowerCase(),
+        basename: basename || connectedAddress.slice(0, 8),
         totalPoints,
         highestLevel: globalStats.highestLevel,
         streak: currentStreak,
-        isPaid: isPaid || (connectedAddress ? !!paidLevels[currentLevel] : false),
+        isPaid: isPaid || !!paidLevels[currentLevel],
         lastUpdated: new Date().toISOString(),
         ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, displayName: farcasterUser.display_name, pfp: farcasterUser.pfp_url } : {})
       };
@@ -634,6 +634,8 @@ export default function JSQuizApp() {
           <LeaderboardTable
             isDarkMode={isDarkMode}
             leaderboardData={leaderboard}
+            connectedAddress={connectedAddress}
+            onConnect={connectWallet}
           />
         );
       case 'dashboard':

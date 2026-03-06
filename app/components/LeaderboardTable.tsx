@@ -6,11 +6,15 @@ import { Trophy, Award, Users, Star } from 'lucide-react';
 interface LeaderboardTableProps {
     isDarkMode: boolean;
     leaderboardData: any[];
+    connectedAddress: string | null;
+    onConnect: () => void;
 }
 
 export const LeaderboardTable = ({
     isDarkMode,
-    leaderboardData
+    leaderboardData,
+    connectedAddress,
+    onConnect
 }: LeaderboardTableProps) => {
 
     return (
@@ -25,6 +29,27 @@ export const LeaderboardTable = ({
                 </div>
                 <h2 className="text-3xl font-black text-primary uppercase tracking-tighter">Global Rankings</h2>
             </div>
+
+            {/* Connect Wallet Banner */}
+            {!connectedAddress && (
+                <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border-2 border-dashed ${isDarkMode ? 'border-primary/30 bg-primary/5' : 'border-primary/30 bg-primary/5'
+                    }`}>
+                    <div>
+                        <p className={`font-black text-sm uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                            🔒 Wallet Connect Karen
+                        </p>
+                        <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            Sirf wallet-connected users leaderboard mein show honge.
+                        </p>
+                    </div>
+                    <button
+                        onClick={onConnect}
+                        className="shrink-0 px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:bg-primary/90 hover:-translate-y-0.5 transition-all shadow-lg shadow-primary/20"
+                    >
+                        Connect Wallet
+                    </button>
+                </div>
+            )}
 
 
 
