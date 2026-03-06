@@ -141,6 +141,7 @@ export default function JSQuizApp() {
   const [supportStatus, setSupportStatus] = useState<'idle' | 'pending' | 'success' | 'skipped' | 'error'>('idle');
 
   const [dailyStreak, setDailyStreak] = useState(0);
+  const [dailyPoints, setDailyPoints] = useState(0);
   const [lastGmDate, setLastGmDate] = useState<string | null>(null);
   const [gmDoneToday, setGmDoneToday] = useState(false);
   const [showDailyQuiz, setShowDailyQuiz] = useState(false);
@@ -172,10 +173,12 @@ export default function JSQuizApp() {
 
     const today = getTodayDateKey();
     const savedStreak = parseInt(localStorage.getItem('dailyStreak') || '0', 10);
+    const savedDailyPoints = parseInt(localStorage.getItem('dailyPoints') || '0', 10);
     const savedLastGm = localStorage.getItem('lastGmDate');
     const savedDailyDone = localStorage.getItem('dailyQuizDone');
 
     setDailyStreak(savedStreak);
+    setDailyPoints(savedDailyPoints);
     if (savedLastGm) setLastGmDate(savedLastGm);
     if (savedLastGm === today) setGmDoneToday(true);
     else if (savedLastGm && savedStreak > 0) {
@@ -259,24 +262,27 @@ export default function JSQuizApp() {
       setLeaderboardFree(freeS.docs.map(d => d.data()));
     };
     fetchLB();
-  }, [db, activeTab]);
+  }, [db, activeTab, score, dailyStreak]); // Added score and streak to refresh leaderboard when they change
 
   // Logic Handlers
-  const updateLeaderboard = useCallback(async (isPaid: boolean = false) => {
+  const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
     if (!db || !connectedAddress) return;
-    const totalPoints = Object.values(levelScores).reduce((a, b) => a + b, 0);
+
+    const totalPoints = customTotal !== undefined ? customTotal : (Object.values(levelScores).reduce((a, b) => a + b, 0) + dailyPoints);
+    const currentStreak = customStreak !== undefined ? customStreak : dailyStreak;
+
     const payload = {
       address: connectedAddress.toLowerCase(),
       basename: basename || connectedAddress.slice(0, 8),
       totalPoints,
       highestLevel: globalStats.highestLevel,
-      streak: dailyStreak,
+      streak: currentStreak,
       isPaid,
       lastUpdated: new Date().toISOString(),
       ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, pfp: farcasterUser.pfp_url } : {})
     };
     await setDoc(doc(db, 'leaderboard', connectedAddress.toLowerCase()), payload, { merge: true });
-  }, [db, connectedAddress, basename, levelScores, globalStats, dailyStreak, farcasterUser]);
+  }, [db, connectedAddress, basename, levelScores, globalStats, dailyStreak, dailyPoints, farcasterUser]);
 
   const connectWallet = useCallback(async () => {
     try {
@@ -346,7 +352,9 @@ export default function JSQuizApp() {
           const statsRef = doc(db!, PUBLIC_COLLECTION_PATH, GLOBAL_STATS_DOC_ID);
           await setDoc(statsRef, { highestLevel: nextLevel, updated: new Date().toISOString() }, { merge: true });
         }
-        updateLeaderboard(paidLevels[1] || false);
+
+        const newTotalPoints = Object.values(newScores).reduce((a, b) => a + b, 0) + dailyPoints;
+        updateLeaderboard(paidLevels[1] || false, newTotalPoints);
       }
     } else {
       setCurrentQuestionIndex(p => p + 1);
@@ -436,7 +444,9 @@ export default function JSQuizApp() {
     setLastGmDate(today);
     localStorage.setItem('lastGmDate', today);
     setShowDailyQuiz(true);
-  }, []);
+    // Notify leaderboard of activity
+    updateLeaderboard(paidLevels[1] || false);
+  }, [updateLeaderboard, paidLevels]);
 
   const handleDailyAnswer = useCallback((opt: string) => {
     if (dailyQuizAnswer === 'done') return;
@@ -451,12 +461,23 @@ export default function JSQuizApp() {
       const newStreak = dailyStreak + 1;
       setDailyStreak(newStreak);
       localStorage.setItem('dailyStreak', newStreak.toString());
+
+      const newDailyPoints = dailyPoints + 10; // 10 points for daily quiz success
+      setDailyPoints(newDailyPoints);
+      localStorage.setItem('dailyPoints', newDailyPoints.toString());
+
+      const basePoints = Object.values(levelScores).reduce((a, b) => a + b, 0);
+      const newTotal = basePoints + newDailyPoints;
+
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      updateLeaderboard(paidLevels[1] || false, newTotal, newStreak);
     } else {
       setDailyStreak(0);
       localStorage.setItem('dailyStreak', '0');
+      const currentTotal = Object.values(levelScores).reduce((a, b) => a + b, 0) + dailyPoints;
+      updateLeaderboard(paidLevels[1] || false, currentTotal, 0);
     }
-  }, [dailyStreak, todayQuestion]);
+  }, [dailyStreak, dailyPoints, todayQuestion, updateLeaderboard, paidLevels]);
 
   const handleStreakRestore = useCallback(async () => {
     setStreakRecoveryStatus('pending');
