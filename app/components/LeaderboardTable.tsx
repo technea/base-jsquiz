@@ -57,11 +57,11 @@ export const LeaderboardTable = ({
                                         {player.pfp ? (
                                             <img src={player.pfp} alt="" className="w-full h-full rounded-lg object-cover" />
                                         ) : (
-                                            (player.username || player.basename || player.address).slice(0, 1).toUpperCase()
+                                            (player.displayName || player.username || player.basename || player.address).slice(0, 1).toUpperCase()
                                         )}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-base font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{player.username || player.basename}</span>
+                                        <span className={`text-base font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{player.displayName || player.username || player.basename || "Player"}</span>
                                         <span className="text-[11px] font-mono opacity-50 font-bold">{player.address.slice(0, 6)}...{player.address.slice(-4)}</span>
                                     </div>
                                 </div>

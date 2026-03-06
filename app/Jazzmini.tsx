@@ -289,7 +289,7 @@ export default function JSQuizApp() {
         streak: currentStreak,
         isPaid: isPaid || (connectedAddress ? !!paidLevels[currentLevel] : false),
         lastUpdated: new Date().toISOString(),
-        ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, pfp: farcasterUser.pfp_url } : {})
+        ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, displayName: farcasterUser.display_name, pfp: farcasterUser.pfp_url } : {})
       };
 
       console.log("Saving to RTDB:", id, payload);
