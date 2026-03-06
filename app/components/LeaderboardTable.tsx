@@ -38,7 +38,7 @@ export const LeaderboardTable = ({
                     onClick={() => setLeaderboardTab('elite')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${leaderboardTab === 'elite'
                         ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : `${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
+                        : `${isDarkMode ? 'text-white/60 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
                         }`}
                 >
                     <Star className="w-3.5 h-3.5 fill-current" />
@@ -48,7 +48,7 @@ export const LeaderboardTable = ({
                     onClick={() => setLeaderboardTab('free')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${leaderboardTab === 'free'
                         ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : `${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
+                        : `${isDarkMode ? 'text-white/60 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
                         }`}
                 >
                     <Users className="w-3.5 h-3.5" />
@@ -59,9 +59,9 @@ export const LeaderboardTable = ({
             <div className="glass-card overflow-hidden">
                 <div className={`px-6 py-4 border-b ${isDarkMode ? 'border-white/5 bg-white/5' : 'border-black/5 bg-black/5'}`}>
                     <div className="grid grid-cols-12 gap-4 items-center">
-                        <div className={`col-span-2 text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Rank</div>
-                        <div className={`col-span-6 text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Player</div>
-                        <div className={`col-span-4 text-right text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Score</div>
+                        <div className={`col-span-2 text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Rank</div>
+                        <div className={`col-span-6 text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Player</div>
+                        <div className={`col-span-4 text-right text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Score</div>
                     </div>
                 </div>
 
@@ -89,7 +89,7 @@ export const LeaderboardTable = ({
                                         )}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-base font-black tracking-tight ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>{player.username || player.basename}</span>
+                                        <span className={`text-base font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{player.username || player.basename}</span>
                                         <span className="text-[11px] font-mono opacity-50 font-bold">{player.address.slice(0, 6)}...{player.address.slice(-4)}</span>
                                     </div>
                                 </div>
@@ -102,9 +102,9 @@ export const LeaderboardTable = ({
                             </motion.div>
                         ))
                     ) : (
-                        <div className="p-12 text-center space-y-3 opacity-40">
-                            <Users className="w-10 h-10 mx-auto" />
-                            <p className="font-bold text-sm tracking-widest uppercase">No players yet</p>
+                        <div className="p-12 text-center space-y-3 opacity-80">
+                            <Users className="w-10 h-10 mx-auto text-white/40" />
+                            <p className="font-bold text-sm tracking-widest uppercase text-white">No players yet</p>
                         </div>
                     )}
                 </div>
@@ -114,7 +114,7 @@ export const LeaderboardTable = ({
                         <div className="p-2 bg-primary/20 rounded-lg">
                             <Star className="w-4 h-4 text-primary fill-current" />
                         </div>
-                        <p className={`text-xs font-black leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                        <p className={`text-xs font-black leading-relaxed ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                             {leaderboardTab === 'elite'
                                 ? "Elite players have supported JAZZMINI development and unlocked verified blockchain credentials."
                                 : "Free players are ranking by total points earned across all completed levels."

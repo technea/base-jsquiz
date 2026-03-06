@@ -38,8 +38,8 @@ export const Header = ({
                         <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-slate-900 dark:text-white">JAZZ<span className="text-primary italic">MINI</span></h1>
-                        <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>v2.0 Premium Experience</p>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-foreground">JAZZ<span className="text-primary italic">MINI</span></h1>
+                        <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-200' : 'text-slate-600'}`}>v2.0 Premium Experience</p>
                     </div>
                 </div>
 
@@ -48,7 +48,7 @@ export const Header = ({
                     onClick={() => setIsDarkMode(!isDarkMode)}
                     className="sm:hidden p-2.5 glass-card rounded-xl"
                 >
-                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    {isDarkMode ? <Sun className="w-4 h-4 text-white" /> : <Moon className="w-4 h-4 text-slate-800" />}
                 </button>
             </div>
 
@@ -63,7 +63,7 @@ export const Header = ({
                             }}
                             className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab
                                 ? 'bg-primary text-white shadow-lg'
-                                : `${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
+                                : `${isDarkMode ? 'text-white/60 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
                                 }`}
                         >
                             {tab}
@@ -81,7 +81,7 @@ export const Header = ({
                             {farcasterUser?.pfp_url ? (
                                 <img src={farcasterUser.pfp_url} alt="" className="w-6 h-6 rounded-full border border-primary/50" />
                             ) : (
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/50 to-secondary/50 flex items-center justify-center text-[10px] font-black">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/50 to-secondary/50 flex items-center justify-center text-[10px] font-black text-white">
                                     {(basename || connectedAddress).slice(0, 1).toUpperCase()}
                                 </div>
                             )}
@@ -89,7 +89,7 @@ export const Header = ({
                                 <span className="font-black text-xs text-primary uppercase tracking-tighter">
                                     {farcasterUser?.display_name || basename || 'Player'}
                                 </span>
-                                <span className={`font-mono text-[10px] font-bold opacity-80 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                                <span className={`font-mono text-[10px] font-bold opacity-80 ${isDarkMode ? 'text-slate-200' : 'text-slate-600'}`}>
                                     {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
                                 </span>
                             </div>
@@ -107,7 +107,7 @@ export const Header = ({
                         onClick={() => setIsDarkMode(!isDarkMode)}
                         className="p-3 glass-card hover:bg-primary/10 rounded-2xl transition-all"
                     >
-                        {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        {isDarkMode ? <Sun className="w-5 h-5 text-white" /> : <Moon className="w-5 h-5 text-slate-800" />}
                     </button>
                 </div>
             </div>

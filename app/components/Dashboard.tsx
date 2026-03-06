@@ -42,7 +42,7 @@ export const Dashboard = ({
                 <h2 className={`text-4xl sm:text-5xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                     JAZZMINI <span className="text-primary italic">Quiz</span>
                 </h2>
-                <p className={`text-lg sm:text-xl font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'} max-w-2xl mx-auto`}>
+                <p className={`text-lg sm:text-xl font-medium ${isDarkMode ? 'text-slate-200' : 'text-slate-500'} max-w-2xl mx-auto`}>
                     Prepare for your <span className="text-primary font-bold">JavaScript Interview</span>!
                     Master concepts with {MAX_FREE_ATTEMPTS} attempts per level.
                 </p>
@@ -52,7 +52,7 @@ export const Dashboard = ({
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
                     className={`py-3 px-6 max-w-lg mx-auto rounded-full border border-dashed ${isDarkMode ? 'border-primary/30 bg-primary/5' : 'border-primary/40 bg-primary/5'}`}
                 >
-                    <p className={`text-base italic font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    <p className={`text-base italic font-medium ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                         "{JS_QUOTES[Math.floor(Math.random() * JS_QUOTES.length)]}"
                     </p>
                 </motion.div>
@@ -64,7 +64,7 @@ export const Dashboard = ({
                 className={`p-6 glass-card text-left max-w-md mx-auto ${isDarkMode ? 'glass-blue' : ''}`}
             >
                 <div className="flex items-center gap-3 mb-4">
-                    <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'}`}>
+                    <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-primary/20 text-white' : 'bg-primary/10 text-primary'}`}>
                         <Wallet className="w-6 h-6" />
                     </div>
                     <h3 className={`font-bold text-2xl ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Web3 Rewards</h3>
@@ -80,7 +80,7 @@ export const Dashboard = ({
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <p className={`text-base font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        <p className={`text-base font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                             Connect your wallet to earn digital badges and verifiable proof of your JavaScript expertise.
                         </p>
                         <button
@@ -96,7 +96,7 @@ export const Dashboard = ({
 
             {/* Level Grid - Optimized for Mobile */}
             <div className="space-y-4 pt-4">
-                <h3 className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Level Selection</h3>
+                <h3 className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Level Selection</h3>
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 sm:gap-3">
                     {[...Array(TOTAL_LEVELS)].map((_, i) => {
                         const level = i + 1;

@@ -39,8 +39,8 @@ export const QuizView = ({
                         {currentQuestionIndex + 1}
                     </div>
                     <div>
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">Question</p>
-                        <p className="text-sm font-bold text-slate-500 dark:text-slate-500">Section {currentQuestionIndex + 1} of {totalQuestions}</p>
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Question</p>
+                        <p className="text-sm font-bold text-slate-400 dark:text-slate-400">Section {currentQuestionIndex + 1} of {totalQuestions}</p>
                     </div>
                 </div>
 
@@ -58,7 +58,7 @@ export const QuizView = ({
                     <BookOpen className="w-24 h-24" />
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-10 relative z-10 text-slate-900 dark:text-white">
+                <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-10 relative z-10 text-foreground">
                     {currentQuestion.question}
                 </h3>
 
@@ -69,9 +69,9 @@ export const QuizView = ({
 
                         let btnClass = "glass-card hover:bg-primary/5 border-transparent";
                         if (showExplanation) {
-                            if (isCorrect) btnClass = "bg-emerald-500/10 border-emerald-500/50 text-emerald-500";
-                            else if (isSelected) btnClass = "bg-rose-500/10 border-rose-500/50 text-rose-500 opacity-80";
-                            else btnClass = "opacity-40 grayscale";
+                            if (isCorrect) btnClass = "bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/50 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.1)]";
+                            else if (isSelected) btnClass = "bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/50 text-rose-500 opacity-90 shadow-[0_0_20px_rgba(244,63,94,0.1)]";
+                            else btnClass = "opacity-40 grayscale blur-[1px]";
                         }
 
                         return (
@@ -80,12 +80,12 @@ export const QuizView = ({
                                 whileHover={!showExplanation ? { x: 8, backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' } : {}}
                                 onClick={() => onSelectOption(option)}
                                 disabled={!!selectedOption}
-                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-slate-900 dark:text-white ${btnClass}`}
+                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-foreground ${btnClass}`}
                             >
                                 <div className="flex items-center gap-4">
-                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 ${isSelected
+                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 transition-colors ${isSelected
                                         ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                                        : 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-300'
                                         }`}>
                                         {String.fromCharCode(65 + idx)}
                                     </span>
@@ -104,9 +104,9 @@ export const QuizView = ({
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`p-6 rounded-2xl border-2 ${selectedOption === currentQuestion.answer
-                            ? 'bg-emerald-500/5 border-emerald-500/20'
-                            : 'bg-rose-500/5 border-rose-500/20'
+                        className={`p-6 rounded-2xl border-2 shadow-xl ${selectedOption === currentQuestion.answer
+                            ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20'
+                            : 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20'
                             }`}
                     >
                         <div className="flex gap-4">
@@ -118,8 +118,8 @@ export const QuizView = ({
                                 }
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 opacity-80">Explanation</p>
-                                <p className="text-base font-medium leading-relaxed italic text-slate-800 dark:text-slate-200">{currentQuestion.explanation}</p>
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 group-hover:opacity-100 transition-opacity">Explanation</p>
+                                <p className="text-base font-medium leading-relaxed italic text-foreground">{currentQuestion.explanation}</p>
                             </div>
                         </div>
                     </motion.div>

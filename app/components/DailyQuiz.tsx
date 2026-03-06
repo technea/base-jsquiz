@@ -33,7 +33,7 @@ export const DailyQuiz = ({
                 </div>
                 <div>
                     <h2 className="text-3xl font-black text-primary uppercase tracking-tighter italic">Daily JS Puzzle</h2>
-                    <p className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <p className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
                         Level — Advanced • 1 Attempt Only
                     </p>
                 </div>
@@ -44,7 +44,7 @@ export const DailyQuiz = ({
                     <BookOpen className="w-24 h-24" />
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-10 relative z-10 text-slate-900 dark:text-white">
+                <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-10 relative z-10 text-foreground">
                     {todayQuestion.question}
                 </h3>
 
@@ -56,9 +56,9 @@ export const DailyQuiz = ({
 
                         let btnClass = "glass-card hover:bg-primary/5 border-transparent";
                         if (isAnswered) {
-                            if (isCorrect) btnClass = "bg-emerald-500/10 border-emerald-500/50 text-emerald-500";
-                            else if (isSelected) btnClass = "bg-rose-500/10 border-rose-500/50 text-rose-500 opacity-80";
-                            else btnClass = "opacity-40 grayscale";
+                            if (isCorrect) btnClass = "bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/50 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.1)]";
+                            else if (isSelected) btnClass = "bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/50 text-rose-500 opacity-90 shadow-[0_0_20px_rgba(244,63,94,0.1)]";
+                            else btnClass = "opacity-40 grayscale blur-[1px]";
                         }
 
                         return (
@@ -67,12 +67,12 @@ export const DailyQuiz = ({
                                 whileHover={!isAnswered ? { x: 8, backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' } : {}}
                                 onClick={() => onAnswer(opt)}
                                 disabled={isAnswered}
-                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-slate-900 dark:text-white ${btnClass}`}
+                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-foreground ${btnClass}`}
                             >
                                 <div className="flex items-center gap-4">
-                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 ${isSelected
+                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 transition-colors ${isSelected
                                         ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                                        : 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-300'
                                         }`}>
                                         {String.fromCharCode(65 + idx)}
                                     </span>
@@ -91,9 +91,9 @@ export const DailyQuiz = ({
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`p-6 rounded-2xl border-2 ${dailyQuizResult === 'correct'
-                            ? 'bg-emerald-500/10 border-emerald-500/20'
-                            : 'bg-rose-500/10 border-rose-500/20'
+                        className={`p-6 rounded-2xl border-2 shadow-xl ${dailyQuizResult === 'correct'
+                            ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20'
+                            : 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20'
                             }`}
                     >
                         <div className="flex gap-4">
@@ -105,8 +105,8 @@ export const DailyQuiz = ({
                                 }
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 opacity-80">Deep Dive Explanation</p>
-                                <p className="text-base font-medium leading-relaxed italic text-slate-800 dark:text-slate-200">{todayQuestion.explanation}</p>
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 group-hover:opacity-100 transition-opacity">Deep Dive Explanation</p>
+                                <p className="text-base font-medium leading-relaxed italic text-foreground">{todayQuestion.explanation}</p>
                                 {dailyQuizResult === 'correct' ? (
                                     <p className="text-xs font-black text-emerald-500 uppercase tracking-widest mt-2">+1 Day Streak Bonus 🔥</p>
                                 ) : (

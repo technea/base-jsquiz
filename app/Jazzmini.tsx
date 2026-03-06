@@ -266,23 +266,24 @@ export default function JSQuizApp() {
 
   // Logic Handlers
   const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
-    if (!db || !connectedAddress) return;
+    if (!db || (!connectedAddress && !userId)) return;
 
+    const id = (connectedAddress || userId || '').toLowerCase();
     const totalPoints = customTotal !== undefined ? customTotal : (Object.values(levelScores).reduce((a, b) => a + b, 0) + dailyPoints);
     const currentStreak = customStreak !== undefined ? customStreak : dailyStreak;
 
     const payload = {
-      address: connectedAddress.toLowerCase(),
-      basename: basename || connectedAddress.slice(0, 8),
+      address: connectedAddress ? connectedAddress.toLowerCase() : (userId || 'anonymous'),
+      basename: basename || (connectedAddress ? connectedAddress.slice(0, 8) : 'User_' + (userId?.slice(0, 5) || 'Guest')),
       totalPoints,
       highestLevel: globalStats.highestLevel,
       streak: currentStreak,
-      isPaid,
+      isPaid: isPaid || (connectedAddress ? !!paidLevels[currentLevel] : false),
       lastUpdated: new Date().toISOString(),
       ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, pfp: farcasterUser.pfp_url } : {})
     };
-    await setDoc(doc(db, 'leaderboard', connectedAddress.toLowerCase()), payload, { merge: true });
-  }, [db, connectedAddress, basename, levelScores, globalStats, dailyStreak, dailyPoints, farcasterUser]);
+    await setDoc(doc(db, 'leaderboard', id), payload, { merge: true });
+  }, [db, connectedAddress, userId, basename, levelScores, globalStats, dailyStreak, dailyPoints, farcasterUser, paidLevels, currentLevel]);
 
   const connectWallet = useCallback(async () => {
     try {

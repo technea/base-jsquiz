@@ -53,11 +53,11 @@ export const LearningHub = ({
                         {LEVEL_ICONS[learningLevel - 1]}
                     </div>
                     <div className="flex-1">
-                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Level {learningLevel} — Study Guide</p>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Level {learningLevel} — Study Guide</p>
                         <h2 className="text-3xl font-black text-primary">{LEVEL_TOPICS[learningLevel - 1]}</h2>
                     </div>
                     <div className="text-right shrink-0">
-                        <p className={`text-xs uppercase font-black tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Topics</p>
+                        <p className={`text-xs uppercase font-black tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Topics</p>
                         <p className="text-3xl font-black text-slate-900 dark:text-white">{LEARNING_CONTENT[learningLevel]?.length}</p>
                     </div>
                 </div>
@@ -83,7 +83,7 @@ export const LearningHub = ({
                             <div className="grid grid-cols-1 sm:grid-cols-2">
                                 {/* Key Points */}
                                 <div className="p-5 space-y-2.5">
-                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-3">📌 Key Points</p>
+                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300 mb-3">📌 Key Points</p>
                                     {item.points.map((p, pIdx) => {
                                         // Render inline code (backtick syntax)
                                         const parts = p.split(/`([^`]+)`/);
@@ -107,7 +107,7 @@ export const LearningHub = ({
 
                                 {/* Code Example */}
                                 <div className="border-t sm:border-t-0 sm:border-l border-white/5 p-5 bg-slate-900/50">
-                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-3">💻 Code Example</p>
+                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300 mb-3">💻 Code Example</p>
                                     <pre className="p-4 rounded-xl bg-slate-900 text-emerald-400 font-mono text-sm overflow-x-auto selection:bg-primary/30">
                                         <code>{item.code}</code>
                                     </pre>

@@ -57,12 +57,12 @@ export const QuizResult = ({
 
                 <div className="flex items-center justify-center gap-4 py-2">
                     <div className="text-left">
-                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Score</p>
-                        <p className={`text-3xl font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>{score}/{totalQuestions}</p>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Score</p>
+                        <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{score}/{totalQuestions}</p>
                     </div>
                     <div className="w-px h-8 bg-slate-800/10" />
                     <div className="text-left">
-                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>XP Earned</p>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>XP Earned</p>
                         <p className="text-3xl font-black text-primary">+{score * 10}</p>
                     </div>
                 </div>
@@ -79,7 +79,7 @@ export const QuizResult = ({
                         <div className="p-2 bg-emerald-500/20 rounded-lg">
                             <Star className="w-5 h-5 text-emerald-500 fill-current" />
                         </div>
-                        <p className={`font-black text-sm text-left leading-tight ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>Founder Bonus: Support the Project!</p>
+                        <p className={`font-black text-sm text-left leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Founder Bonus: Support the Project!</p>
                     </div>
                     <p className={`text-sm font-medium text-left leading-relaxed italic opacity-80 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                         You completed Level 1! Support the project by paying <span className="text-emerald-500 font-bold">$0.03 USDC</span> on Base. 🤝
@@ -126,7 +126,7 @@ export const QuizResult = ({
                         <div className="p-2 bg-primary/20 rounded-lg">
                             <Zap className="w-5 h-5 text-primary fill-current" />
                         </div>
-                        <p className={`font-black text-sm text-left leading-tight tracking-tight uppercase ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>Join the Elite Realm</p>
+                        <p className={`font-black text-sm text-left leading-tight tracking-tight uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Join the Elite Realm</p>
                     </div>
                     <p className={`text-xs text-left leading-relaxed font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                         Join the <span className="text-primary font-black uppercase">Elite Leaderboard</span> and unlock verified proof of your coding expertise.
