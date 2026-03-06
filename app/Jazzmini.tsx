@@ -46,11 +46,14 @@ import { Footer } from './components/Footer';
 
 // --- Farcaster SDK ---
 let sdk: any = null;
-try {
-  const farcasterSdk = require('@farcaster/miniapp-sdk');
-  sdk = farcasterSdk.sdk;
-} catch (e) {
-  console.warn('Farcaster SDK not available, using web3 provider fallback');
+if (typeof window !== 'undefined') {
+  try {
+    import('@farcaster/miniapp-sdk').then((module) => {
+      sdk = module.sdk;
+    });
+  } catch (e) {
+    console.warn('Farcaster SDK loading failed');
+  }
 }
 
 const firebaseConfig = {
@@ -116,8 +119,6 @@ export default function JSQuizApp() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [levelPassed, setLevelPassed] = useState(false);
-  const [txStatus, setTxStatus] = useState("");
-  const [autoProgressing, setAutoProgressing] = useState(false);
 
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
   const [basename, setBasename] = useState<string | null>(null);
@@ -148,7 +149,6 @@ export default function JSQuizApp() {
 
   const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard'>('quiz');
   const [learningLevel, setLearningLevel] = useState(1);
-  const contractAddedRef = useRef(false);
 
   // Persistence Effects
   useEffect(() => {
@@ -354,7 +354,9 @@ export default function JSQuizApp() {
     if (selectedOption) return;
     setSelectedOption(opt);
     const correct = opt === QUIZ_DATA.filter(q => q.level === currentLevel)[currentQuestionIndex].answer;
-    if (correct) setScore(s => s + 1);
+    if (correct) {
+      setScore(s => s + 10);
+    }
     setShowExplanation(true);
   }, [currentLevel, currentQuestionIndex, selectedOption]);
 
@@ -363,7 +365,7 @@ export default function JSQuizApp() {
     setShowExplanation(false);
     const questions = QUIZ_DATA.filter(q => q.level === currentLevel);
     if (currentQuestionIndex === questions.length - 1) {
-      const passed = score >= PASS_THRESHOLD;
+      const passed = score >= (PASS_THRESHOLD * 10);
       setLevelPassed(passed);
       setQuizState('result');
 

@@ -36,145 +36,152 @@ export const QuizResult = ({
 }: QuizResultProps) => {
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={`max-w-md mx-auto p-8 rounded-3xl text-center space-y-8 glass-card border-2 ${levelPassed ? 'border-emerald-500/30 shadow-emerald-500/10' : 'border-rose-500/30'
-                }`}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-lg mx-auto space-y-4 sm:space-y-6 pb-8 px-4 sm:px-6"
         >
-            <div className="space-y-4">
-                <motion.div
-                    animate={{ rotate: levelPassed ? [0, 15, -15, 0] : 0 }}
-                    transition={{ duration: 5, repeat: Infinity }}
-                    className={`w-24 h-24 mx-auto rounded-3xl flex items-center justify-center shadow-xl ${levelPassed ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-rose-500 shadow-rose-500/30'
-                        }`}
-                >
-                    {levelPassed ? <Trophy className="w-12 h-12 text-white" /> : <XCircle className="w-12 h-12 text-white" />}
-                </motion.div>
+            <div className={`p-6 sm:p-12 glass-card border-none bg-muted/30 text-center relative overflow-hidden rounded-2xl sm:rounded-[3rem] shadow-2xl`}>
+                <div className={`absolute top-0 inset-x-0 h-1.5 ${levelPassed ? 'bg-emerald-500' : 'bg-rose-500'} opacity-20`} />
 
-                <h2 className={`text-4xl font-black italic tracking-tighter ${levelPassed ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {levelPassed ? 'Level Cleared!' : 'Try Again!'}
-                </h2>
+                <div className="relative z-10 space-y-6 sm:space-y-8">
+                    <motion.div
+                        animate={{ y: [0, -6, 0], scale: [1, 1.03, 1] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className={`w-20 h-20 sm:w-28 sm:h-28 mx-auto rounded-xl sm:rounded-[2rem] flex items-center justify-center shadow-2xl ${levelPassed ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-rose-500 shadow-rose-500/30'
+                            }`}
+                    >
+                        {levelPassed ? <Trophy className="w-10 h-10 sm:w-14 sm:h-14 text-white" /> : <XCircle className="w-10 h-10 sm:w-14 sm:h-14 text-white" />}
+                    </motion.div>
 
-                <div className="flex items-center justify-center gap-4 py-2">
-                    <div className="text-left">
-                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Score</p>
-                        <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{score}/{totalQuestions}</p>
+                    <div className="space-y-1 sm:space-y-2">
+                        <h2 className={`text-2xl sm:text-4xl font-black italic tracking-tighter uppercase ${levelPassed ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {levelPassed ? 'Level Cleared' : 'Attempt Failed'}
+                        </h2>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">Result Output</p>
                     </div>
-                    <div className="w-px h-8 bg-slate-800/10" />
-                    <div className="text-left">
-                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>XP Earned</p>
-                        <p className="text-3xl font-black text-primary">+{score * 10}</p>
+
+                    <div className="grid grid-cols-2 gap-4 sm:gap-8 py-6 sm:py-8 border-y border-border/40">
+                        <div className="text-center">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Score</p>
+                            <p className="text-2xl sm:text-4xl font-black text-foreground">{score}/{totalQuestions * 10}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">XP Gain</p>
+                            <p className="text-2xl sm:text-4xl font-black text-primary">+{score}</p>
+                        </div>
+                    </div>
+
+                    {levelPassed && currentLevel === 1 && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="p-5 sm:p-8 rounded-xl sm:rounded-[2rem] bg-emerald-500/5 border border-emerald-500/20 text-left space-y-4 sm:space-y-6"
+                        >
+                            <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="p-2 sm:p-3 bg-emerald-500/10 rounded-lg sm:rounded-xl">
+                                    <Star className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 fill-emerald-500/20" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-foreground leading-none">Founder Bonus</p>
+                                    <p className="text-[9px] sm:text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-1">Special Access</p>
+                                </div>
+                            </div>
+                            <p className="text-xs sm:text-sm font-bold text-muted-foreground leading-relaxed italic">
+                                Support development with a <span className="text-emerald-500">$0.03 USDC</span> contribution on Base.
+                            </p>
+
+                            {!rewardTxHash ? (
+                                <button
+                                    onClick={onReward}
+                                    disabled={rewardStatus === 'pending' || rewardStatus === 'success'}
+                                    className={`w-full py-4 sm:py-5 rounded-xl sm:rounded-2xl text-white font-black uppercase tracking-widest text-[10px] sm:text-xs flex items-center justify-center gap-3 transition-all shadow-xl ${rewardStatus === 'pending'
+                                        ? 'bg-emerald-500/50 cursor-not-allowed'
+                                        : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
+                                        }`}
+                                >
+                                    <Wallet className="w-4 h-4" />
+                                    {rewardStatus === 'pending' ? 'Wait...' : 'Support $0.03 USDC'}
+                                </button>
+                            ) : (
+                                <div className="space-y-2 pt-1 border-t border-emerald-500/10">
+                                    <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-widest">
+                                        <CheckCircle className="w-4 h-4" /> Thank you
+                                    </div>
+                                    <a
+                                        href={`https://basescan.org/tx/${rewardTxHash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[9px] font-mono opacity-50 underline flex items-center gap-1"
+                                    >
+                                        TX: {rewardTxHash.slice(0, 12)}...
+                                    </a>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {levelPassed && currentLevel > 1 && supportStatus !== 'success' && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="p-5 sm:p-8 rounded-xl sm:rounded-[2rem] bg-primary/5 border border-primary/20 text-left space-y-4"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                    <Award className="w-5 h-5 text-primary" />
+                                </div>
+                                <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-foreground">Elite Verification</p>
+                            </div>
+                            <p className="text-xs sm:text-sm font-bold text-muted-foreground leading-relaxed">
+                                Join the <span className="text-primary font-black italic">Elite Leaderboard</span> and secure your verified proof.
+                            </p>
+
+                            <button
+                                onClick={onSupport}
+                                disabled={supportStatus === 'pending'}
+                                className={`w-full py-4 rounded-xl text-white font-black uppercase tracking-widest text-[10px] sm:text-xs flex items-center justify-center gap-3 shadow-xl ${supportStatus === 'pending'
+                                    ? 'bg-primary/50 cursor-not-allowed'
+                                    : 'bg-primary hover:bg-primary/90 shadow-primary/20'
+                                    }`}
+                            >
+                                <Award className="w-4 h-4" />
+                                {supportStatus === 'pending' ? 'Syncing...' : 'Join Elite — $0.03'}
+                            </button>
+                        </motion.div>
+                    )}
+
+                    <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4">
+                        {!levelPassed ? (
+                            <button
+                                onClick={onRetry}
+                                className="w-full py-4 sm:py-6 bg-rose-500 hover:bg-rose-600 rounded-xl sm:rounded-2xl text-white font-black uppercase tracking-widest text-xs sm:text-sm flex items-center justify-center gap-3 sm:gap-4 transition-all shadow-xl shadow-rose-500/20"
+                            >
+                                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" /> RESTART ASSESSMENT
+                            </button>
+                        ) : (
+                            <button
+                                onClick={onNextLevel}
+                                className="w-full py-4 sm:py-6 bg-foreground text-background rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-xs sm:text-sm flex items-center justify-center gap-3 sm:gap-4 transition-all hover:bg-foreground/90 shadow-2xl"
+                            >
+                                NEXT LEVEL {currentLevel + 1} <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-all underline underline-offset-4 sm:underline-offset-8"
+                        >
+                            Return to hub
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {levelPassed && currentLevel === 1 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="p-6 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 space-y-4"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-500/20 rounded-lg">
-                            <Star className="w-5 h-5 text-emerald-500 fill-current" />
-                        </div>
-                        <p className={`font-black text-sm text-left leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Founder Bonus: Support the Project!</p>
-                    </div>
-                    <p className={`text-sm font-medium text-left leading-relaxed italic opacity-80 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                        You completed Level 1! Support the project by paying <span className="text-emerald-500 font-bold">$0.03 USDC</span> on Base. 🤝
-                    </p>
-
-                    {!rewardTxHash ? (
-                        <button
-                            onClick={onReward}
-                            disabled={rewardStatus === 'pending' || rewardStatus === 'success'}
-                            className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg transition-all ${rewardStatus === 'pending'
-                                ? 'bg-emerald-500/50 cursor-not-allowed'
-                                : 'bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/30'
-                                }`}
-                        >
-                            <Wallet className="w-4 h-4" />
-                            {rewardStatus === 'pending' ? 'Sending...' : 'Support with $0.03 USDC'}
-                        </button>
-                    ) : (
-                        <div className="space-y-2">
-                            <p className="text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center justify-center gap-2">
-                                <CheckCircle className="w-4 h-4" /> Thank you for supporting!
-                            </p>
-                            <a
-                                href={`https://basescan.org/tx/${rewardTxHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs font-mono opacity-50 underline flex items-center justify-center gap-1"
-                            >
-                                View on BaseScan <ArrowRight className="w-3 h-3" />
-                            </a>
-                        </div>
-                    )}
-                </motion.div>
-            )}
-
-            {levelPassed && currentLevel > 1 && supportStatus !== 'success' && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="p-6 rounded-2xl border-2 border-primary/20 bg-primary/5 space-y-4"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/20 rounded-lg">
-                            <Zap className="w-5 h-5 text-primary fill-current" />
-                        </div>
-                        <p className={`font-black text-sm text-left leading-tight tracking-tight uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Join the Elite Realm</p>
-                    </div>
-                    <p className={`text-xs text-left leading-relaxed font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                        Join the <span className="text-primary font-black uppercase">Elite Leaderboard</span> and unlock verified proof of your coding expertise.
-                    </p>
-
-                    <button
-                        onClick={onSupport}
-                        disabled={supportStatus === 'pending'}
-                        className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg ${supportStatus === 'pending'
-                            ? 'bg-primary/50 cursor-not-allowed'
-                            : 'bg-primary hover:bg-primary/90 hover:shadow-primary/30'
-                            }`}
-                    >
-                        <Award className="w-4 h-4" />
-                        {supportStatus === 'pending' ? 'Sending...' : 'Join Elite — $0.03 USDC'}
-                    </button>
-                </motion.div>
-            )}
-
-            <div className="flex flex-col gap-3 py-4 pt-10">
-                {!levelPassed ? (
-                    <button
-                        onClick={onRetry}
-                        className="w-full py-5 bg-rose-500 hover:bg-rose-600 rounded-2xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all"
-                    >
-                        <RefreshCw className="w-5 h-5" /> Retry Assessment
-                    </button>
-                ) : (
-                    <button
-                        onClick={onNextLevel}
-                        className="w-full py-5 bg-primary hover:bg-primary/90 rounded-2xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all hover:-translate-y-1 shadow-xl shadow-primary/20"
-                    >
-                        Advance to Next Level <ArrowRight className="w-5 h-5" />
-                    </button>
-                )}
-
-                <button
-                    onClick={() => window.location.reload()}
-                    className={`text-xs font-bold uppercase tracking-widest py-2 opacity-50 hover:opacity-100 transition-opacity`}
-                >
-                    Back to Selection
-                </button>
-            </div>
-
-            <div className={`p-4 rounded-xl text-xs leading-relaxed font-medium border border-dashed ${isDarkMode ? 'border-white/10 text-slate-400' : 'border-black/10 text-slate-600'
-                }`}>
-                <p className="uppercase font-black opacity-30 mb-2 tracking-[0.2em]">Web3 Proof of Skill</p>
-                <p>Assessments are recorded on Base. Achieving Elite status allows your skills to be verified across the Farcaster ecosystem.</p>
+            <div className="p-6 sm:p-8 border border-dashed border-border/60 rounded-xl sm:rounded-[2rem] text-center space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-40">Proof Protocol</p>
+                <p className="text-[10px] sm:text-xs font-bold text-muted-foreground leading-relaxed">
+                    Cryptographic proof recorded on Base.
+                </p>
             </div>
         </motion.div>
     );

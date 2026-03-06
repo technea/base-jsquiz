@@ -1,37 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #ffffff;
+  --foreground: #020617;
   --primary: #0052FF;
   /* Base Blue */
-  --secondary: #0038B2;
-  /* Darker Base Blue for gradients */
-  --accent: #f43f5e;
-  --glass-bg: rgba(255, 255, 255, 0.9);
-  --glass-border: rgba(15, 23, 42, 0.1);
-  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  --primary-hover: #0041CC;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #00C2FF;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0052FF;
+  --radius: 1rem;
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 82, 255, 0.1);
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 .dark {
-  --background: #030712;
+  --background: #020617;
   --foreground: #f8fafc;
-  --primary: #3b82f6;
-  /* Lighter vibrant blue for primary in dark mode */
-  --secondary: #1d4ed8;
-  /* Darker blue for secondary */
-  --accent: #f43f5e;
-  --glass-bg: rgba(17, 24, 39, 0.9);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  --primary: #0052FF;
+  --primary-hover: #1e69ff;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --muted: #0f172a;
+  --muted-foreground: #94a3b8;
+  --accent: #00C2FF;
+  --accent-foreground: #1e293b;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #f8fafc;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #3b82f6;
+
+  --glass-bg: rgba(2, 6, 23, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
 * {
@@ -45,12 +75,55 @@ html {
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
-  line-height: 1.6;
-  min-height: 100%;
+  background: var(--background);
+  font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Dynamic Background Gradients */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(0, 82, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(0, 194, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(0, 82, 255, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.dark body::before {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(0, 82, 255, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 100% 0%, rgba(0, 194, 255, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 50% 100%, rgba(0, 82, 255, 0.1) 0%, transparent 50%),
+    #020617;
+  /* Solid fallback */
+}
+
+/* Subtle Mesh Pattern */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230052ff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.dark body::after {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
 h1,
