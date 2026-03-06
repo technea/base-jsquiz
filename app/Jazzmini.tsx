@@ -630,6 +630,33 @@ export default function JSQuizApp() {
           />
         );
       case 'leaderboard':
+        if (!connectedAddress) {
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-md mx-auto text-center space-y-6 py-12"
+            >
+              <div className="w-20 h-20 mx-auto bg-gradient-premium rounded-3xl flex items-center justify-center shadow-xl shadow-primary/20 text-3xl">
+                🏆
+              </div>
+              <div className="space-y-2">
+                <h2 className={`text-3xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  Global Rankings
+                </h2>
+                <p className={`text-base font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Leaderboard dekhne aur usme shamil hone ke liye wallet connect karein.
+                </p>
+              </div>
+              <button
+                onClick={connectWallet}
+                className="w-full py-4 rounded-2xl bg-gradient-premium text-white font-black uppercase tracking-widest text-sm shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
+              >
+                Connect Wallet
+              </button>
+            </motion.div>
+          );
+        }
         return (
           <LeaderboardTable
             isDarkMode={isDarkMode}
