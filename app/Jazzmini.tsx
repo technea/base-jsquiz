@@ -8,18 +8,14 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import {
-  getFirestore,
-  doc,
-  setDoc,
-  onSnapshot,
-  Firestore,
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs
-} from 'firebase/firestore';
+  getDatabase,
+  ref,
+  set,
+  onValue,
+  Database,
+  limitToFirst,
+  query as dbQuery
+} from 'firebase/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -64,7 +60,8 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: "https://myproj-7d380-default-rtdb.firebaseio.com/"
 };
 
 const appId = 'js-level-quiz-default';
@@ -104,7 +101,7 @@ const encodeFunctionCall = (functionSignature: string, params: any[]): string =>
 
 export default function JSQuizApp() {
   // State
-  const [db, setDb] = useState<Firestore | null>(null);
+  const [db, setDb] = useState<Database | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [globalStats, setGlobalStats] = useState<GlobalStats>({ maxScore: 0, highestLevel: 1 });
   const [leaderboardElite, setLeaderboardElite] = useState<any[]>([]);
@@ -200,7 +197,7 @@ export default function JSQuizApp() {
   useEffect(() => {
     try {
       const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-      setDb(getFirestore(app));
+      setDb(getDatabase(app));
       const unsubscribe = onAuthStateChanged(getAuth(app), (user) => {
         if (user) setUserId(user.uid);
         else signInAnonymously(getAuth(app)).catch(() => setUserId(`local-${crypto.randomUUID()}`));
@@ -213,13 +210,13 @@ export default function JSQuizApp() {
     }
   }, []);
 
-  // Sync Global Stats
+  // Sync Global Stats - Realtime DB style
   useEffect(() => {
     if (!authReady || !db) return;
-    const statsRef = doc(db, PUBLIC_COLLECTION_PATH, GLOBAL_STATS_DOC_ID);
-    return onSnapshot(statsRef, (docSnap) => {
-      if (docSnap.exists()) setGlobalStats(docSnap.data() as GlobalStats);
-      else setDoc(statsRef, { maxScore: 0, highestLevel: 1, updated: new Date().toISOString() }, { merge: true });
+    const statsRef = ref(db, `stats/global_progress`);
+    return onValue(statsRef, (snapshot) => {
+      if (snapshot.exists()) setGlobalStats(snapshot.val() as GlobalStats);
+      else set(statsRef, { maxScore: 0, highestLevel: 1, updated: new Date().toISOString() });
     });
   }, [authReady, db]);
 
@@ -251,22 +248,41 @@ export default function JSQuizApp() {
       }).catch(() => { });
   }, [connectedAddress]);
 
-  // Leaderboard fetch
+  // Live Leaderboard sync - Realtime DB style
   useEffect(() => {
     if (!db) return;
-    const fetchLB = async () => {
-      try {
-        const eliteQ = query(collection(db, 'leaderboard'), where('isPaid', '==', true), limit(10));
-        const freeQ = query(collection(db, 'leaderboard'), where('isPaid', '==', false), limit(10));
-        const [eliteS, freeS] = await Promise.all([getDocs(eliteQ), getDocs(freeQ)]);
-        setLeaderboardElite(eliteS.docs.map(d => d.data()));
-        setLeaderboardFree(freeS.docs.map(d => d.data()));
-      } catch (e) {
-        console.error("Error fetching leaderboard:", e);
+    const lbRef = ref(db, 'leaderboard');
+
+    console.log("Leaderboard: Setting up Realtime DB listener...");
+    const unsubscribe = onValue(lbRef, (snapshot) => {
+      if (!snapshot.exists()) {
+        console.warn("RTDB: 'leaderboard' path is empty");
+        setLeaderboardElite([]);
+        setLeaderboardFree([]);
+        return;
       }
-    };
-    fetchLB();
-  }, [db, activeTab, score, dailyStreak]); // Added score and streak to refresh leaderboard when they change
+
+      const rawData = snapshot.val();
+      const allData = Object.keys(rawData).map(key => ({ id: key, ...rawData[key] }));
+      console.log(`Leaderboard Success: Found ${allData.length} records in Realtime DB`);
+
+      const elite = allData
+        .filter((d: any) => d.isPaid === true || d.isPaid === 'true')
+        .sort((a: any, b: any) => (Number(b.totalPoints) || 0) - (Number(a.totalPoints) || 0))
+        .slice(0, 10);
+
+      const free = allData
+        .filter((d: any) => d.isPaid !== true && d.isPaid !== 'true')
+        .sort((a: any, b: any) => (Number(b.totalPoints) || 0) - (Number(a.totalPoints) || 0))
+        .slice(0, 10);
+
+      console.log(`Leaderboard Processed: Elite=${elite.length}, Free=${free.length}`);
+      setLeaderboardElite(elite);
+      setLeaderboardFree(free);
+    });
+
+    return () => unsubscribe();
+  }, [db]);
 
   // Logic Handlers
   const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
@@ -286,7 +302,8 @@ export default function JSQuizApp() {
       lastUpdated: new Date().toISOString(),
       ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, pfp: farcasterUser.pfp_url } : {})
     };
-    await setDoc(doc(db, 'leaderboard', id), payload, { merge: true });
+    console.log("Updating Realtime DB leaderboard with payload:", payload);
+    await set(ref(db, `leaderboard/${id}`), payload);
   }, [db, connectedAddress, userId, basename, levelScores, globalStats, dailyStreak, dailyPoints, farcasterUser, paidLevels, currentLevel]);
 
   // Auto-update leaderboard for current user
