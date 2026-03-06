@@ -9,13 +9,15 @@ interface LearningHubProps {
     learningLevel: number;
     setLearningLevel: (level: number) => void;
     levelAttempts: Record<number, number>;
+    highestLevel: number;
 }
 
 export const LearningHub = ({
     isDarkMode,
     learningLevel,
     setLearningLevel,
-    levelAttempts
+    levelAttempts,
+    highestLevel
 }: LearningHubProps) => {
     return (
         <motion.div
@@ -25,7 +27,7 @@ export const LearningHub = ({
         >
             {/* Level Tabs */}
             <div className="flex flex-wrap gap-2 justify-center">
-                {[...Array(TOTAL_LEVELS)].map((_, i) => {
+                {[...Array(highestLevel)].map((_, i) => {
                     const lvl = i + 1;
                     const attempted = (levelAttempts[lvl] || 0) > 0;
                     return (

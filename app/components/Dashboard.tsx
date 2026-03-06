@@ -13,6 +13,7 @@ interface DashboardProps {
     levelAttempts: Record<number, number>;
     onLevelSelect: (level: number) => void;
     MAX_FREE_ATTEMPTS: number;
+    farcasterUser?: any;
 }
 
 export const Dashboard = ({
@@ -23,7 +24,8 @@ export const Dashboard = ({
     connectWallet,
     levelAttempts,
     onLevelSelect,
-    MAX_FREE_ATTEMPTS
+    MAX_FREE_ATTEMPTS,
+    farcasterUser
 }: DashboardProps) => {
     return (
         <motion.div
@@ -72,11 +74,22 @@ export const Dashboard = ({
 
                 {connectedAddress ? (
                     <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                        <div>
-                            <p className="text-base font-black text-emerald-500">{basename || 'Connected'}</p>
-                            <p className="font-mono text-xs opacity-70 font-bold">{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
+                        <div className="flex items-center gap-3">
+                            {farcasterUser?.pfp_url ? (
+                                <img src={farcasterUser.pfp_url} alt="" className="w-10 h-10 rounded-full border-2 border-emerald-500/50" />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-lg font-black text-emerald-500">
+                                    {(farcasterUser?.display_name || basename || connectedAddress).slice(0, 1).toUpperCase()}
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-base font-black text-emerald-500">
+                                    {farcasterUser?.display_name || basename || 'Connected'}
+                                </p>
+                                <p className="font-mono text-xs opacity-70 font-bold">{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
+                            </div>
                         </div>
-                        <Award className="text-emerald-500 w-5 h-5" />
+                        <Award className="text-emerald-500 w-5 h-5 shrink-0" />
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -98,7 +111,7 @@ export const Dashboard = ({
             <div className="space-y-4 pt-4">
                 <h3 className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Level Selection</h3>
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 sm:gap-3">
-                    {[...Array(TOTAL_LEVELS)].map((_, i) => {
+                    {[...Array(globalStats.highestLevel)].map((_, i) => {
                         const level = i + 1;
                         const unlocked = level <= globalStats.highestLevel;
                         const isCurrent = level === globalStats.highestLevel;

@@ -583,6 +583,7 @@ export default function JSQuizApp() {
             levelAttempts={levelAttempts}
             onLevelSelect={startQuiz}
             MAX_FREE_ATTEMPTS={MAX_FREE_ATTEMPTS}
+            farcasterUser={farcasterUser}
           />
         );
       case 'daily':
@@ -617,6 +618,7 @@ export default function JSQuizApp() {
             learningLevel={learningLevel}
             setLearningLevel={setLearningLevel}
             levelAttempts={levelAttempts}
+            highestLevel={globalStats.highestLevel}
           />
         );
       case 'leaderboard':
