@@ -32,7 +32,7 @@ export const LearningHub = ({
                         <button
                             key={i}
                             onClick={() => setLearningLevel(lvl)}
-                            className={`relative px-4 py-2 rounded-xl text-xs font-bold transition-all ${learningLevel === lvl
+                            className={`relative px-4 py-2 rounded-xl text-sm font-black tracking-tight transition-all ${learningLevel === lvl
                                 ? 'bg-primary text-white shadow-lg shadow-primary/30'
                                 : 'glass-card text-slate-500 hover:text-primary'
                                 }`}
@@ -53,12 +53,12 @@ export const LearningHub = ({
                         {LEVEL_ICONS[learningLevel - 1]}
                     </div>
                     <div className="flex-1">
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Level {learningLevel} — Study Guide</p>
-                        <h2 className="text-2xl font-black text-primary">{LEVEL_TOPICS[learningLevel - 1]}</h2>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Level {learningLevel} — Study Guide</p>
+                        <h2 className="text-3xl font-black text-primary">{LEVEL_TOPICS[learningLevel - 1]}</h2>
                     </div>
                     <div className="text-right shrink-0">
-                        <p className={`text-[10px] uppercase font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Topics</p>
-                        <p className="text-2xl font-black">{LEARNING_CONTENT[learningLevel]?.length}</p>
+                        <p className={`text-xs uppercase font-black tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Topics</p>
+                        <p className="text-3xl font-black text-slate-900 dark:text-white">{LEARNING_CONTENT[learningLevel]?.length}</p>
                     </div>
                 </div>
 
@@ -77,23 +77,23 @@ export const LearningHub = ({
                                 <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-black text-xs shrink-0">
                                     {idx + 1}
                                 </div>
-                                <h4 className="font-black text-base">{item.title}</h4>
+                                <h4 className="font-black text-base text-slate-900 dark:text-white">{item.title}</h4>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2">
                                 {/* Key Points */}
                                 <div className="p-5 space-y-2.5">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">📌 Key Points</p>
+                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-3">📌 Key Points</p>
                                     {item.points.map((p, pIdx) => {
                                         // Render inline code (backtick syntax)
                                         const parts = p.split(/`([^`]+)`/);
                                         return (
                                             <div key={pIdx} className="flex gap-2.5 items-start">
                                                 <span className="text-primary mt-0.5 shrink-0 text-xs">▸</span>
-                                                <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
+                                                <p className={`text-base leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700 font-medium'}`}>
                                                     {parts.map((part, pi) =>
                                                         pi % 2 === 1
-                                                            ? <code key={pi} className={`px-1.5 py-0.5 rounded-md font-mono text-[11px] border ${isDarkMode
+                                                            ? <code key={pi} className={`px-1.5 py-0.5 rounded-md font-mono text-xs border ${isDarkMode
                                                                 ? 'bg-primary/15 text-primary border-primary/20'
                                                                 : 'bg-primary/10 text-primary border-primary/30'
                                                                 }`}>{part}</code>
@@ -107,8 +107,8 @@ export const LearningHub = ({
 
                                 {/* Code Example */}
                                 <div className="border-t sm:border-t-0 sm:border-l border-white/5 p-5 bg-slate-900/50">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">💻 Code Example</p>
-                                    <pre className="p-4 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs overflow-x-auto selection:bg-primary/30">
+                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-3">💻 Code Example</p>
+                                    <pre className="p-4 rounded-xl bg-slate-900 text-emerald-400 font-mono text-sm overflow-x-auto selection:bg-primary/30">
                                         <code>{item.code}</code>
                                     </pre>
                                 </div>

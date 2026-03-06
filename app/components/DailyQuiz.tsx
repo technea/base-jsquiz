@@ -33,7 +33,7 @@ export const DailyQuiz = ({
                 </div>
                 <div>
                     <h2 className="text-3xl font-black text-primary uppercase tracking-tighter italic">Daily JS Puzzle</h2>
-                    <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <p className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                         Level — Advanced • 1 Attempt Only
                     </p>
                 </div>
@@ -44,7 +44,7 @@ export const DailyQuiz = ({
                     <BookOpen className="w-24 h-24" />
                 </div>
 
-                <h3 className="text-xl sm:text-2xl font-black leading-tight mb-10 relative z-10">
+                <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-10 relative z-10 text-slate-900 dark:text-white">
                     {todayQuestion.question}
                 </h3>
 
@@ -64,13 +64,15 @@ export const DailyQuiz = ({
                         return (
                             <motion.button
                                 key={idx}
-                                whileHover={!isAnswered ? { x: 8, backgroundColor: 'rgba(var(--primary-rgb), 0.05)' } : {}}
+                                whileHover={!isAnswered ? { x: 8, backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' } : {}}
                                 onClick={() => onAnswer(opt)}
                                 disabled={isAnswered}
-                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group ${btnClass}`}
+                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-slate-900 dark:text-white ${btnClass}`}
                             >
                                 <div className="flex items-center gap-4">
-                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 ${isSelected ? 'bg-primary text-white border-primary' : 'border-slate-800/10'
+                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 ${isSelected
+                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                                        : 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
                                         }`}>
                                         {String.fromCharCode(65 + idx)}
                                     </span>
@@ -90,8 +92,8 @@ export const DailyQuiz = ({
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={`p-6 rounded-2xl border-2 ${dailyQuizResult === 'correct'
-                                ? 'bg-emerald-500/10 border-emerald-500/20'
-                                : 'bg-rose-500/10 border-rose-500/20'
+                            ? 'bg-emerald-500/10 border-emerald-500/20'
+                            : 'bg-rose-500/10 border-rose-500/20'
                             }`}
                     >
                         <div className="flex gap-4">
@@ -103,8 +105,8 @@ export const DailyQuiz = ({
                                 }
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs font-black uppercase tracking-widest opacity-50">Deep Dive Explanation</p>
-                                <p className="text-sm font-medium leading-relaxed italic">{todayQuestion.explanation}</p>
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 opacity-80">Deep Dive Explanation</p>
+                                <p className="text-base font-medium leading-relaxed italic text-slate-800 dark:text-slate-200">{todayQuestion.explanation}</p>
                                 {dailyQuizResult === 'correct' ? (
                                     <p className="text-xs font-black text-emerald-500 uppercase tracking-widest mt-2">+1 Day Streak Bonus 🔥</p>
                                 ) : (

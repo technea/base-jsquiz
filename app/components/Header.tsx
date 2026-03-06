@@ -38,8 +38,8 @@ export const Header = ({
                         <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none">JAZZ<span className="text-primary italic">MINI</span></h1>
-                        <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest opacity-50">v2.0 Premium Experience</p>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-slate-900 dark:text-white">JAZZ<span className="text-primary italic">MINI</span></h1>
+                        <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>v2.0 Premium Experience</p>
                     </div>
                 </div>
 
@@ -61,9 +61,9 @@ export const Header = ({
                                 setActiveTab(tab);
                                 setQuizState('start');
                             }}
-                            className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab
+                            className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab
                                 ? 'bg-primary text-white shadow-lg'
-                                : 'text-slate-500 hover:text-primary'
+                                : `${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
                                 }`}
                         >
                             {tab}
@@ -86,10 +86,10 @@ export const Header = ({
                                 </div>
                             )}
                             <div className="flex flex-col -space-y-0.5">
-                                <span className="font-black text-[10px] text-primary uppercase tracking-tighter">
+                                <span className="font-black text-xs text-primary uppercase tracking-tighter">
                                     {farcasterUser?.display_name || basename || 'Player'}
                                 </span>
-                                <span className="font-mono text-[9px] font-bold text-slate-500 opacity-80">
+                                <span className={`font-mono text-[10px] font-bold opacity-80 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                                     {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
                                 </span>
                             </div>
@@ -97,7 +97,7 @@ export const Header = ({
                     ) : (
                         <button
                             onClick={connectWallet}
-                            className="px-6 py-2.5 rounded-2xl bg-gradient-premium text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
+                            className="px-6 py-2.5 rounded-2xl bg-gradient-premium text-white text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
                         >
                             Connect
                         </button>

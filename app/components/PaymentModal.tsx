@@ -42,22 +42,22 @@ export const PaymentModal = ({
                                 <Lock className="w-10 h-10 text-primary" />
                             </div>
                             <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Level {level} Locked</h2>
-                            <p className="text-slate-400 text-sm font-medium">
+                            <p className="text-slate-400 text-base font-medium">
                                 You've used all free attempts for Level {level}. Unlock unlimited attempts with a one-time support payment.
                             </p>
                         </div>
 
                         <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Item</span>
-                                <span className="text-white font-black text-xs">Level {level} Master Unlock</span>
+                                <span className="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">Item</span>
+                                <span className="text-white font-black text-sm">Level {level} Master Unlock</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Price</span>
-                                <span className="text-primary font-black text-xl italic">$0.05 USDC</span>
+                                <span className="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">Price</span>
+                                <span className="text-primary font-black text-2xl italic">$0.05 USDC</span>
                             </div>
                             <div className="w-full h-px bg-white/10" />
-                            <div className="text-[10px] text-slate-500 font-medium leading-relaxed italic">
+                            <div className="text-xs text-slate-400 font-bold leading-relaxed italic opacity-80">
                                 * Payment is sent on Base Mainnet. Verification is instantaneous.
                             </div>
                         </div>
@@ -65,14 +65,14 @@ export const PaymentModal = ({
                         {paymentStatus === 'error' && (
                             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-4">
                                 <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                                <p className="text-xs text-rose-500 font-bold leading-relaxed">{paymentError}</p>
+                                <p className="text-sm text-rose-500 font-black leading-relaxed">{paymentError}</p>
                             </div>
                         )}
 
                         {paymentStatus === 'success' && (
                             <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-4">
                                 <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                                <p className="text-xs text-emerald-500 font-bold leading-relaxed">Level unlocked! Starting session...</p>
+                                <p className="text-sm text-emerald-500 font-black leading-relaxed">Level unlocked! Starting session...</p>
                             </div>
                         )}
 
@@ -81,8 +81,8 @@ export const PaymentModal = ({
                                 onClick={onUnlock}
                                 disabled={paymentStatus === 'pending' || paymentStatus === 'success'}
                                 className={`w-full py-5 rounded-2xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all ${paymentStatus === 'pending'
-                                        ? 'bg-primary/50 cursor-not-allowed opacity-50'
-                                        : 'bg-primary hover:bg-primary/90 hover:shadow-primary/30'
+                                    ? 'bg-primary/50 cursor-not-allowed opacity-50'
+                                    : 'bg-primary hover:bg-primary/90 hover:shadow-primary/30'
                                     }`}
                             >
                                 {paymentStatus === 'pending' ? (
@@ -97,14 +97,14 @@ export const PaymentModal = ({
 
                             <button
                                 onClick={onClose}
-                                className="text-xs font-bold uppercase tracking-widest py-2 text-slate-500 hover:text-white transition-colors"
+                                className="text-sm font-black uppercase tracking-[0.2em] py-2 text-slate-400 hover:text-white transition-colors"
                             >
                                 Back to Selection
                             </button>
                         </div>
 
                         <div className="text-center">
-                            <p className="text-[10px] text-slate-700 font-bold uppercase tracking-widest">Secured by Base Blockchain</p>
+                            <p className="text-xs text-slate-500 font-black uppercase tracking-[0.2em]">Secured by Base Blockchain</p>
                         </div>
                     </motion.div>
                 </div>

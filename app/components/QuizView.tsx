@@ -13,6 +13,7 @@ interface QuizViewProps {
     showExplanation: boolean;
     onNext: () => void;
     isLastQuestion: boolean;
+    isDarkMode: boolean;
 }
 
 export const QuizView = ({
@@ -23,7 +24,8 @@ export const QuizView = ({
     onSelectOption,
     showExplanation,
     onNext,
-    isLastQuestion
+    isLastQuestion,
+    isDarkMode
 }: QuizViewProps) => {
     return (
         <motion.div
@@ -37,8 +39,8 @@ export const QuizView = ({
                         {currentQuestionIndex + 1}
                     </div>
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Question</p>
-                        <p className="text-xs font-bold text-slate-400">Section {currentQuestionIndex + 1} of {totalQuestions}</p>
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">Question</p>
+                        <p className="text-sm font-bold text-slate-500 dark:text-slate-500">Section {currentQuestionIndex + 1} of {totalQuestions}</p>
                     </div>
                 </div>
 
@@ -56,7 +58,7 @@ export const QuizView = ({
                     <BookOpen className="w-24 h-24" />
                 </div>
 
-                <h3 className="text-xl sm:text-2xl font-black leading-tight mb-10 relative z-10">
+                <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-10 relative z-10 text-slate-900 dark:text-white">
                     {currentQuestion.question}
                 </h3>
 
@@ -75,13 +77,15 @@ export const QuizView = ({
                         return (
                             <motion.button
                                 key={idx}
-                                whileHover={!showExplanation ? { x: 8, backgroundColor: 'rgba(var(--primary-rgb), 0.05)' } : {}}
+                                whileHover={!showExplanation ? { x: 8, backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' } : {}}
                                 onClick={() => onSelectOption(option)}
                                 disabled={!!selectedOption}
-                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group ${btnClass}`}
+                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-slate-900 dark:text-white ${btnClass}`}
                             >
                                 <div className="flex items-center gap-4">
-                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 ${isSelected ? 'bg-primary text-white border-primary' : 'border-slate-800/10'
+                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 ${isSelected
+                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                                        : 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
                                         }`}>
                                         {String.fromCharCode(65 + idx)}
                                     </span>
@@ -101,8 +105,8 @@ export const QuizView = ({
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={`p-6 rounded-2xl border-2 ${selectedOption === currentQuestion.answer
-                                ? 'bg-emerald-500/5 border-emerald-500/20'
-                                : 'bg-rose-500/5 border-rose-500/20'
+                            ? 'bg-emerald-500/5 border-emerald-500/20'
+                            : 'bg-rose-500/5 border-rose-500/20'
                             }`}
                     >
                         <div className="flex gap-4">
@@ -114,8 +118,8 @@ export const QuizView = ({
                                 }
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs font-black uppercase tracking-widest opacity-50">Explanation</p>
-                                <p className="text-sm font-medium leading-relaxed italic">{currentQuestion.explanation}</p>
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 opacity-80">Explanation</p>
+                                <p className="text-base font-medium leading-relaxed italic text-slate-800 dark:text-slate-200">{currentQuestion.explanation}</p>
                             </div>
                         </div>
                     </motion.div>
@@ -128,7 +132,7 @@ export const QuizView = ({
                     whileTap={{ scale: 0.95 }}
                     onClick={onNext}
                     disabled={!selectedOption}
-                    className="px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-sm flex items-center gap-3 shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isLastQuestion ? 'Finish Attempt' : 'Next Question'}
                     <ArrowRight className="w-4 h-4" />

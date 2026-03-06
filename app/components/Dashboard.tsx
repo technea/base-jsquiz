@@ -52,7 +52,7 @@ export const Dashboard = ({
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
                     className={`py-3 px-6 max-w-lg mx-auto rounded-full border border-dashed ${isDarkMode ? 'border-primary/30 bg-primary/5' : 'border-primary/40 bg-primary/5'}`}
                 >
-                    <p className={`text-sm italic font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    <p className={`text-base italic font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                         "{JS_QUOTES[Math.floor(Math.random() * JS_QUOTES.length)]}"
                     </p>
                 </motion.div>
@@ -67,20 +67,20 @@ export const Dashboard = ({
                     <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'}`}>
                         <Wallet className="w-6 h-6" />
                     </div>
-                    <h3 className={`font-bold text-xl ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Web3 Rewards</h3>
+                    <h3 className={`font-bold text-2xl ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Web3 Rewards</h3>
                 </div>
 
                 {connectedAddress ? (
                     <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                         <div>
-                            <p className="text-sm font-bold text-emerald-500">{basename || 'Connected'}</p>
-                            <p className="font-mono text-xs opacity-70">{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
+                            <p className="text-base font-black text-emerald-500">{basename || 'Connected'}</p>
+                            <p className="font-mono text-xs opacity-70 font-bold">{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</p>
                         </div>
                         <Award className="text-emerald-500 w-5 h-5" />
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        <p className={`text-base font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                             Connect your wallet to earn digital badges and verifiable proof of your JavaScript expertise.
                         </p>
                         <button
@@ -96,7 +96,7 @@ export const Dashboard = ({
 
             {/* Level Grid - Optimized for Mobile */}
             <div className="space-y-4 pt-4">
-                <h3 className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Level Selection</h3>
+                <h3 className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Level Selection</h3>
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 sm:gap-3">
                     {[...Array(TOTAL_LEVELS)].map((_, i) => {
                         const level = i + 1;

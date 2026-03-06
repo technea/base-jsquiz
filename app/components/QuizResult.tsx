@@ -57,13 +57,13 @@ export const QuizResult = ({
 
                 <div className="flex items-center justify-center gap-4 py-2">
                     <div className="text-left">
-                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Score</p>
-                        <p className="text-2xl font-black">{score}/{totalQuestions}</p>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Score</p>
+                        <p className={`text-3xl font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>{score}/{totalQuestions}</p>
                     </div>
                     <div className="w-px h-8 bg-slate-800/10" />
                     <div className="text-left">
-                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">XP Earned</p>
-                        <p className="text-2xl font-black text-primary">+{score * 10}</p>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>XP Earned</p>
+                        <p className="text-3xl font-black text-primary">+{score * 10}</p>
                     </div>
                 </div>
             </div>
@@ -79,9 +79,9 @@ export const QuizResult = ({
                         <div className="p-2 bg-emerald-500/20 rounded-lg">
                             <Star className="w-5 h-5 text-emerald-500 fill-current" />
                         </div>
-                        <p className="font-black text-sm text-left leading-tight">Founder Bonus: Support the Project!</p>
+                        <p className={`font-black text-sm text-left leading-tight ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>Founder Bonus: Support the Project!</p>
                     </div>
-                    <p className="text-xs text-left text-slate-500 leading-relaxed font-medium italic opacity-70">
+                    <p className={`text-sm font-medium text-left leading-relaxed italic opacity-80 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                         You completed Level 1! Support the project by paying <span className="text-emerald-500 font-bold">$0.03 USDC</span> on Base. 🤝
                     </p>
 
@@ -90,8 +90,8 @@ export const QuizResult = ({
                             onClick={onReward}
                             disabled={rewardStatus === 'pending' || rewardStatus === 'success'}
                             className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg transition-all ${rewardStatus === 'pending'
-                                    ? 'bg-emerald-500/50 cursor-not-allowed'
-                                    : 'bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/30'
+                                ? 'bg-emerald-500/50 cursor-not-allowed'
+                                : 'bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/30'
                                 }`}
                         >
                             <Wallet className="w-4 h-4" />
@@ -106,7 +106,7 @@ export const QuizResult = ({
                                 href={`https://basescan.org/tx/${rewardTxHash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[10px] font-mono opacity-50 underline flex items-center justify-center gap-1"
+                                className="text-xs font-mono opacity-50 underline flex items-center justify-center gap-1"
                             >
                                 View on BaseScan <ArrowRight className="w-3 h-3" />
                             </a>
@@ -126,9 +126,9 @@ export const QuizResult = ({
                         <div className="p-2 bg-primary/20 rounded-lg">
                             <Zap className="w-5 h-5 text-primary fill-current" />
                         </div>
-                        <p className="font-black text-sm text-left leading-tight tracking-tight uppercase">Join the Elite Realm</p>
+                        <p className={`font-black text-sm text-left leading-tight tracking-tight uppercase ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>Join the Elite Realm</p>
                     </div>
-                    <p className="text-[11px] text-left text-slate-500 leading-relaxed font-medium">
+                    <p className={`text-xs text-left leading-relaxed font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                         Join the <span className="text-primary font-black uppercase">Elite Leaderboard</span> and unlock verified proof of your coding expertise.
                     </p>
 
@@ -136,8 +136,8 @@ export const QuizResult = ({
                         onClick={onSupport}
                         disabled={supportStatus === 'pending'}
                         className={`w-full py-4 rounded-xl text-white font-black flex items-center justify-center gap-2 shadow-lg ${supportStatus === 'pending'
-                                ? 'bg-primary/50 cursor-not-allowed'
-                                : 'bg-primary hover:bg-primary/90 hover:shadow-primary/30'
+                            ? 'bg-primary/50 cursor-not-allowed'
+                            : 'bg-primary hover:bg-primary/90 hover:shadow-primary/30'
                             }`}
                     >
                         <Award className="w-4 h-4" />
@@ -171,9 +171,9 @@ export const QuizResult = ({
                 </button>
             </div>
 
-            <div className={`p-4 rounded-xl text-[10px] leading-relaxed font-medium border border-dashed ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-black/10 text-slate-400'
+            <div className={`p-4 rounded-xl text-xs leading-relaxed font-medium border border-dashed ${isDarkMode ? 'border-white/10 text-slate-400' : 'border-black/10 text-slate-600'
                 }`}>
-                <p className="uppercase font-black opacity-30 mb-2">Web3 Proof of Skill</p>
+                <p className="uppercase font-black opacity-30 mb-2 tracking-[0.2em]">Web3 Proof of Skill</p>
                 <p>Assessments are recorded on Base. Achieving Elite status allows your skills to be verified across the Farcaster ecosystem.</p>
             </div>
         </motion.div>

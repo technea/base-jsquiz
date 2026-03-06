@@ -46,6 +46,7 @@ import { DailyQuiz } from './components/DailyQuiz';
 import { LearningHub } from './components/LearningHub';
 import { LeaderboardTable } from './components/LeaderboardTable';
 import { PaymentModal } from './components/PaymentModal';
+import { Footer } from './components/Footer';
 
 // --- Farcaster SDK ---
 let sdk: any = null;
@@ -504,6 +505,7 @@ export default function JSQuizApp() {
               showExplanation={showExplanation}
               onNext={handleNextQuestion}
               isLastQuestion={currentQuestionIndex === questions.length - 1}
+              isDarkMode={isDarkMode}
             />
           );
         }
@@ -631,14 +633,11 @@ export default function JSQuizApp() {
           </AnimatePresence>
         </main>
 
-        {/* Footer */}
-        <footer className="mt-20 pt-8 border-t border-white/5 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em]">
-            <span className="opacity-30">Powered by </span>
-            <span className="text-primary opacity-100">Base</span>
-            <span className="opacity-30"> • Verifiable Code Skills</span>
-          </p>
-        </footer>
+        <Footer
+          isDarkMode={isDarkMode}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
       </div>
 
       <PaymentModal

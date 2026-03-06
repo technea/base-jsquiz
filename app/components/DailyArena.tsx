@@ -36,7 +36,7 @@ export const DailyArena = ({
             {/* Header */}
             <div className="text-center space-y-2">
                 <h2 className="text-3xl font-black text-primary uppercase tracking-tighter">Daily Arena</h2>
-                <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <p className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                     GM • Streak • Daily Challenge
                 </p>
             </div>
@@ -47,11 +47,11 @@ export const DailyArena = ({
                     <Flame className={`w-10 h-10 ${dailyStreak > 0 ? 'text-amber-500 animate-pulse' : 'text-slate-600'}`} />
                     <div>
                         <p className="text-5xl font-black text-amber-500">{dailyStreak}</p>
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Day Streak</p>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Day Streak</p>
                     </div>
                 </div>
                 {lastGmDate && (
-                    <p className="text-[10px] text-slate-500 font-mono italic opacity-50">Last GM: {lastGmDate}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono italic opacity-50 font-bold">Last GM: {lastGmDate}</p>
                 )}
             </div>
 
@@ -64,8 +64,8 @@ export const DailyArena = ({
                 >
                     <div className="text-3xl">💔</div>
                     <div>
-                        <p className="font-black text-rose-500 uppercase tracking-widest text-sm">Streak Missed!</p>
-                        <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        <p className="font-black text-rose-500 uppercase tracking-[0.2em] text-sm">Streak Missed!</p>
+                        <p className={`text-sm mt-1 font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                             You missed a day! Pay <span className="text-amber-400 font-black">$0.05 USDC</span> to restore your steak, or it resets to 0.
                         </p>
                     </div>
@@ -111,8 +111,8 @@ export const DailyArena = ({
                     <div className="flex items-center gap-3">
                         <Sun className="w-6 h-6 text-amber-500" />
                         <div>
-                            <p className="font-black text-sm uppercase tracking-widest">Daily GM</p>
-                            <p className={`text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Punch in for the day</p>
+                            <p className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white">Daily GM</p>
+                            <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Punch in for the day</p>
                         </div>
                     </div>
 
@@ -138,8 +138,8 @@ export const DailyArena = ({
 
             {/* Daily Stats Info */}
             <div className={`p-4 rounded-xl border border-dashed text-center space-y-1 ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-black/10 text-slate-400'}`}>
-                <p className="text-[10px] uppercase font-black tracking-widest">The Daily Loop</p>
-                <p className="text-[10px] leading-relaxed">
+                <p className="text-xs uppercase font-black tracking-[0.2em] text-slate-900 dark:text-white">The Daily Loop</p>
+                <p className="text-xs leading-relaxed font-bold text-slate-600 dark:text-slate-400">
                     1. GM to unlock Daily Quiz<br />
                     2. One chance to answer correctly<br />
                     3. Success = Streak grows 🔥 • Fail = Reset to 0 💔
