@@ -46,15 +46,18 @@ import { Footer } from './components/Footer';
 
 // --- Farcaster SDK ---
 let sdk: any = null;
-if (typeof window !== 'undefined') {
-  try {
-    import('@farcaster/miniapp-sdk').then((module) => {
+const loadSdk = async () => {
+  if (typeof window !== 'undefined') {
+    try {
+      const module = await import('@farcaster/miniapp-sdk');
       sdk = module.sdk;
-    });
-  } catch (e) {
-    console.warn('Farcaster SDK loading failed');
+      return true;
+    } catch (e) {
+      console.warn('Farcaster SDK loading failed');
+    }
   }
-}
+  return false;
+};
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -111,6 +114,7 @@ export default function JSQuizApp() {
   const [authReady, setAuthReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [themeLoaded, setThemeLoaded] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
 
   const [currentLevel, setCurrentLevel] = useState(1);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -164,7 +168,11 @@ export default function JSQuizApp() {
       if (savedScores) setLevelScores(JSON.parse(savedScores));
       const savedPaid = localStorage.getItem('quizPaidLevels');
       if (savedPaid) setPaidLevels(JSON.parse(savedPaid));
+      const savedStats = localStorage.getItem('globalStats');
+      if (savedStats) setGlobalStats(JSON.parse(savedStats));
     } catch { }
+
+    loadSdk().then(loaded => setSdkLoaded(loaded));
 
     const today = getTodayDateKey();
     const savedStreak = parseInt(localStorage.getItem('dailyStreak') || '0', 10);
@@ -197,13 +205,28 @@ export default function JSQuizApp() {
       const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
       setDb(getDatabase(app));
       const unsubscribe = onAuthStateChanged(getAuth(app), (user) => {
-        if (user) setUserId(user.uid);
-        else signInAnonymously(getAuth(app)).catch(() => setUserId(`local-${crypto.randomUUID()}`));
+        if (user) {
+          setUserId(user.uid);
+          localStorage.setItem('quizUserId', user.uid);
+        } else {
+          const cachedId = localStorage.getItem('quizUserId');
+          if (cachedId) {
+            setUserId(cachedId);
+          } else {
+            signInAnonymously(getAuth(app)).catch(() => {
+              const newId = `local-${crypto.randomUUID()}`;
+              setUserId(newId);
+              localStorage.setItem('quizUserId', newId);
+            });
+          }
+        }
         setAuthReady(true);
       });
       return () => unsubscribe();
     } catch (e) {
-      setUserId(`local-${crypto.randomUUID()}`);
+      const cachedId = localStorage.getItem('quizUserId') || `local-${crypto.randomUUID()}`;
+      setUserId(cachedId);
+      localStorage.setItem('quizUserId', cachedId);
       setAuthReady(true);
     }
   }, []);
@@ -217,7 +240,9 @@ export default function JSQuizApp() {
     return onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        setGlobalStats({ maxScore: data.maxScore || 0, highestLevel: data.highestLevel || 1 });
+        const stats = { maxScore: data.maxScore || 0, highestLevel: data.highestLevel || 1 };
+        setGlobalStats(stats);
+        localStorage.setItem('globalStats', JSON.stringify(stats));
         if (data.levelScores) setLevelScores(data.levelScores);
         if (data.levelAttempts) setLevelAttempts(data.levelAttempts);
       }
@@ -238,8 +263,10 @@ export default function JSQuizApp() {
         }
       } catch (e) { }
     };
-    tryAutoConnect();
-  }, []);
+    if (sdkLoaded || typeof window !== 'undefined') {
+      tryAutoConnect();
+    }
+  }, [sdkLoaded]);
 
   // Basename fetch
   useEffect(() => {
@@ -384,6 +411,9 @@ export default function JSQuizApp() {
           const id = (connectedAddress || userId || '').toLowerCase();
           const userRef = ref(db!, `users/${id}/progress`);
           const newStats = { maxScore: Math.max(globalStats.maxScore, score), highestLevel: nextLevel, levelScores: newScores, levelAttempts: { ...levelAttempts, [currentLevel]: (levelAttempts[currentLevel] || 0) + 1 } };
+          const localStats = { maxScore: newStats.maxScore, highestLevel: newStats.highestLevel };
+          setGlobalStats(localStats);
+          localStorage.setItem('globalStats', JSON.stringify(localStats));
           await set(userRef, newStats);
         }
 
