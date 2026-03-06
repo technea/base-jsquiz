@@ -255,11 +255,15 @@ export default function JSQuizApp() {
   useEffect(() => {
     if (!db) return;
     const fetchLB = async () => {
-      const eliteQ = query(collection(db, 'leaderboard'), where('isPaid', '==', true), orderBy('totalPoints', 'desc'), limit(10));
-      const freeQ = query(collection(db, 'leaderboard'), where('isPaid', '==', false), orderBy('totalPoints', 'desc'), limit(10));
-      const [eliteS, freeS] = await Promise.all([getDocs(eliteQ), getDocs(freeQ)]);
-      setLeaderboardElite(eliteS.docs.map(d => d.data()));
-      setLeaderboardFree(freeS.docs.map(d => d.data()));
+      try {
+        const eliteQ = query(collection(db, 'leaderboard'), where('isPaid', '==', true), limit(10));
+        const freeQ = query(collection(db, 'leaderboard'), where('isPaid', '==', false), limit(10));
+        const [eliteS, freeS] = await Promise.all([getDocs(eliteQ), getDocs(freeQ)]);
+        setLeaderboardElite(eliteS.docs.map(d => d.data()));
+        setLeaderboardFree(freeS.docs.map(d => d.data()));
+      } catch (e) {
+        console.error("Error fetching leaderboard:", e);
+      }
     };
     fetchLB();
   }, [db, activeTab, score, dailyStreak]); // Added score and streak to refresh leaderboard when they change
@@ -284,6 +288,13 @@ export default function JSQuizApp() {
     };
     await setDoc(doc(db, 'leaderboard', id), payload, { merge: true });
   }, [db, connectedAddress, userId, basename, levelScores, globalStats, dailyStreak, dailyPoints, farcasterUser, paidLevels, currentLevel]);
+
+  // Auto-update leaderboard for current user
+  useEffect(() => {
+    if (db && (connectedAddress || userId)) {
+      updateLeaderboard();
+    }
+  }, [db, connectedAddress, userId, updateLeaderboard]);
 
   const connectWallet = useCallback(async () => {
     try {
