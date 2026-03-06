@@ -117,6 +117,17 @@ export const Dashboard = ({
                         const isCurrent = level === globalStats.highestLevel;
                         const attemptsUsed = levelAttempts[level] || 0;
 
+                        if (!unlocked) {
+                            return (
+                                <div
+                                    key={level}
+                                    className="h-12 relative flex items-center justify-center rounded-xl font-bold bg-slate-800/20 text-slate-600 cursor-not-allowed opacity-30 select-none"
+                                >
+                                    🔒
+                                </div>
+                            );
+                        }
+
                         return (
                             <motion.button
                                 key={level}

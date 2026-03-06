@@ -29,7 +29,21 @@ export const LearningHub = ({
             <div className="flex flex-wrap gap-2 justify-center">
                 {[...Array(TOTAL_LEVELS)].map((_, i) => {
                     const lvl = i + 1;
+                    const isUnlocked = lvl <= highestLevel;
                     const attempted = (levelAttempts[lvl] || 0) > 0;
+
+                    if (!isUnlocked) {
+                        return (
+                            <div
+                                key={i}
+                                title={`Complete Level ${lvl - 1} to unlock`}
+                                className="relative px-4 py-2 rounded-xl text-sm font-black tracking-tight glass-card text-slate-600 opacity-30 cursor-not-allowed select-none"
+                            >
+                                🔒{lvl}
+                            </div>
+                        );
+                    }
+
                     return (
                         <button
                             key={i}
