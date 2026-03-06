@@ -111,7 +111,7 @@ export const Dashboard = ({
             <div className="space-y-4 pt-4">
                 <h3 className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Level Selection</h3>
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 sm:gap-3">
-                    {[...Array(globalStats.highestLevel)].map((_, i) => {
+                    {[...Array(TOTAL_LEVELS)].map((_, i) => {
                         const level = i + 1;
                         const unlocked = level <= globalStats.highestLevel;
                         const isCurrent = level === globalStats.highestLevel;

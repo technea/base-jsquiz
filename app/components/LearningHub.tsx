@@ -27,7 +27,7 @@ export const LearningHub = ({
         >
             {/* Level Tabs */}
             <div className="flex flex-wrap gap-2 justify-center">
-                {[...Array(highestLevel)].map((_, i) => {
+                {[...Array(TOTAL_LEVELS)].map((_, i) => {
                     const lvl = i + 1;
                     const attempted = (levelAttempts[lvl] || 0) > 0;
                     return (
