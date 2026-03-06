@@ -5,20 +5,13 @@ import { Trophy, Award, Users, Star } from 'lucide-react';
 
 interface LeaderboardTableProps {
     isDarkMode: boolean;
-    leaderboardTab: 'free' | 'elite';
-    setLeaderboardTab: (tab: 'free' | 'elite') => void;
-    leaderboardElite: any[];
-    leaderboardFree: any[];
+    leaderboardData: any[];
 }
 
 export const LeaderboardTable = ({
     isDarkMode,
-    leaderboardTab,
-    setLeaderboardTab,
-    leaderboardElite,
-    leaderboardFree
+    leaderboardData
 }: LeaderboardTableProps) => {
-    const currentData = leaderboardTab === 'elite' ? leaderboardElite : leaderboardFree;
 
     return (
         <motion.div
@@ -33,28 +26,7 @@ export const LeaderboardTable = ({
                 <h2 className="text-3xl font-black text-primary uppercase tracking-tighter">Global Rankings</h2>
             </div>
 
-            <div className="flex p-1 glass-card rounded-2xl max-w-xs mx-auto">
-                <button
-                    onClick={() => setLeaderboardTab('elite')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${leaderboardTab === 'elite'
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : `${isDarkMode ? 'text-white/60 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
-                        }`}
-                >
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    Elite
-                </button>
-                <button
-                    onClick={() => setLeaderboardTab('free')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${leaderboardTab === 'free'
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : `${isDarkMode ? 'text-white/60 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
-                        }`}
-                >
-                    <Users className="w-3.5 h-3.5" />
-                    Free
-                </button>
-            </div>
+
 
             <div className="glass-card overflow-hidden">
                 <div className={`px-6 py-4 border-b ${isDarkMode ? 'border-white/5 bg-white/5' : 'border-black/5 bg-black/5'}`}>
@@ -66,8 +38,8 @@ export const LeaderboardTable = ({
                 </div>
 
                 <div className="divide-y divide-white/5">
-                    {currentData.length > 0 ? (
-                        currentData.map((player, idx) => (
+                    {leaderboardData.length > 0 ? (
+                        leaderboardData.map((player, idx) => (
                             <motion.div
                                 key={idx}
                                 initial={{ opacity: 0, x: -10 }}
@@ -115,10 +87,7 @@ export const LeaderboardTable = ({
                             <Star className="w-4 h-4 text-primary fill-current" />
                         </div>
                         <p className={`text-xs font-black leading-relaxed ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                            {leaderboardTab === 'elite'
-                                ? "Elite players have supported JAZZMINI development and unlocked verified blockchain credentials."
-                                : "Free players are ranking by total points earned across all completed levels."
-                            }
+                            Players are ranked by total points earned across all completed levels and daily challenges.
                         </p>
                     </div>
                 </div>

@@ -104,9 +104,7 @@ export default function JSQuizApp() {
   const [db, setDb] = useState<Database | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [globalStats, setGlobalStats] = useState<GlobalStats>({ maxScore: 0, highestLevel: 1 });
-  const [leaderboardElite, setLeaderboardElite] = useState<any[]>([]);
-  const [leaderboardFree, setLeaderboardFree] = useState<any[]>([]);
-  const [leaderboardTab, setLeaderboardTab] = useState<'free' | 'elite'>('elite');
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [authReady, setAuthReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [themeLoaded, setThemeLoaded] = useState(false);
@@ -257,28 +255,19 @@ export default function JSQuizApp() {
     const unsubscribe = onValue(lbRef, (snapshot) => {
       if (!snapshot.exists()) {
         console.warn("RTDB: 'leaderboard' path is empty");
-        setLeaderboardElite([]);
-        setLeaderboardFree([]);
+        setLeaderboard([]);
         return;
       }
 
       const rawData = snapshot.val();
       const allData = Object.keys(rawData).map(key => ({ id: key, ...rawData[key] }));
       console.log(`Leaderboard Success: Found ${allData.length} records in Realtime DB`);
-
-      const elite = allData
-        .filter((d: any) => d.isPaid === true || d.isPaid === 'true')
+      const topPlayers = allData
         .sort((a: any, b: any) => (Number(b.totalPoints) || 0) - (Number(a.totalPoints) || 0))
-        .slice(0, 10);
+        .slice(0, 15);
 
-      const free = allData
-        .filter((d: any) => d.isPaid !== true && d.isPaid !== 'true')
-        .sort((a: any, b: any) => (Number(b.totalPoints) || 0) - (Number(a.totalPoints) || 0))
-        .slice(0, 10);
-
-      console.log(`Leaderboard Processed: Elite=${elite.length}, Free=${free.length}`);
-      setLeaderboardElite(elite);
-      setLeaderboardFree(free);
+      console.log(`Leaderboard Processed: Total Top Players = ${topPlayers.length}`);
+      setLeaderboard(topPlayers);
     });
 
     return () => unsubscribe();
@@ -634,10 +623,7 @@ export default function JSQuizApp() {
         return (
           <LeaderboardTable
             isDarkMode={isDarkMode}
-            leaderboardTab={leaderboardTab}
-            setLeaderboardTab={setLeaderboardTab}
-            leaderboardElite={leaderboardElite}
-            leaderboardFree={leaderboardFree}
+            leaderboardData={leaderboard}
           />
         );
       case 'dashboard':
