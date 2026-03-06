@@ -48,17 +48,32 @@ export const LearningHub = ({
 
             <div className="space-y-6">
                 {/* Header */}
-                <div className={`p-5 glass-card flex items-center gap-4`}>
-                    <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl shrink-0">
-                        {LEVEL_ICONS[learningLevel - 1]}
+                <div className={`p-4 sm:p-5 glass-card flex flex-col sm:flex-row items-start sm:items-center gap-4`}>
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl shrink-0">
+                            {LEVEL_ICONS[learningLevel - 1]}
+                        </div>
+                        <div className="flex-1 sm:hidden">
+                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Level {learningLevel} Guide</p>
+                            <h2 className="text-xl font-black text-primary break-words leading-tight mt-0.5">{LEVEL_TOPICS[learningLevel - 1]}</h2>
+                        </div>
                     </div>
-                    <div className="flex-1">
+
+                    <div className="hidden sm:block flex-1 border-l sm:border-none pl-4 sm:pl-0 border-white/10">
                         <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Level {learningLevel} — Study Guide</p>
                         <h2 className="text-3xl font-black text-primary">{LEVEL_TOPICS[learningLevel - 1]}</h2>
                     </div>
-                    <div className="text-right shrink-0">
-                        <p className={`text-xs uppercase font-black tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-900'}`}>Topics</p>
-                        <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{LEARNING_CONTENT[learningLevel]?.length}</p>
+
+                    <div className="flex w-full sm:w-auto justify-between sm:justify-end items-center sm:text-right shrink-0 mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-none border-white/10">
+                        <p className={`text-xs uppercase font-black tracking-[0.2em] sm:hidden ${isDarkMode ? 'text-slate-300' : 'text-slate-900'}`}>Total Topics</p>
+                        <div className="sm:hidden text-right">
+                            <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{LEARNING_CONTENT[learningLevel]?.length}</p>
+                        </div>
+
+                        <div className="hidden sm:block">
+                            <p className={`text-xs uppercase font-black tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-900'}`}>Topics</p>
+                            <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{LEARNING_CONTENT[learningLevel]?.length}</p>
+                        </div>
                     </div>
                 </div>
 

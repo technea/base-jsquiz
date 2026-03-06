@@ -80,19 +80,21 @@ export const QuizView = ({
                                 whileHover={!showExplanation ? { x: 8, backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' } : {}}
                                 onClick={() => onSelectOption(option)}
                                 disabled={!!selectedOption}
-                                className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-foreground ${btnClass}`}
+                                className={`w-full p-4 sm:p-5 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group text-foreground ${btnClass}`}
                             >
-                                <div className="flex items-center gap-4">
-                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border-2 transition-colors ${isSelected
+                                <div className="flex items-center gap-3 sm:gap-4 w-full">
+                                    <span className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-xs font-black border-2 transition-colors ${isSelected
                                         ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
                                         : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-300'
                                         }`}>
                                         {String.fromCharCode(65 + idx)}
                                     </span>
-                                    {option}
+                                    <span className="flex-1 break-words pr-2 leading-snug text-sm sm:text-base">
+                                        {option}
+                                    </span>
                                 </div>
-                                {showExplanation && isCorrect && <CheckCircle className="w-5 h-5 text-emerald-500" />}
-                                {showExplanation && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-rose-500" />}
+                                {showExplanation && isCorrect && <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />}
+                                {showExplanation && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-rose-500 shrink-0" />}
                             </motion.button>
                         );
                     })}
