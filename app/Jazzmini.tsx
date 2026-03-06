@@ -633,8 +633,10 @@ export default function JSQuizApp() {
 
         {/* Footer */}
         <footer className="mt-20 pt-8 border-t border-white/5 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30">
-            Powered by Base • Verifiable Code Skills
+          <p className="text-[10px] font-black uppercase tracking-[0.2em]">
+            <span className="opacity-30">Powered by </span>
+            <span className="text-primary opacity-100">Base</span>
+            <span className="opacity-30"> • Verifiable Code Skills</span>
           </p>
         </footer>
       </div>
