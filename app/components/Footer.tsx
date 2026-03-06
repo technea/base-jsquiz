@@ -48,65 +48,8 @@ export const Footer = ({ isDarkMode, activeTab, setActiveTab }: FooterProps) => 
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="pt-16 grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16">
-                {/* Brand Identity - Focused */}
-                <div className="lg:col-span-12 xl:col-span-4 space-y-8 flex flex-col items-center xl:items-start text-center xl:text-left">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-premium rounded-2xl shadow-xl shadow-primary/20">
-                            <Trophy className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="text-left">
-                            <h2 className="text-2xl font-black tracking-tighter leading-none uppercase text-foreground">
-                                JAZZ<span className="text-primary italic">MINI</span>
-                            </h2>
-                            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary/60 mt-1">The JS Blueprint</p>
-                        </div>
-                    </div>
-
-                    <p className={`text-sm sm:text-base font-medium max-w-md leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                        Elevating technical expertise on Base. Master JavaScript fundamentals through immersive challenges and earn verifiable proof of your skills.
-                    </p>
-                </div>
-
-                {/* Sections Grid */}
-                <div className="lg:col-span-12 xl:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-8 sm:gap-12">
-                    {sections.map((section, idx) => (
-                        <div key={idx} className="space-y-6">
-                            <h4 className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>{section.title}</h4>
-                            <ul className="space-y-4">
-                                {section.links.map((link, lIdx) => (
-                                    <li key={lIdx}>
-                                        {'id' in link ? (
-                                            <button
-                                                onClick={() => {
-                                                    setActiveTab(link.id as any);
-                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                }}
-                                                className={`text-sm font-bold transition-all hover:text-primary ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
-                                            >
-                                                {link.name}
-                                            </button>
-                                        ) : (
-                                            <a
-                                                href={link.href}
-                                                target={link.href.startsWith('http') ? "_blank" : undefined}
-                                                rel={link.href.startsWith('http') ? "noopener noreferrer" : undefined}
-                                                className={`text-sm font-bold flex items-center gap-1 transition-all hover:text-primary ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
-                                            >
-                                                {link.name}
-                                                {link.href.startsWith('http') && <ExternalLink className="w-3 h-3 opacity-50" />}
-                                            </a>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Verification Footer */}
-            <div className="mt-20 pt-10 border-t border-white/5">
+            {/* Bottom Bar Only */}
+            <div className="pt-10 border-t border-white/5">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
                     <div className="flex flex-col md:flex-row items-center gap-6">
                         <div className="flex items-center gap-2 px-4 py-2 rounded-full glass border-primary/20 bg-primary/5">
