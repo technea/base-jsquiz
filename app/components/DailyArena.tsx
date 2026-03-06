@@ -51,7 +51,7 @@ export const DailyArena = ({
                     </div>
                 </div>
                 {lastGmDate && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono italic opacity-50 font-bold">Last GM: {lastGmDate}</p>
+                    <p className={`text-xs font-mono italic opacity-50 font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Last GM: {lastGmDate}</p>
                 )}
             </div>
 
@@ -111,7 +111,7 @@ export const DailyArena = ({
                     <div className="flex items-center gap-3">
                         <Sun className="w-6 h-6 text-amber-500" />
                         <div>
-                            <p className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white">Daily GM</p>
+                            <p className={`font-black text-sm uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Daily GM</p>
                             <p className={`text-xs ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Punch in for the day</p>
                         </div>
                     </div>
@@ -138,8 +138,8 @@ export const DailyArena = ({
 
             {/* Daily Stats Info */}
             <div className={`p-4 rounded-xl border border-dashed text-center space-y-1 ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-black/10 text-slate-400'}`}>
-                <p className="text-xs uppercase font-black tracking-[0.2em] text-slate-900 dark:text-slate-300">The Daily Loop</p>
-                <p className="text-xs leading-relaxed font-bold text-slate-600 dark:text-slate-400">
+                <p className={`text-xs uppercase font-black tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-900'}`}>The Daily Loop</p>
+                <p className={`text-xs leading-relaxed font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                     1. GM to unlock Daily Quiz<br />
                     2. One chance to answer correctly<br />
                     3. Success = Streak grows 🔥 • Fail = Reset to 0 💔

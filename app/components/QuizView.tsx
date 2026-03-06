@@ -39,8 +39,8 @@ export const QuizView = ({
                         {currentQuestionIndex + 1}
                     </div>
                     <div>
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Question</p>
-                        <p className="text-sm font-bold text-slate-400 dark:text-slate-400">Section {currentQuestionIndex + 1} of {totalQuestions}</p>
+                        <p className={`text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Question</p>
+                        <p className={`text-sm font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Section {currentQuestionIndex + 1} of {totalQuestions}</p>
                     </div>
                 </div>
 
@@ -118,7 +118,7 @@ export const QuizView = ({
                                 }
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 group-hover:opacity-100 transition-opacity">Explanation</p>
+                                <p className={`text-xs font-black uppercase tracking-[0.2em] group-hover:opacity-100 transition-opacity ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Explanation</p>
                                 <p className="text-base font-medium leading-relaxed italic text-foreground">{currentQuestion.explanation}</p>
                             </div>
                         </div>

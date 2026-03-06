@@ -61,7 +61,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  databaseURL: "https://myproj-7d380-default-rtdb.firebaseio.com/"
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || "https://myproj-7d380-default-rtdb.firebaseio.com/"
 };
 
 const appId = 'js-level-quiz-default';
@@ -286,24 +286,30 @@ export default function JSQuizApp() {
 
   // Logic Handlers
   const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
-    if (!db || (!connectedAddress && !userId)) return;
+    try {
+      if (!db) return;
+      const id = (connectedAddress || userId || '').toLowerCase();
+      const totalPoints = customTotal !== undefined ? customTotal : (Object.values(levelScores).reduce((a, b: any) => a + b, 0) + dailyPoints);
+      const currentStreak = customStreak !== undefined ? customStreak : dailyStreak;
 
-    const id = (connectedAddress || userId || '').toLowerCase();
-    const totalPoints = customTotal !== undefined ? customTotal : (Object.values(levelScores).reduce((a, b) => a + b, 0) + dailyPoints);
-    const currentStreak = customStreak !== undefined ? customStreak : dailyStreak;
+      const payload = {
+        address: connectedAddress ? connectedAddress.toLowerCase() : (userId || 'anonymous'),
+        basename: basename || (connectedAddress ? connectedAddress.slice(0, 8) : 'User_' + (userId?.slice(0, 5) || 'Guest')),
+        totalPoints,
+        highestLevel: globalStats.highestLevel,
+        streak: currentStreak,
+        isPaid: isPaid || (connectedAddress ? !!paidLevels[currentLevel] : false),
+        lastUpdated: new Date().toISOString(),
+        ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, pfp: farcasterUser.pfp_url } : {})
+      };
 
-    const payload = {
-      address: connectedAddress ? connectedAddress.toLowerCase() : (userId || 'anonymous'),
-      basename: basename || (connectedAddress ? connectedAddress.slice(0, 8) : 'User_' + (userId?.slice(0, 5) || 'Guest')),
-      totalPoints,
-      highestLevel: globalStats.highestLevel,
-      streak: currentStreak,
-      isPaid: isPaid || (connectedAddress ? !!paidLevels[currentLevel] : false),
-      lastUpdated: new Date().toISOString(),
-      ...(farcasterUser ? { fid: farcasterUser.fid, username: farcasterUser.username, pfp: farcasterUser.pfp_url } : {})
-    };
-    console.log("Updating Realtime DB leaderboard with payload:", payload);
-    await set(ref(db, `leaderboard/${id}`), payload);
+      console.log("Saving to RTDB:", id, payload);
+      const playerRef = ref(db, `leaderboard/${id}`);
+      await set(playerRef, payload);
+      console.log("RTDB Update Success!");
+    } catch (err) {
+      console.error("RTDB Update Failed:", err);
+    }
   }, [db, connectedAddress, userId, basename, levelScores, globalStats, dailyStreak, dailyPoints, farcasterUser, paidLevels, currentLevel]);
 
   // Auto-update leaderboard for current user
@@ -378,11 +384,11 @@ export default function JSQuizApp() {
 
         if (currentLevel === globalStats.highestLevel && currentLevel < TOTAL_LEVELS) {
           const nextLevel = currentLevel + 1;
-          const statsRef = doc(db!, PUBLIC_COLLECTION_PATH, GLOBAL_STATS_DOC_ID);
-          await setDoc(statsRef, { highestLevel: nextLevel, updated: new Date().toISOString() }, { merge: true });
+          const statsRef = ref(db!, `stats/global_progress`);
+          await set(statsRef, { ...globalStats, highestLevel: nextLevel, updated: new Date().toISOString() });
         }
 
-        const newTotalPoints = Object.values(newScores).reduce((a, b) => a + b, 0) + dailyPoints;
+        const newTotalPoints = Object.values(newScores).reduce((a, b: any) => a + b, 0) + dailyPoints;
         updateLeaderboard(paidLevels[1] || false, newTotalPoints);
       }
     } else {
