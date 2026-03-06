@@ -32,29 +32,21 @@ export const LearningHub = ({
                     const isUnlocked = lvl <= highestLevel;
                     const attempted = (levelAttempts[lvl] || 0) > 0;
 
-                    if (!isUnlocked) {
-                        return (
-                            <div
-                                key={i}
-                                title={`Complete Level ${lvl - 1} to unlock`}
-                                className="relative px-4 py-2 rounded-xl text-sm font-black tracking-tight glass-card text-slate-600 opacity-30 cursor-not-allowed select-none"
-                            >
-                                🔒{lvl}
-                            </div>
-                        );
-                    }
-
                     return (
                         <button
                             key={i}
-                            onClick={() => setLearningLevel(lvl)}
-                            className={`relative px-4 py-2 rounded-xl text-sm font-black tracking-tight transition-all ${learningLevel === lvl
-                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                                : 'glass-card text-slate-500 hover:text-primary'
+                            onClick={() => isUnlocked && setLearningLevel(lvl)}
+                            disabled={!isUnlocked}
+                            title={!isUnlocked ? `Complete Level ${lvl - 1} to unlock` : `Level ${lvl}`}
+                            className={`relative px-4 py-2 rounded-xl text-sm font-black tracking-tight transition-all ${!isUnlocked
+                                    ? 'glass-card opacity-30 cursor-not-allowed text-slate-500'
+                                    : learningLevel === lvl
+                                        ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                        : 'glass-card text-slate-500 hover:text-primary'
                                 }`}
                         >
-                            {LEVEL_ICONS[i]} Lvl {lvl}
-                            {attempted && (
+                            {!isUnlocked ? `🔒${lvl}` : `${LEVEL_ICONS[i]} Lvl ${lvl}`}
+                            {isUnlocked && attempted && (
                                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-slate-900" />
                             )}
                         </button>
