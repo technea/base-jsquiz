@@ -57,13 +57,13 @@ try {
 }
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDgGMn0Lnz8sFdrZwRNPpfXmDxvmc004oc",
-  authDomain: "myproj-7d380.firebaseapp.com",
-  projectId: "myproj-7d380",
-  storageBucket: "myproj-7d380.firebasestorage.app",
-  messagingSenderId: "210105263036",
-  appId: "1:210105263036:web:214b668a9510029f8001b9",
-  measurementId: "G-GXVFY5C3F0"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 const appId = 'js-level-quiz-default';
