@@ -208,15 +208,21 @@ export default function JSQuizApp() {
     }
   }, []);
 
-  // Sync Global Stats - Realtime DB style
+  // Sync Per-User Stats from RTDB
   useEffect(() => {
     if (!authReady || !db) return;
-    const statsRef = ref(db, `stats/global_progress`);
-    return onValue(statsRef, (snapshot) => {
-      if (snapshot.exists()) setGlobalStats(snapshot.val() as GlobalStats);
-      else set(statsRef, { maxScore: 0, highestLevel: 1, updated: new Date().toISOString() });
+    const id = (connectedAddress || userId || '').toLowerCase();
+    if (!id) return;
+    const userRef = ref(db, `users/${id}/progress`);
+    return onValue(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        setGlobalStats({ maxScore: data.maxScore || 0, highestLevel: data.highestLevel || 1 });
+        if (data.levelScores) setLevelScores(data.levelScores);
+        if (data.levelAttempts) setLevelAttempts(data.levelAttempts);
+      }
     });
-  }, [authReady, db]);
+  }, [authReady, db, userId, connectedAddress]);
 
   // Wallet Connection Logic
   useEffect(() => {
@@ -373,8 +379,10 @@ export default function JSQuizApp() {
 
         if (currentLevel === globalStats.highestLevel && currentLevel < TOTAL_LEVELS) {
           const nextLevel = currentLevel + 1;
-          const statsRef = ref(db!, `stats/global_progress`);
-          await set(statsRef, { ...globalStats, highestLevel: nextLevel, updated: new Date().toISOString() });
+          const id = (connectedAddress || userId || '').toLowerCase();
+          const userRef = ref(db!, `users/${id}/progress`);
+          const newStats = { maxScore: Math.max(globalStats.maxScore, score), highestLevel: nextLevel, levelScores: newScores, levelAttempts: { ...levelAttempts, [currentLevel]: (levelAttempts[currentLevel] || 0) + 1 } };
+          await set(userRef, newStats);
         }
 
         const newTotalPoints = Object.values(newScores).reduce((a, b: any) => a + b, 0) + dailyPoints;
