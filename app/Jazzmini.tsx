@@ -645,7 +645,7 @@ export default function JSQuizApp() {
                   Global Rankings
                 </h2>
                 <p className={`text-base font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Leaderboard dekhne aur usme shamil hone ke liye wallet connect karein.
+                  Connect your wallet to view and join the leaderboard.
                 </p>
               </div>
               <button
