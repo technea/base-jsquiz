@@ -294,17 +294,45 @@ export default function JSQuizApp() {
     }
   }, [sdkLoaded]);
 
-  // Basename fetch
+  // Identity fetch: Basename & Farcaster
   useEffect(() => {
     if (!connectedAddress) { setBasename(null); return; }
+
+    // Fetch Basename
     fetch(`https://base.blockscout.com/api/v2/addresses/${connectedAddress}/names`)
       .then(res => res.json())
       .then(data => {
         const baseName = data?.items?.find((i: any) => i.name.endsWith('.base'))?.name;
         if (baseName) setBasename(baseName);
       }).catch(() => { });
-  }, [connectedAddress]);
 
+    // Fetch Farcaster Identity via Neynar
+    const fetchFarcaster = async () => {
+      try {
+        const neynarKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY || '13513AE1-F1E5-415E-A3BC-227D59596E4E';
+        const res = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${connectedAddress.toLowerCase()}`, {
+          headers: {
+            'x-api-key': neynarKey,
+            'accept': 'application/json'
+          }
+        });
+        const data = await res.json();
+
+        if (data && data[connectedAddress.toLowerCase()] && data[connectedAddress.toLowerCase()].length > 0) {
+          const userObj = data[connectedAddress.toLowerCase()][0];
+          setFarcasterUser({
+            fid: userObj.fid,
+            username: userObj.username,
+            display_name: userObj.display_name,
+            pfp_url: userObj.pfp_url
+          });
+        }
+      } catch (err) {
+        console.warn("Farcaster identity fetch failed", err);
+      }
+    };
+    fetchFarcaster();
+  }, [connectedAddress]);
   // Live Leaderboard sync - Realtime DB style
   useEffect(() => {
     if (!db) return;
