@@ -272,11 +272,19 @@ export default function JSQuizApp() {
     const tryAutoConnect = async () => {
       try {
         if (sdk?.wallet?.ethProvider?.request) {
-          const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
-          if (accounts?.[0]) setConnectedAddress(accounts[0]);
-        } else {
-          const provider = getWalletProvider();
-          const accounts = await provider?.request({ method: 'eth_accounts' });
+          try {
+            const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
+            if (accounts?.[0]) {
+              setConnectedAddress(accounts[0]);
+              return;
+            }
+          } catch (e) {
+            console.log("Farcaster SDK auto-connect skipped, falling back...");
+          }
+        }
+        const fallbackProvider = (window as any).ethereum || (window as any).MetaMask;
+        if (fallbackProvider) {
+          const accounts = await fallbackProvider.request({ method: 'eth_accounts' });
           if (accounts?.[0]) setConnectedAddress(accounts[0]);
         }
       } catch (e) { }
@@ -325,6 +333,31 @@ export default function JSQuizApp() {
   }, [db]);
 
   // Logic Handlers
+  const sendPayment = useCallback(async (amountInWei: number) => {
+    const dataStr = '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
+    try {
+      if (sdk?.wallet?.ethProvider?.request) {
+        const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
+        const tx = await sdk.wallet.ethProvider.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: accounts[0], to: USDC_BASE, data: dataStr, chainId: '0x2105' }]
+        });
+        if (tx) return tx;
+      }
+    } catch (e) {
+      console.log("Farcaster SDK tx failed or skipped. Falling back to native wallet...");
+    }
+
+    const fallbackProvider = (window as any).ethereum || (window as any).MetaMask;
+    if (!fallbackProvider) throw new Error("Wallet not available");
+
+    const fallbackAccounts = await fallbackProvider.request({ method: 'eth_requestAccounts' });
+    return await fallbackProvider.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: fallbackAccounts[0], to: USDC_BASE, data: dataStr, chainId: '0x2105' }]
+    });
+  }, []);
+
   const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
     try {
       if (!db || !connectedAddress) return; // Only wallet-connected users on leaderboard
@@ -362,24 +395,33 @@ export default function JSQuizApp() {
   const connectWallet = useCallback(async () => {
     try {
       if (sdk?.actions?.signIn) {
-        const res = await sdk.actions.signIn({ nonce: "jazzmini-" + Math.floor(Math.random() * 1000000) });
-        if (res?.user) {
-          setFarcasterUser(res.user);
-          const addr = (res.user.verifications?.[0] || res.user.custody_address).toLowerCase();
-          setConnectedAddress(addr);
-          if (res.user.username) setBasename(res.user.username + ".fc");
-          updateLeaderboard();
-          return;
+        try {
+          const res = await sdk.actions.signIn({ nonce: "jazzmini-" + Math.floor(Math.random() * 1000000) });
+          if (res?.user) {
+            setFarcasterUser(res.user);
+            const addr = (res.user.verifications?.[0] || res.user.custody_address).toLowerCase();
+            setConnectedAddress(addr);
+            if (res.user.username) setBasename(res.user.username + ".fc");
+            updateLeaderboard();
+            return;
+          }
+        } catch (sdkError) {
+          console.log("Farcaster SDK sign-in unavailable or aborted, falling back to standard web3...");
         }
       }
-      const provider = getWalletProvider();
-      const accounts = await provider?.request({ method: 'eth_requestAccounts' });
+
+      const fallbackProvider = (window as any).ethereum || (window as any).MetaMask;
+      if (!fallbackProvider) {
+        throw new Error("No wallet provider found. Please install MetaMask or use a web3 browser.");
+      }
+      const accounts = await fallbackProvider.request({ method: 'eth_requestAccounts' });
       if (accounts?.[0]) {
         setConnectedAddress(accounts[0].toLowerCase());
         updateLeaderboard();
       }
-    } catch (e) {
-      setWalletError('Failed to connect wallet.');
+    } catch (e: any) {
+      console.error(e);
+      setWalletError(e.message || 'Failed to connect wallet.');
     }
   }, [updateLeaderboard]);
 
@@ -446,17 +488,7 @@ export default function JSQuizApp() {
   const handleUnlockLevel = useCallback(async () => {
     setPaymentStatus('pending');
     try {
-      const provider = getWalletProvider();
-      const accounts = await provider?.request({ method: 'eth_requestAccounts' });
-      const tx = await provider?.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: accounts[0],
-          to: USDC_BASE,
-          data: '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + (50000).toString(16).padStart(64, '0'), // 0.05 USDC
-          chainId: '0x2105'
-        }]
-      });
+      const tx = await sendPayment(50000); // 0.05 USDC
       if (tx) {
         const newPaid = { ...paidLevels, [currentLevel]: true };
         setPaidLevels(newPaid);
@@ -468,22 +500,12 @@ export default function JSQuizApp() {
       setPaymentStatus('error');
       setPaymentError(e.message || 'Payment failed');
     }
-  }, [currentLevel, paidLevels, startQuiz]);
+  }, [currentLevel, paidLevels, startQuiz, sendPayment]);
 
   const handleLevel1Reward = useCallback(async () => {
     setRewardStatus('pending');
     try {
-      const provider = getWalletProvider();
-      const accounts = await provider?.request({ method: 'eth_requestAccounts' });
-      const tx = await provider?.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: accounts[0],
-          to: USDC_BASE,
-          data: '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + (30000).toString(16).padStart(64, '0'), // 0.03 USDC
-          chainId: '0x2105'
-        }]
-      });
+      const tx = await sendPayment(30000); // 0.03 USDC
       if (tx) {
         setRewardTxHash(tx);
         setRewardStatus('success');
@@ -495,22 +517,12 @@ export default function JSQuizApp() {
     } catch (e) {
       setRewardStatus('error');
     }
-  }, [paidLevels, updateLeaderboard]);
+  }, [paidLevels, updateLeaderboard, sendPayment]);
 
   const handleSupportPayment = useCallback(async () => {
     setSupportStatus('pending');
     try {
-      const provider = getWalletProvider();
-      const accounts = await provider?.request({ method: 'eth_requestAccounts' });
-      const tx = await provider?.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: accounts[0],
-          to: USDC_BASE,
-          data: '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + (30000).toString(16).padStart(64, '0'),
-          chainId: '0x2105'
-        }]
-      });
+      const tx = await sendPayment(30000); // 0.03 USDC
       if (tx) {
         setSupportStatus('success');
         updateLeaderboard(true);
@@ -518,7 +530,7 @@ export default function JSQuizApp() {
     } catch (e) {
       setSupportStatus('error');
     }
-  }, [updateLeaderboard]);
+  }, [updateLeaderboard, sendPayment]);
 
   const handleGm = useCallback(() => {
     const today = getTodayDateKey();
@@ -564,17 +576,7 @@ export default function JSQuizApp() {
   const handleStreakRestore = useCallback(async () => {
     setStreakRecoveryStatus('pending');
     try {
-      const provider = getWalletProvider();
-      const accounts = await provider?.request({ method: 'eth_requestAccounts' });
-      const tx = await provider?.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: accounts[0],
-          to: USDC_BASE,
-          data: '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + (50000).toString(16).padStart(64, '0'),
-          chainId: '0x2105'
-        }]
-      });
+      const tx = await sendPayment(50000); // 0.05 USDC
       if (tx) {
         setStreakRecoveryStatus('success');
         setStreakMissed(false);
@@ -584,7 +586,7 @@ export default function JSQuizApp() {
     } catch (e) {
       setStreakRecoveryStatus('error');
     }
-  }, []);
+  }, [sendPayment]);
 
   const handleResetStreak = useCallback(() => {
     setDailyStreak(0);
