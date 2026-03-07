@@ -169,7 +169,11 @@ export default function JSQuizApp() {
       const savedPaid = localStorage.getItem('quizPaidLevels');
       if (savedPaid) setPaidLevels(JSON.parse(savedPaid));
       const savedStats = localStorage.getItem('globalStats');
-      if (savedStats) setGlobalStats(JSON.parse(savedStats));
+      if (savedStats) {
+        const stats = JSON.parse(savedStats);
+        setGlobalStats(stats);
+        if (stats.highestLevel) setCurrentLevel(stats.highestLevel);
+      }
     } catch { }
 
     loadSdk().then(loaded => setSdkLoaded(loaded));
@@ -241,8 +245,15 @@ export default function JSQuizApp() {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const stats = { maxScore: data.maxScore || 0, highestLevel: data.highestLevel || 1 };
+
         setGlobalStats(stats);
         localStorage.setItem('globalStats', JSON.stringify(stats));
+
+        // Auto-set currentLevel to highestLevel if the user is on the start screen
+        if (quizState === 'start') {
+          setCurrentLevel(stats.highestLevel);
+        }
+
         if (data.levelScores) setLevelScores(data.levelScores);
         if (data.levelAttempts) setLevelAttempts(data.levelAttempts);
       }
