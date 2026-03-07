@@ -153,6 +153,12 @@ export default function JSQuizApp() {
 
   const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard'>('quiz');
   const [learningLevel, setLearningLevel] = useState(1);
+  const quizStateRef = useRef(quizState);
+
+  // Keep ref in sync
+  useEffect(() => {
+    quizStateRef.current = quizState;
+  }, [quizState]);
 
   // Persistence Effects
   useEffect(() => {
@@ -250,7 +256,8 @@ export default function JSQuizApp() {
         localStorage.setItem('globalStats', JSON.stringify(stats));
 
         // Auto-set currentLevel to highestLevel if the user is on the start screen
-        if (quizState === 'start') {
+        // Use the ref to avoid stale closure in the onValue callback
+        if (quizStateRef.current === 'start') {
           setCurrentLevel(stats.highestLevel);
         }
 
