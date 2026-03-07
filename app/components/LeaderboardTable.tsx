@@ -97,8 +97,11 @@ export const LeaderboardTable = ({
                     {leaderboardData.length > 0 ? (
                         leaderboardData.map((player, idx) => {
                             const isTop3 = idx < 3;
-                            const displayName = player.displayName || player.username || player.basename || 'Player';
-                            const initials = displayName.slice(0, 2).toUpperCase();
+                            const shortAddress = player.address ? `${player.address.slice(0, 6)}...${player.address.slice(-4)}` : 'Unknown';
+                            const fallbackName = player.basename ? player.basename : shortAddress;
+                            const displayName = player.displayName || player.username || fallbackName;
+                            // If display name is exactly shortAddress, we don't need to show initials as '0x'
+                            const initials = displayName !== shortAddress ? displayName.slice(0, 2).toUpperCase() : '0x';
                             const isCurrentUser = connectedAddress && player.address?.toLowerCase() === connectedAddress.toLowerCase();
 
                             return (
@@ -108,10 +111,10 @@ export const LeaderboardTable = ({
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: idx * 0.05 }}
                                     className={`relative flex items-center gap-4 p-4 rounded-2xl border transition-all ${isCurrentUser
-                                            ? 'border-primary/50 bg-primary/10 shadow-lg shadow-primary/10'
-                                            : isDarkMode
-                                                ? 'border-white/5 bg-white/5 hover:bg-white/10'
-                                                : 'border-black/5 bg-black/5 hover:bg-black/10'
+                                        ? 'border-primary/50 bg-primary/10 shadow-lg shadow-primary/10'
+                                        : isDarkMode
+                                            ? 'border-white/5 bg-white/5 hover:bg-white/10'
+                                            : 'border-black/5 bg-black/5 hover:bg-black/10'
                                         }`}
                                 >
                                     {/* Rank */}
@@ -127,8 +130,8 @@ export const LeaderboardTable = ({
 
                                     {/* Avatar */}
                                     <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center font-black text-sm text-white overflow-hidden relative ${isTop3
-                                            ? `bg-gradient-to-br ${RANK_COLORS[idx]} shadow-lg`
-                                            : 'bg-gradient-to-br from-primary/60 to-primary'
+                                        ? `bg-gradient-to-br ${RANK_COLORS[idx]} shadow-lg`
+                                        : 'bg-gradient-to-br from-primary/60 to-primary'
                                         }`}>
                                         {player.pfp ? (
                                             <img src={player.pfp} alt="" className="w-full h-full object-cover" />
@@ -151,9 +154,11 @@ export const LeaderboardTable = ({
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <span className={`text-[10px] font-bold font-mono opacity-50 truncate`}>
-                                                {player.address?.slice(0, 6)}...{player.address?.slice(-4)}
-                                            </span>
+                                            {displayName !== shortAddress && (
+                                                <span className={`text-[10px] font-bold font-mono opacity-50 truncate`}>
+                                                    {shortAddress}
+                                                </span>
+                                            )}
                                             {player.highestLevel > 1 && (
                                                 <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${isDarkMode ? 'bg-white/10 text-white/70' : 'bg-black/10 text-slate-600'}`}>
                                                     Lvl {player.highestLevel}
