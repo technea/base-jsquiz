@@ -186,11 +186,10 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     recognition.abort();
                 }
 
-                // Re-initialize for a fresh start each time to bypass "stuck" states
                 const rec = new SpeechRecognition();
                 rec.continuous = false;
                 rec.interimResults = false;
-                rec.lang = 'en-IN'; // en-IN acts as a bridge and understands English/Roman Urdu/Hindi mix best on mobile
+                rec.lang = 'en-US'; // Use English default as requested
 
                 rec.onstart = () => setIsListening(true);
 
