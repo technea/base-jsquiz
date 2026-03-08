@@ -92,7 +92,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         const setVoiceAndSpeak = () => {
             const voices = window.speechSynthesis.getVoices();
 
-            // Priority selection if voices are available
+            // Priority selection: Prioritize Google/Premium/Neural voices for best clarity
             if (voices.length > 0) {
                 const preferredVoice = voices.find(v =>
                     v.lang.startsWith(isUrduHindi ? 'hi' : 'en') && (
@@ -102,7 +102,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                         v.name.includes('Premium') ||
                         v.name.includes('Enhanced')
                     )
-                ) || voices.find(v => v.lang.startsWith(isUrduHindi ? 'hi' : 'en'));
+                ) || voices.find(v => v.lang.startsWith(isUrduHindi ? 'hi' : 'en')) || voices[0];
 
                 if (preferredVoice) utterance.voice = preferredVoice;
             }
@@ -122,7 +122,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         setVoiceAndSpeak();
     };
 
-    const toggleListening = () => {
+    const toggleListening = async () => {
         // 🚨 SECURITY CHECK: Browsers block Mic on IP addresses or non-localhost HTTP.
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         if (!isLocal && window.location.protocol !== 'https:') {
@@ -144,39 +144,63 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         } else {
             stopSpeaking();
 
-            // Re-initialize for a fresh start each time to bypass "stuck" states
-            const rec = new SpeechRecognition();
-            rec.continuous = false;
-            rec.interimResults = false;
-            rec.lang = 'ur-PK';
-
-            rec.onstart = () => setIsListening(true);
-
-            rec.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
-                if (transcript) setInput(transcript);
-                setIsListening(false);
-            };
-
-            rec.onerror = (event: any) => {
-                console.error('Speech recognition error:', event.error);
-                if (event.error === 'not-allowed') {
-                    alert("⚠️ MIC BLOCKED BY BROWSER: Please click the 'Lock' 🔒 icon next to your URL bar and change Microphone to 'ALLOW'. If you already did, restart your browser.");
-                } else if (event.error === 'network') {
-                    alert("Network Error: Please check your internet connection.");
-                } else {
-                    alert(`Mic Error: ${event.error}. Please try again.`);
-                }
-                setIsListening(false);
-            };
-
-            rec.onend = () => setIsListening(false);
-
             try {
-                rec.start();
-                setRecognition(rec);
-            } catch (e) {
-                console.error("Critical Start Error:", e);
+                // 🎙️ Request mic with noise/echo suppression constraints to "prime" the browser's audio engine
+                await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                // Safety: abort any previous recognition session to prevent hang-ups
+                if (recognition && typeof recognition.abort === 'function') {
+                    recognition.abort();
+                }
+
+                // Re-initialize for a fresh start each time to bypass "stuck" states
+                const rec = new SpeechRecognition();
+                rec.continuous = false;
+                rec.interimResults = false;
+                rec.lang = 'en-US';
+
+                rec.onstart = () => setIsListening(true);
+
+                rec.onresult = (event: any) => {
+                    const transcript = event.results[0][0].transcript;
+                    if (transcript) setInput(transcript);
+                    setIsListening(false);
+                };
+
+                rec.onerror = (event: any) => {
+                    console.error('Speech recognition error:', event.error);
+                    if (event.error === 'not-allowed') {
+                        alert("⚠️ MIC BLOCKED BY BROWSER: Please click the 'Lock' 🔒 icon next to your URL bar and change Microphone to 'ALLOW'. If you already did, restart your browser.");
+                    } else if (event.error === 'network') {
+                        alert("Network Error: Please check your internet connection.");
+                    } else {
+                        alert(`Mic Error: ${event.error}. Please try again.`);
+                    }
+                    setIsListening(false);
+                };
+
+                rec.onend = () => setIsListening(false);
+
+                try {
+                    rec.start();
+                    setRecognition(rec);
+                } catch (e) {
+                    console.error("Critical Start Error:", e);
+                    setIsListening(false);
+                }
+            } catch (e: any) {
+                console.error("Critical Mic Access Error:", e);
+                if (e.name === 'NotAllowedError') {
+                    alert("Microphone permission denied. Please allow it in the browser bar.");
+                } else {
+                    alert("Could not start microphone. Please ensure no other app is using it.");
+                }
                 setIsListening(false);
             }
         }
