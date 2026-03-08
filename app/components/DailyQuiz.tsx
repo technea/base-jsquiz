@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, CheckCircle, XCircle, Zap, Flame, X } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Zap, Flame, X, Bot, Sparkles } from 'lucide-react';
 import { DailyQuestion } from '../dailyQuizData';
 
 interface DailyQuizProps {
@@ -39,6 +39,30 @@ export const DailyQuiz = ({
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-2xl mx-auto space-y-6 sm:space-y-8 pb-8 px-4 sm:px-6 relative"
         >
+            {/* ✨ Premium Background Animations */}
+            <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+                <motion.div
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 90, 0],
+                        x: [0, 50, 0],
+                        y: [0, 30, 0]
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute -top-20 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-[80px]"
+                />
+                <motion.div
+                    animate={{
+                        scale: [1, 1.3, 1],
+                        rotate: [0, -90, 0],
+                        x: [0, -40, 0],
+                        y: [0, -50, 0]
+                    }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute -bottom-20 -right-20 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px]"
+                />
+            </div>
+
             <AnimatePresence>
                 {dailyQuizAnswer && onClose && (
                     <motion.button
@@ -46,7 +70,7 @@ export const DailyQuiz = ({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         onClick={onClose}
-                        className="absolute right-4 top-0 z-50 p-2 sm:p-3 rounded-full bg-background/80 backdrop-blur-sm border-2 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-primary/50 transition-all shadow-xl"
+                        className="absolute right-4 top-0 z-50 p-2 sm:p-3 rounded-full bg-background/80 backdrop-blur-sm border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-primary/50 transition-all shadow-xl"
                     >
                         <X className="w-5 h-5 sm:w-6 sm:h-6" />
                     </motion.button>
@@ -54,22 +78,90 @@ export const DailyQuiz = ({
             </AnimatePresence>
 
             <div className="text-center space-y-2 sm:space-y-3 pt-8 sm:pt-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-1 sm:mb-2">
+                {/* 🤖 Animated AI Mentor Avatar with Speech Bubble */}
+                <motion.div
+                    initial={{ scale: 0, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    transition={{ type: "spring", delay: 0.2 }}
+                    className="relative w-28 h-28 mx-auto mb-6"
+                >
+                    {/* Pulsing Aura */}
+                    <motion.div
+                        animate={{
+                            scale: [1, 1.2, 1],
+                            opacity: [0.2, 0.5, 0.2]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="absolute inset-0 bg-primary/30 rounded-full blur-2xl"
+                    />
+
+                    {/* Speech Bubble */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 20, scale: 0.5 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        transition={{ delay: 1, type: "spring" }}
+                        className="absolute -top-12 -right-16 sm:-right-24 z-20 bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl rounded-bl-none shadow-xl border border-primary/20 whitespace-nowrap"
+                    >
+                        <p className="text-[10px] sm:text-xs font-black text-primary uppercase tracking-wider">
+                            Good Morning! ☕<br />
+                            Time for Quiz!
+                        </p>
+                        {/* Bubble tail */}
+                        <div className="absolute -bottom-2 left-0 w-3 h-3 bg-inherit border-l border-b border-primary/10 rotate-45" />
+                    </motion.div>
+
+                    <motion.div
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        className="relative w-full h-full bg-gradient-to-br from-primary via-indigo-500 to-purple-600 rounded-3xl p-6 flex items-center justify-center shadow-2xl border border-white/20 overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent)]" />
+                        <Bot className="w-full h-full text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+
+                        {/* Floaties */}
+                        <motion.div
+                            animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5], rotate: 45 }}
+                            transition={{ duration: 2.5, repeat: Infinity }}
+                            className="absolute top-2 right-2"
+                        >
+                            <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
+                        </motion.div>
+                    </motion.div>
+                </motion.div>
+                <motion.div
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-1 sm:mb-2 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+                >
                     <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">24H Challenge</span>
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight leading-none italic uppercase">Daily <span className="text-primary not-italic">Puzzle</span></h2>
+                </motion.div>
+                <motion.h2
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-3xl sm:text-4xl font-black text-foreground tracking-tight leading-none italic uppercase"
+                >
+                    Daily <span className="text-primary not-italic">Puzzle</span>
+                </motion.h2>
                 <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-60">
                     High Stakes • One Attempt
                 </p>
             </div>
 
-            <div className="relative group">
+            <motion.div
+                whileHover={{ y: -4 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="relative group"
+            >
                 <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/10 to-primary/10 rounded-2xl sm:rounded-[2.5rem] blur opacity-20"></div>
                 <div className="relative glass-card p-6 sm:p-12 rounded-2xl sm:rounded-[2.5rem] bg-background/50 border-border/40 overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 p-4 sm:p-8 opacity-[0.03] select-none pointer-events-none">
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 0.03, x: 0 }}
+                        className="absolute top-0 right-0 p-4 sm:p-8 select-none pointer-events-none"
+                    >
                         <BookOpen className="w-32 h-32 sm:w-48 sm:h-48" />
-                    </div>
+                    </motion.div>
 
                     <h3 className="text-xl sm:text-3xl font-black leading-tight text-foreground tracking-tight mb-8 sm:mb-12 relative z-10">
                         {todayQuestion.question}
@@ -91,57 +183,81 @@ export const DailyQuiz = ({
                             return (
                                 <motion.button
                                     key={idx}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.1 }}
                                     whileHover={!isAnswered ? { y: -2, scale: 1.01, backgroundColor: isDarkMode ? 'rgba(0, 82, 255, 0.05)' : 'rgba(0, 82, 255, 0.03)' } : {}}
+                                    whileTap={!isAnswered ? { scale: 0.98 } : {}}
                                     onClick={() => onAnswer(opt)}
                                     disabled={isAnswered}
                                     className={`w-full p-4 sm:p-6 rounded-xl sm:rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group overflow-hidden ${btnStyle}`}
                                 >
                                     <div className="flex items-center gap-4 sm:gap-5 w-full">
-                                        <span className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-black border-2 transition-all ${isSelected
-                                            ? 'bg-primary border-primary text-white shadow-lg'
-                                            : 'border-border bg-background/50 text-muted-foreground'
-                                            }`}>
+                                        <motion.span
+                                            animate={isSelected ? { scale: [1, 1.2, 1] } : {}}
+                                            className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-black border-2 transition-all ${isSelected
+                                                ? 'bg-primary border-primary text-white shadow-lg'
+                                                : 'border-border bg-background/50 text-muted-foreground'
+                                                }`}>
                                             {String.fromCharCode(65 + idx)}
-                                        </span>
+                                        </motion.span>
                                         <span className="flex-1 break-words text-sm sm:text-lg leading-snug">
                                             {opt}
                                         </span>
                                     </div>
-                                    <div>
-                                        {isAnswered && isCorrect && <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />}
-                                        {isAnswered && isSelected && !isCorrect && <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500" />}
+                                    <div className="relative">
+                                        {isAnswered && isCorrect && (
+                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
+                                            </motion.div>
+                                        )}
+                                        {isAnswered && isSelected && !isCorrect && (
+                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                                <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500" />
+                                            </motion.div>
+                                        )}
                                     </div>
                                 </motion.button>
                             );
                         })}
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {dailyQuizAnswer && (
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        key="result"
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
                         className={`p-6 sm:p-10 rounded-2xl sm:rounded-[2rem] border-2 shadow-2xl relative overflow-hidden ${dailyQuizResult === 'correct'
-                            ? 'bg-emerald-500/5 border-emerald-500/20'
-                            : 'bg-rose-500/5 border-rose-500/20'
+                            ? 'bg-emerald-500/5 border-emerald-500/20 shadow-emerald-500/10'
+                            : 'bg-rose-500/5 border-rose-500/20 shadow-rose-500/10'
                             }`}
                     >
+                        {/* Animated background highlights for result */}
+                        <div className={`absolute inset-0 opacity-10 ${dailyQuizResult === 'correct' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+
                         <div className="flex gap-4 sm:gap-6 relative z-10">
-                            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl shrink-0 flex items-center justify-center ${dailyQuizResult === 'correct' ? 'bg-emerald-500/10' : 'bg-rose-500/10'
-                                }`}>
+                            <motion.div
+                                initial={{ rotate: -15, scale: 0.5 }}
+                                animate={{ rotate: 0, scale: 1 }}
+                                className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl shrink-0 flex items-center justify-center ${dailyQuizResult === 'correct' ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+                                    }`}>
                                 {dailyQuizResult === 'correct'
                                     ? <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-500" />
                                     : <XCircle className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500" />
                                 }
-                            </div>
+                            </motion.div>
                             <div className="space-y-1 sm:space-y-2">
                                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground">Detailed Breakdown</p>
                                 <p className="text-sm sm:text-lg font-bold leading-relaxed italic text-foreground">{todayQuestion.explanation}</p>
                                 {dailyQuizResult === 'correct' ? (
                                     <div className="pt-1 sm:pt-2 flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                                        <Flame className="w-3 h-3" /> Streak Extended
+                                        <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 1 }}>
+                                            <Flame className="w-3 h-3" />
+                                        </motion.div>
+                                        Streak Extended
                                     </div>
                                 ) : (
                                     <div className="pt-1 sm:pt-2 flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest">
