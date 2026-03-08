@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, CheckCircle, XCircle, ArrowRight, Zap, Flame } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Zap, Flame, X } from 'lucide-react';
 import { DailyQuestion } from '../dailyQuizData';
 
 interface DailyQuizProps {
@@ -10,6 +11,7 @@ interface DailyQuizProps {
     dailyQuizAnswer: string | null;
     dailyQuizResult: 'correct' | 'wrong' | null;
     onAnswer: (opt: string) => void;
+    onClose?: () => void;
 }
 
 export const DailyQuiz = ({
@@ -17,17 +19,41 @@ export const DailyQuiz = ({
     todayQuestion,
     dailyQuizAnswer,
     dailyQuizResult,
-    onAnswer
+    onAnswer,
+    onClose
 }: DailyQuizProps) => {
+    useEffect(() => {
+        if (dailyQuizAnswer && onClose) {
+            const timer = setTimeout(() => {
+                onClose();
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [dailyQuizAnswer, onClose]);
+
     if (!todayQuestion) return null;
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-2xl mx-auto space-y-6 sm:space-y-8 pb-8 px-4 sm:px-6"
+            className="w-full max-w-2xl mx-auto space-y-6 sm:space-y-8 pb-8 px-4 sm:px-6 relative"
         >
-            <div className="text-center space-y-2 sm:space-y-3">
+            <AnimatePresence>
+                {dailyQuizAnswer && onClose && (
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        onClick={onClose}
+                        className="absolute right-4 top-0 z-50 p-2 sm:p-3 rounded-full bg-background/80 backdrop-blur-sm border-2 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-primary/50 transition-all shadow-xl"
+                    >
+                        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+
+            <div className="text-center space-y-2 sm:space-y-3 pt-8 sm:pt-4">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-1 sm:mb-2">
                     <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">24H Challenge</span>

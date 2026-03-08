@@ -77,7 +77,7 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-montserrat), 'Montserrat', sans-serif;
   overflow-x: hidden;
   position: relative;
   min-height: 100vh;
@@ -133,7 +133,7 @@ h4,
 h5,
 h6,
 .font-heading {
-  font-family: var(--font-outfit), 'Outfit', sans-serif;
+  font-family: var(--font-montserrat), 'Montserrat', sans-serif;
 }
 
 /* Glassmorphism Refined */

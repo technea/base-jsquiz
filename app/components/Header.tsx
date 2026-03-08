@@ -6,8 +6,8 @@ import { Trophy, Sun, Moon, Wallet } from 'lucide-react';
 interface HeaderProps {
     isDarkMode: boolean;
     setIsDarkMode: (val: boolean) => void;
-    activeTab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard';
-    setActiveTab: (tab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard') => void;
+    activeTab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'ai-chat';
+    setActiveTab: (tab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'ai-chat') => void;
     setQuizState: (state: 'start' | 'in_progress' | 'result') => void;
     connectedAddress: string | null;
     connectWallet: () => void;

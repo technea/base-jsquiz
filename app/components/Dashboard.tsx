@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { BookOpen, Wallet, ArrowRight, Award, Trophy } from 'lucide-react';
+import { BookOpen, Wallet, ArrowRight, Award, Trophy, Bot, Sparkles } from 'lucide-react';
 import { GlobalStats, TOTAL_LEVELS, JS_QUOTES, LEVEL_ICONS } from '../types';
 
 interface DashboardProps {
@@ -14,6 +14,7 @@ interface DashboardProps {
     onLevelSelect: (level: number) => void;
     MAX_FREE_ATTEMPTS: number;
     farcasterUser?: any;
+    onOpenAiChat?: () => void;
 }
 
 export const Dashboard = ({
@@ -25,7 +26,8 @@ export const Dashboard = ({
     levelAttempts,
     onLevelSelect,
     MAX_FREE_ATTEMPTS,
-    farcasterUser
+    farcasterUser,
+    onOpenAiChat
 }: DashboardProps) => {
     return (
         <motion.div
@@ -105,6 +107,45 @@ export const Dashboard = ({
                         </button>
                     </div>
                 )}
+            </motion.div>
+
+            {/* AI Generator Quiz Section */}
+            <motion.div
+                whileHover={{ scale: 1.01 }}
+                className={`p-6 sm:p-8 glass-card text-left max-w-md mx-auto relative overflow-hidden group border-2 ${isDarkMode ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-indigo-500/20 bg-indigo-50/50'}`}
+            >
+                {/* Background effects */}
+                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-indigo-500/20 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/30 transition-all duration-500"></div>
+                <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-purple-500/20 rounded-full blur-[30px] pointer-events-none group-hover:bg-purple-500/30 transition-all duration-500"></div>
+
+                <div className="relative z-10 flex flex-col gap-4">
+                    <div className="flex items-start justify-between">
+                        <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'} shadow-[0_0_20px_rgba(99,102,241,0.2)]`}>
+                            <Bot className="w-8 h-8" />
+                        </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-500">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">New</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className={`font-black text-2xl sm:text-3xl mb-2 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                            AI Quiz <span className="text-indigo-500 italic">Generator</span>
+                        </h3>
+                        <p className={`text-sm sm:text-base font-medium leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                            Bored of standard levels? Generate infinite custom JavaScript challenges tailored to your skill level using AI.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={onOpenAiChat}
+                        className="mt-2 w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:shadow-xl hover:shadow-indigo-500/25 rounded-xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all group/btn"
+                    >
+                        Ask AI Assistant
+                        <Sparkles className="w-4 h-4 group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform" />
+                    </button>
+                </div>
             </motion.div>
 
             {/* Level Grid - Optimized for Mobile */}

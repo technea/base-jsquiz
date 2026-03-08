@@ -10,7 +10,7 @@ export async function GET() {
       ownerAddress: "0x0881e4c7b81dc36fc4fc1c82ce0e97bbb0134f93"
     },
 
-    miniapp: { 
+    miniapp: {
       version: "1",
       name: "JavaScript Quiz Miniapp",
       homeUrl: "https://base-jsquiz.vercel.app",
@@ -21,7 +21,7 @@ export async function GET() {
 
       subtitle: "Test Your Skills",
       description: "10 levels of JavaScript quizzes to master coding skills", // Fixed: 56 characters
-      
+
       screenshotUrls: [
         "https://base-jsquiz.vercel.app/og-pro.png",
         "https://base-jsquiz.vercel.app/splash-pro.png"

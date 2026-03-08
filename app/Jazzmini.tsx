@@ -43,6 +43,7 @@ import { LearningHub } from './components/LearningHub';
 import { LeaderboardTable } from './components/LeaderboardTable';
 import { PaymentModal } from './components/PaymentModal';
 import { Footer } from './components/Footer';
+import { AIAssistant } from './components/AIAssistant';
 
 // --- Farcaster SDK ---
 let sdk: any = null;
@@ -151,7 +152,7 @@ export default function JSQuizApp() {
   const [streakRecoveryStatus, setStreakRecoveryStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [todayQuestion, setTodayQuestion] = useState<DailyQuestion | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard'>('quiz');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'ai-chat'>('quiz');
   const [learningLevel, setLearningLevel] = useState(1);
   const quizStateRef = useRef(quizState);
 
@@ -672,6 +673,7 @@ export default function JSQuizApp() {
             onLevelSelect={startQuiz}
             MAX_FREE_ATTEMPTS={MAX_FREE_ATTEMPTS}
             farcasterUser={farcasterUser}
+            onOpenAiChat={() => setActiveTab('ai-chat')}
           />
         );
       case 'daily':
@@ -683,6 +685,7 @@ export default function JSQuizApp() {
               dailyQuizAnswer={dailyQuizAnswer}
               dailyQuizResult={dailyQuizResult}
               onAnswer={handleDailyAnswer}
+              onClose={() => setShowDailyQuiz(false)}
             />
           );
         }
@@ -751,6 +754,8 @@ export default function JSQuizApp() {
             Stats Dashboard Coming Soon
           </div>
         );
+      case 'ai-chat':
+        return <AIAssistant isDarkMode={isDarkMode} onClose={() => setActiveTab('quiz')} />;
       default:
         return null;
     }
