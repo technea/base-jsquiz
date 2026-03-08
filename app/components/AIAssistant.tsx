@@ -76,7 +76,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         const utterance = new SpeechSynthesisUtterance(text);
 
         // Detect Roman Urdu/Hindi or Proper Script
-        const commonRoman = ['hai', 'kar', 'karo', 'shabash', 'theek', 'kya', 'kaise', 'bilkul', 'mera', 'hum', 'mein', 'tu', 'si', 'ho'];
+        const commonRoman = ['hai', 'kar', 'karo', 'shabash', 'theek', 'kya', 'kaise', 'bilkul', 'mera', 'hum', 'mein', 'tu', 'si', 'ho', 'well done'];
         const isUrduHindi = /[\u0600-\u06FF\u0900-\u097F]/.test(text) ||
             commonRoman.some(word => text.toLowerCase().includes(' ' + word + ' ') || text.toLowerCase().startsWith(word + ' '));
 
@@ -84,18 +84,36 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
-        const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v =>
-            v.lang.startsWith(isUrduHindi ? 'hi' : 'en') && (
-                v.name.includes('Neural') || v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Premium')
-            )
-        ) || voices.find(v => v.lang.startsWith(isUrduHindi ? 'hi' : 'en')) || voices[0];
+        const setVoiceAndSpeak = () => {
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length === 0) return;
 
-        if (preferredVoice) utterance.voice = preferredVoice;
+            // Mobile specific priority: look for Google or Premium/Enhanced voices which are high quality
+            const preferredVoice = voices.find(v =>
+                v.lang.startsWith(isUrduHindi ? 'hi' : 'en') && (
+                    v.name.includes('Google') ||
+                    v.name.includes('Neural') ||
+                    v.name.includes('Natural') ||
+                    v.name.includes('Premium') ||
+                    v.name.includes('Enhanced')
+                )
+            ) || voices.find(v => v.lang.startsWith(isUrduHindi ? 'hi' : 'en')) || voices[0];
 
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        window.speechSynthesis.speak(utterance);
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            utterance.onstart = () => setIsSpeaking(true);
+            utterance.onend = () => setIsSpeaking(false);
+            window.speechSynthesis.speak(utterance);
+        };
+
+        // Mobile browsers often load voices asynchronously or require a small delay
+        if (window.speechSynthesis.getVoices().length > 0) {
+            setVoiceAndSpeak();
+        } else {
+            window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
+            // Safari/Some mobile browsers fallback
+            setTimeout(setVoiceAndSpeak, 200);
+        }
     };
 
     const toggleListening = () => {
