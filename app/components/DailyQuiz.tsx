@@ -22,33 +22,7 @@ export const DailyQuiz = ({
     onAnswer,
     onClose
 }: DailyQuizProps) => {
-    // 🎙️ Voice Greeting on Mount
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.speechSynthesis && !dailyQuizAnswer) {
-            const speak = () => {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance("Good Morning! Time for Quiz!");
-                utterance.lang = 'en-US';
-                utterance.rate = 1.0;
-
-                const voices = window.speechSynthesis.getVoices();
-                const preferredVoice = voices.find(v =>
-                    v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Neural'))
-                ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-
-                if (preferredVoice) utterance.voice = preferredVoice;
-                window.speechSynthesis.speak(utterance);
-            };
-
-            // Small delay to ensure browser speech engine is ready
-            if (window.speechSynthesis.getVoices().length > 0) {
-                speak();
-            } else {
-                window.speechSynthesis.onvoiceschanged = speak;
-                setTimeout(speak, 500);
-            }
-        }
-    }, [dailyQuizAnswer]); // Only speak if not answered yet
+    // 🎙️ Voice Greeting removed in favor of Premium GM Intro to avoid browser blocks
 
     useEffect(() => {
         if (dailyQuizAnswer && onClose) {

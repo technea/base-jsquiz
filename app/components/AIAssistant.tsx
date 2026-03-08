@@ -40,6 +40,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const stopSpeaking = () => {
         if (typeof window !== 'undefined' && window.speechSynthesis) {
             window.speechSynthesis.cancel();
+            window.speechSynthesis.resume(); // Fixes a common bug where speech engine gets 'stuck'
             setIsSpeaking(false);
         }
     };
@@ -93,27 +94,16 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
         const setVoiceAndSpeak = () => {
             const voices = window.speechSynthesis.getVoices();
-
             if (voices.length > 0) {
                 const targetLangs = isUrduHindi ? ['hi', 'ur'] : ['en'];
-
-                // 1. First try to find a Premium/Google voice
                 let preferredVoice = voices.find(v =>
                     targetLangs.some(lang => v.lang.startsWith(lang)) &&
                     /Google|Neural|Natural|Premium|Enhanced|Online/.test(v.name)
                 );
-
-                // 2. If no premium voice, fallback to any available voice in those languages (Crucial for mobile phones without premium voices)
                 if (!preferredVoice) {
                     preferredVoice = voices.find(v => targetLangs.some(lang => v.lang.startsWith(lang)));
                 }
-
-                // 3. Fallback to default
-                if (preferredVoice) {
-                    utterance.voice = preferredVoice;
-                } else {
-                    utterance.voice = voices[0];
-                }
+                if (preferredVoice) utterance.voice = preferredVoice;
             }
 
             utterance.onstart = () => setIsSpeaking(true);
@@ -123,15 +113,20 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                 setIsSpeaking(false);
             };
 
-            // Always speak even if voices aren't perfectly matched
             window.speechSynthesis.speak(utterance);
         };
 
-        // Handle mobile browser delay in gathering voices
-        if (window.speechSynthesis.getVoices().length === 0) {
-            window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
-        } else {
+        // 🚀 Browser Fix: Immediate call is better for mobile security contexts
+        if (window.speechSynthesis.getVoices().length > 0) {
             setVoiceAndSpeak();
+        } else {
+            // Fallback for async voices loading
+            window.speechSynthesis.onvoiceschanged = () => {
+                setVoiceAndSpeak();
+                window.speechSynthesis.onvoiceschanged = null; // Prevent multiple triggers
+            };
+            // Second fallback: just speak with default if voices take too long
+            setTimeout(setVoiceAndSpeak, 100);
         }
     };
 
@@ -195,6 +190,15 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
     const handleSend = async () => {
         if (!input.trim()) return;
+
+        // 🎙️ Voice Priming: Unlock speech synthesis on user interaction (Crucial for Safari/Mobile)
+        if (voiceEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
+            try {
+                const prime = new SpeechSynthesisUtterance("");
+                prime.volume = 0;
+                window.speechSynthesis.speak(prime);
+            } catch (e) { }
+        }
 
         const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() };
         setMessages(prev => [...prev, userMsg]);
