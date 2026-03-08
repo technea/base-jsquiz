@@ -75,7 +75,6 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         stopSpeaking();
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Detect Roman Urdu/Hindi or Proper Script
         const commonRoman = ['hai', 'kar', 'karo', 'shabash', 'theek', 'kya', 'kaise', 'bilkul', 'mera', 'hum', 'mein', 'tu', 'si', 'ho', 'well done'];
         const isUrduHindi = /[\u0600-\u06FF\u0900-\u097F]/.test(text) ||
             commonRoman.some(word => text.toLowerCase().includes(' ' + word + ' ') || text.toLowerCase().startsWith(word + ' '));
@@ -86,34 +85,35 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
         const setVoiceAndSpeak = () => {
             const voices = window.speechSynthesis.getVoices();
-            if (voices.length === 0) return;
 
-            // Mobile specific priority: look for Google or Premium/Enhanced voices which are high quality
-            const preferredVoice = voices.find(v =>
-                v.lang.startsWith(isUrduHindi ? 'hi' : 'en') && (
-                    v.name.includes('Google') ||
-                    v.name.includes('Neural') ||
-                    v.name.includes('Natural') ||
-                    v.name.includes('Premium') ||
-                    v.name.includes('Enhanced')
-                )
-            ) || voices.find(v => v.lang.startsWith(isUrduHindi ? 'hi' : 'en')) || voices[0];
+            // Priority selection if voices are available
+            if (voices.length > 0) {
+                const preferredVoice = voices.find(v =>
+                    v.lang.startsWith(isUrduHindi ? 'hi' : 'en') && (
+                        v.name.includes('Google') ||
+                        v.name.includes('Neural') ||
+                        v.name.includes('Natural') ||
+                        v.name.includes('Premium') ||
+                        v.name.includes('Enhanced')
+                    )
+                ) || voices.find(v => v.lang.startsWith(isUrduHindi ? 'hi' : 'en'));
 
-            if (preferredVoice) utterance.voice = preferredVoice;
+                if (preferredVoice) utterance.voice = preferredVoice;
+            }
 
             utterance.onstart = () => setIsSpeaking(true);
             utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = (e) => {
+                console.error("Utterance error:", e);
+                setIsSpeaking(false);
+            };
+
+            // Always speak even if voices aren't perfectly matched
             window.speechSynthesis.speak(utterance);
         };
 
-        // Mobile browsers often load voices asynchronously or require a small delay
-        if (window.speechSynthesis.getVoices().length > 0) {
-            setVoiceAndSpeak();
-        } else {
-            window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
-            // Safari/Some mobile browsers fallback
-            setTimeout(setVoiceAndSpeak, 200);
-        }
+        // Try speaking immediately
+        setVoiceAndSpeak();
     };
 
     const toggleListening = () => {
