@@ -140,7 +140,7 @@ export const Dashboard = ({
 
                     <button
                         onClick={onOpenAiChat}
-                        className="mt-2 w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:shadow-xl hover:shadow-indigo-500/25 rounded-xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all group/btn"
+                        className="mt-2 w-full py-4 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 hover:shadow-xl hover:shadow-blue-500/25 rounded-xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all group/btn"
                     >
                         Ask AI Assistant
                         <Sparkles className="w-4 h-4 group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform" />

@@ -59,6 +59,12 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                 console.error('Speech recognition error:', event.error);
                 if (event.error === 'not-allowed') {
                     alert("Microphone access is blocked. Please click the icon in your address bar and ALLOW the microphone to talk to the AI!");
+                } else if (event.error === 'network') {
+                    alert("Speech Network Error. Please check your internet connection.");
+                } else if (event.error === 'no-speech') {
+                    // Just reset quietly for no speech
+                } else {
+                    alert(`Microphone Error: ${event.error}. Please refresh or check your mic settings.`);
                 }
                 setIsListening(false);
             };
@@ -123,8 +129,9 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         }
 
         // 🚨 SECURITY CHECK: Browsers block Mic on IP addresses. Only 'localhost' or 'https' works.
-        if (window.location.hostname !== 'localhost' && window.location.protocol !== 'https:') {
-            alert("SECURITY BLOCK: Voice features only work on 'http://localhost:3000' or 'https'. Browsers block microphone on IP addresses for security. Please use 'localhost' in your URL bar.");
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocal && window.location.protocol !== 'https:') {
+            alert("SECURITY BLOCK: Voice features only work on 'localhost' or 'https'. Browsers block microphone on unsafe connections for security.");
             return;
         }
 
