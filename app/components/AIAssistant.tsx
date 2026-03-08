@@ -26,6 +26,8 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const micStreamRef = useRef<MediaStream | null>(null);
+    const localAudioRef = useRef<HTMLAudioElement | null>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -140,19 +142,33 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
             if (recognition) {
                 try { recognition.stop(); } catch (e) { console.error(e); }
             }
+            // 🛑 Stop mic stream tracks to turn off the hardware light
+            if (micStreamRef.current) {
+                micStreamRef.current.getTracks().forEach(track => track.stop());
+                micStreamRef.current = null;
+            }
             setIsListening(false);
         } else {
             stopSpeaking();
 
             try {
-                // 🎙️ Request mic with noise/echo suppression constraints to "prime" the browser's audio engine
-                await navigator.mediaDevices.getUserMedia({
+                // 🎙️ STEP 1: Priming the mic stream (User's suggested pattern)
+                const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
                         autoGainControl: true
                     }
                 });
+
+                micStreamRef.current = stream;
+
+                // Attach to local audio ref to keep hardware active (muted to avoid feedback)
+                if (localAudioRef.current) {
+                    localAudioRef.current.srcObject = stream;
+                    localAudioRef.current.muted = true;
+                    localAudioRef.current.play().catch(e => console.error("Audio play error:", e));
+                }
 
                 // Safety: abort any previous recognition session to prevent hang-ups
                 if (recognition && typeof recognition.abort === 'function') {
@@ -171,21 +187,37 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     const transcript = event.results[0][0].transcript;
                     if (transcript) setInput(transcript);
                     setIsListening(false);
+                    // Automatic track cleanup on result
+                    if (micStreamRef.current) {
+                        micStreamRef.current.getTracks().forEach(track => track.stop());
+                        micStreamRef.current = null;
+                    }
                 };
 
                 rec.onerror = (event: any) => {
                     console.error('Speech recognition error:', event.error);
                     if (event.error === 'not-allowed') {
-                        alert("⚠️ MIC BLOCKED BY BROWSER: Please click the 'Lock' 🔒 icon next to your URL bar and change Microphone to 'ALLOW'. If you already did, restart your browser.");
+                        alert("⚠️ MIC BLOCKED: Please click the 'Lock' 🔒 icon and change Microphone to 'ALLOW'.");
                     } else if (event.error === 'network') {
                         alert("Network Error: Please check your internet connection.");
                     } else {
                         alert(`Mic Error: ${event.error}. Please try again.`);
                     }
                     setIsListening(false);
+                    // Cleanup tracks on error
+                    if (micStreamRef.current) {
+                        micStreamRef.current.getTracks().forEach(track => track.stop());
+                        micStreamRef.current = null;
+                    }
                 };
 
-                rec.onend = () => setIsListening(false);
+                rec.onend = () => {
+                    setIsListening(false);
+                    if (micStreamRef.current) {
+                        micStreamRef.current.getTracks().forEach(track => track.stop());
+                        micStreamRef.current = null;
+                    }
+                };
 
                 try {
                     rec.start();
@@ -196,11 +228,10 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                 }
             } catch (e: any) {
                 console.error("Critical Mic Access Error:", e);
-                if (e.name === 'NotAllowedError') {
-                    alert("Microphone permission denied. Please allow it in the browser bar.");
-                } else {
-                    alert("Could not start microphone. Please ensure no other app is using it.");
-                }
+                const errorMsg = e.name === 'NotAllowedError'
+                    ? "Microphone permission denied. Please allow it in the browser bar."
+                    : `Could not access microphone: ${e.message}`;
+                alert(errorMsg);
                 setIsListening(false);
             }
         }
@@ -382,6 +413,8 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     </p>
                 </div>
             </div>
+            {/* 🎙️ Hidden Local Audio Stream (Priming) */}
+            <audio ref={localAudioRef} className="hidden" />
         </motion.div>
     );
 };
