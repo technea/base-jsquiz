@@ -43,6 +43,7 @@ import { LearningHub } from './components/LearningHub';
 import { LeaderboardTable } from './components/LeaderboardTable';
 import { PaymentModal } from './components/PaymentModal';
 import { Footer } from './components/Footer';
+import { DailyGMIntro } from './components/DailyGMIntro';
 import { AIAssistant } from './components/AIAssistant';
 
 // --- Farcaster SDK ---
@@ -146,6 +147,7 @@ export default function JSQuizApp() {
   const [lastGmDate, setLastGmDate] = useState<string | null>(null);
   const [gmDoneToday, setGmDoneToday] = useState(false);
   const [showDailyQuiz, setShowDailyQuiz] = useState(false);
+  const [showGmIntro, setShowGmIntro] = useState(false);
   const [dailyQuizAnswer, setDailyQuizAnswer] = useState<string | null>(null);
   const [dailyQuizResult, setDailyQuizResult] = useState<'correct' | 'wrong' | null>(null);
   const [streakMissed, setStreakMissed] = useState(false);
@@ -566,7 +568,7 @@ export default function JSQuizApp() {
     setGmDoneToday(true);
     setLastGmDate(today);
     localStorage.setItem('lastGmDate', today);
-    setShowDailyQuiz(true);
+    setShowGmIntro(true); // Show intro instead of immediate quiz
     // Notify leaderboard of activity
     updateLeaderboard(paidLevels[1] || false);
   }, [updateLeaderboard, paidLevels]);
@@ -786,6 +788,16 @@ export default function JSQuizApp() {
         />
 
         <main className="min-h-[60vh]">
+          {showGmIntro && (
+            <DailyGMIntro
+              isDarkMode={isDarkMode}
+              onComplete={() => {
+                setShowGmIntro(false);
+                setShowDailyQuiz(true);
+              }}
+            />
+          )}
+
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab + quizState}

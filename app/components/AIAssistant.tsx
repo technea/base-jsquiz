@@ -136,16 +136,15 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     };
 
     const toggleListening = async () => {
-        // 🚨 SECURITY CHECK: Browsers block Mic on IP addresses or non-localhost HTTP.
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         if (!isLocal && window.location.protocol !== 'https:') {
-            alert("⚠️ BROWSER SECURITY BLOCK: Microphone features only work on 'https' or 'localhost'. Browsers block microphone on unsafe connections (like your current IP or HTTP) for security.");
+            alert("⚠️ Microphone only works on HTTPS or localhost.");
             return;
         }
 
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert("Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.");
+            alert("Speech recognition not supported. Use Chrome, Edge, or Safari.");
             return;
         }
 
@@ -153,97 +152,42 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
             if (recognition) {
                 try { recognition.stop(); } catch (e) { console.error(e); }
             }
-            // 🛑 Stop mic stream tracks to turn off the hardware light
-            if (micStreamRef.current) {
-                micStreamRef.current.getTracks().forEach(track => track.stop());
-                micStreamRef.current = null;
+            setIsListening(false);
+            return;
+        }
+
+        stopSpeaking();
+
+        const rec = new SpeechRecognition();
+        rec.continuous = false;
+        rec.interimResults = false;
+        rec.lang = 'en-US';
+
+        rec.onstart = () => setIsListening(true);
+
+        rec.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            if (transcript) setInput(transcript);
+            setIsListening(false);
+        };
+
+        rec.onerror = (event: any) => {
+            if (event.error === 'not-allowed') {
+                alert("⚠️ Mic blocked. Allow it in the address bar 🔒 and refresh.");
+            } else if (event.error !== 'no-speech') {
+                alert(`Mic Error: ${event.error}`);
             }
             setIsListening(false);
-        } else {
-            stopSpeaking();
+        };
 
-            try {
-                // 🎙️ STEP 1: Priming the mic stream (User's suggested pattern)
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
-                });
+        rec.onend = () => setIsListening(false);
 
-                micStreamRef.current = stream;
-
-                // Attach to local audio ref to keep hardware active (muted to avoid feedback)
-                if (localAudioRef.current) {
-                    localAudioRef.current.srcObject = stream;
-                    localAudioRef.current.muted = true;
-                    localAudioRef.current.play().catch(e => console.error("Audio play error:", e));
-                }
-
-                // Safety: abort any previous recognition session to prevent hang-ups
-                if (recognition && typeof recognition.abort === 'function') {
-                    recognition.abort();
-                }
-
-                const rec = new SpeechRecognition();
-                rec.continuous = false;
-                rec.interimResults = false;
-                rec.lang = 'en-US'; // Use English default as requested
-
-                rec.onstart = () => setIsListening(true);
-
-                rec.onresult = (event: any) => {
-                    const transcript = event.results[0][0].transcript;
-                    if (transcript) setInput(transcript);
-                    setIsListening(false);
-                    // Automatic track cleanup on result
-                    if (micStreamRef.current) {
-                        micStreamRef.current.getTracks().forEach(track => track.stop());
-                        micStreamRef.current = null;
-                    }
-                };
-
-                rec.onerror = (event: any) => {
-                    console.error('Speech recognition error:', event.error);
-                    if (event.error === 'not-allowed') {
-                        alert("⚠️ MIC BLOCKED: Please click the 'Lock' 🔒 icon and change Microphone to 'ALLOW'.");
-                    } else if (event.error === 'network') {
-                        alert("Network Error: Please check your internet connection.");
-                    } else {
-                        alert(`Mic Error: ${event.error}. Please try again.`);
-                    }
-                    setIsListening(false);
-                    // Cleanup tracks on error
-                    if (micStreamRef.current) {
-                        micStreamRef.current.getTracks().forEach(track => track.stop());
-                        micStreamRef.current = null;
-                    }
-                };
-
-                rec.onend = () => {
-                    setIsListening(false);
-                    if (micStreamRef.current) {
-                        micStreamRef.current.getTracks().forEach(track => track.stop());
-                        micStreamRef.current = null;
-                    }
-                };
-
-                try {
-                    rec.start();
-                    setRecognition(rec);
-                } catch (e) {
-                    console.error("Critical Start Error:", e);
-                    setIsListening(false);
-                }
-            } catch (e: any) {
-                console.error("Critical Mic Access Error:", e);
-                const errorMsg = e.name === 'NotAllowedError'
-                    ? "Microphone permission denied. Please allow it in the browser bar."
-                    : `Could not access microphone: ${e.message}`;
-                alert(errorMsg);
-                setIsListening(false);
-            }
+        try {
+            rec.start();
+            setRecognition(rec);
+        } catch (e) {
+            console.error("Start error:", e);
+            setIsListening(false);
         }
     };
 
