@@ -22,6 +22,34 @@ export const DailyQuiz = ({
     onAnswer,
     onClose
 }: DailyQuizProps) => {
+    // 🎙️ Voice Greeting on Mount
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.speechSynthesis && !dailyQuizAnswer) {
+            const speak = () => {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance("Good Morning! Time for Quiz!");
+                utterance.lang = 'en-US';
+                utterance.rate = 1.0;
+
+                const voices = window.speechSynthesis.getVoices();
+                const preferredVoice = voices.find(v =>
+                    v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Neural'))
+                ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+
+                if (preferredVoice) utterance.voice = preferredVoice;
+                window.speechSynthesis.speak(utterance);
+            };
+
+            // Small delay to ensure browser speech engine is ready
+            if (window.speechSynthesis.getVoices().length > 0) {
+                speak();
+            } else {
+                window.speechSynthesis.onvoiceschanged = speak;
+                setTimeout(speak, 500);
+            }
+        }
+    }, [dailyQuizAnswer]); // Only speak if not answered yet
+
     useEffect(() => {
         if (dailyQuizAnswer && onClose) {
             const timer = setTimeout(() => {
@@ -35,8 +63,8 @@ export const DailyQuiz = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-2xl mx-auto space-y-6 sm:space-y-8 pb-8 px-4 sm:px-6 relative"
         >
             {/* ✨ Premium Background Animations */}
@@ -78,56 +106,65 @@ export const DailyQuiz = ({
             </AnimatePresence>
 
             <div className="text-center space-y-2 sm:space-y-3 pt-8 sm:pt-4">
-                {/* 🤖 Animated AI Mentor Avatar with Speech Bubble */}
+                {/* 🤖 ULTRA PREMIUM AI Mentor Avatar with Speech Bubble */}
                 <motion.div
-                    initial={{ scale: 0, y: 20 }}
+                    initial={{ scale: 0, y: 50 }}
                     animate={{ scale: 1, y: 0 }}
-                    transition={{ type: "spring", delay: 0.2 }}
-                    className="relative w-28 h-28 mx-auto mb-6"
+                    transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
+                    className="relative w-32 h-32 mx-auto mb-10"
                 >
-                    {/* Pulsing Aura */}
+                    {/* Pulsing Outer Ring */}
                     <motion.div
-                        animate={{
-                            scale: [1, 1.2, 1],
-                            opacity: [0.2, 0.5, 0.2]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="absolute inset-0 bg-primary/30 rounded-full blur-2xl"
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        className="absolute inset-0 bg-primary rounded-full blur-3xl"
                     />
 
-                    {/* Speech Bubble */}
+                    {/* Speech Bubble Refined */}
                     <motion.div
-                        initial={{ opacity: 0, x: 20, scale: 0.5 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                        transition={{ delay: 1, type: "spring" }}
-                        className="absolute -top-12 -right-16 sm:-right-24 z-20 bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl rounded-bl-none shadow-xl border border-primary/20 whitespace-nowrap"
+                        initial={{ opacity: 0, x: 30, y: 20, scale: 0.5 }}
+                        animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+                        transition={{ delay: 1, type: "spring", stiffness: 200 }}
+                        className="absolute -top-16 -right-24 sm:-right-32 z-30 bg-white dark:bg-slate-800 px-5 py-3 rounded-[2rem] rounded-bl-none shadow-[0_10px_40px_rgba(0,0,0,0.2)] border-2 border-primary/20"
                     >
-                        <p className="text-[10px] sm:text-xs font-black text-primary uppercase tracking-wider">
+                        <p className="text-xs sm:text-sm font-black text-primary uppercase tracking-tight leading-tight">
                             Good Morning! ☕<br />
-                            Time for Quiz!
+                            <span className="text-[10px] opacity-70">Time for Quiz!</span>
                         </p>
-                        {/* Bubble tail */}
-                        <div className="absolute -bottom-2 left-0 w-3 h-3 bg-inherit border-l border-b border-primary/10 rotate-45" />
+                        <div className="absolute -bottom-3 left-0 w-4 h-4 bg-inherit border-l-2 border-b-2 border-primary/10 rotate-45" />
                     </motion.div>
 
+                    {/* The Robot Itself */}
                     <motion.div
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                        className="relative w-full h-full bg-gradient-to-br from-primary via-indigo-500 to-purple-600 rounded-3xl p-6 flex items-center justify-center shadow-2xl border border-white/20 overflow-hidden"
+                        animate={{ y: [0, -12, 0] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="relative w-full h-full"
                     >
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent)]" />
-                        <Bot className="w-full h-full text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+                        {/* Robot Head */}
+                        <div className="w-full h-full bg-gradient-to-br from-primary via-blue-600 to-indigo-700 rounded-[2.5rem] p-6 shadow-2xl border-4 border-white/20 relative z-10 overflow-hidden">
+                            <Bot className="w-full h-full text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
 
-                        {/* Floaties */}
+                            {/* Animated Eyes */}
+                            <div className="absolute top-[40%] left-0 w-full flex justify-center gap-4">
+                                <motion.div animate={{ scaleY: [1, 0.1, 1] }} transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }} className="w-2 h-2 bg-cyan-300 rounded-full shadow-[0_0_8px_#67e8f9]" />
+                                <motion.div animate={{ scaleY: [1, 0.1, 1] }} transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }} className="w-2 h-2 bg-cyan-300 rounded-full shadow-[0_0_8px_#67e8f9]" />
+                            </div>
+
+                            {/* Internal Glow */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none" />
+                        </div>
+
+                        {/* Floating Limb/Antenna */}
                         <motion.div
-                            animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5], rotate: 45 }}
-                            transition={{ duration: 2.5, repeat: Infinity }}
-                            className="absolute top-2 right-2"
+                            animate={{ rotate: [0, 15, 0], scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="absolute -top-4 -right-2 z-20"
                         >
-                            <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
+                            <Sparkles className="w-8 h-8 text-amber-400 fill-amber-300 drop-shadow-lg" />
                         </motion.div>
                     </motion.div>
                 </motion.div>
+
                 <motion.div
                     animate={{ scale: [1, 1.05, 1] }}
                     transition={{ duration: 2, repeat: Infinity }}
