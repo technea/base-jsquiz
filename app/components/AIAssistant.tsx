@@ -94,19 +94,26 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         const setVoiceAndSpeak = () => {
             const voices = window.speechSynthesis.getVoices();
 
-            // Priority selection: Prioritize Google/Premium/Neural voices for best clarity
             if (voices.length > 0) {
-                const preferredVoice = voices.find(v =>
-                    v.lang.startsWith(isUrduHindi ? 'hi' : 'en') && (
-                        v.name.includes('Google') ||
-                        v.name.includes('Neural') ||
-                        v.name.includes('Natural') ||
-                        v.name.includes('Premium') ||
-                        v.name.includes('Enhanced')
-                    )
-                ) || voices.find(v => v.lang.startsWith(isUrduHindi ? 'hi' : 'en')) || voices[0];
+                const targetLangs = isUrduHindi ? ['hi', 'ur'] : ['en'];
 
-                if (preferredVoice) utterance.voice = preferredVoice;
+                // 1. First try to find a Premium/Google voice
+                let preferredVoice = voices.find(v =>
+                    targetLangs.some(lang => v.lang.startsWith(lang)) &&
+                    /Google|Neural|Natural|Premium|Enhanced|Online/.test(v.name)
+                );
+
+                // 2. If no premium voice, fallback to any available voice in those languages (Crucial for mobile phones without premium voices)
+                if (!preferredVoice) {
+                    preferredVoice = voices.find(v => targetLangs.some(lang => v.lang.startsWith(lang)));
+                }
+
+                // 3. Fallback to default
+                if (preferredVoice) {
+                    utterance.voice = preferredVoice;
+                } else {
+                    utterance.voice = voices[0];
+                }
             }
 
             utterance.onstart = () => setIsSpeaking(true);
@@ -120,8 +127,12 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
             window.speechSynthesis.speak(utterance);
         };
 
-        // Try speaking immediately
-        setVoiceAndSpeak();
+        // Handle mobile browser delay in gathering voices
+        if (window.speechSynthesis.getVoices().length === 0) {
+            window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
+        } else {
+            setVoiceAndSpeak();
+        }
     };
 
     const toggleListening = async () => {
@@ -179,7 +190,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                 const rec = new SpeechRecognition();
                 rec.continuous = false;
                 rec.interimResults = false;
-                rec.lang = 'en-US';
+                rec.lang = 'en-IN'; // en-IN acts as a bridge and understands English/Roman Urdu/Hindi mix best on mobile
 
                 rec.onstart = () => setIsListening(true);
 
