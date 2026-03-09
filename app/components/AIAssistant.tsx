@@ -216,6 +216,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const [micAvailable, setMicAvailable] = useState(false);
     const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
+    const [preferredLang, setPreferredLang] = useState<'ur-PK' | 'en-US'>('ur-PK');
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatAreaRef = useRef<HTMLDivElement>(null);
@@ -240,42 +241,90 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     // ── Speech Synthesis ──────────────────────────────────────
     const stopSpeaking = useCallback(() => {
         if (typeof window === 'undefined' || !window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
+        try {
+            window.speechSynthesis.cancel();
+            // Optional: reset the queue on some browsers
+            if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        } catch (e) { console.error('Speech stop error:', e); }
         setIsSpeaking(false);
     }, []);
 
     const speak = useCallback((text: string) => {
         if (!voiceEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+
+        // Clean text for speech
         const clean = text
-            .replace(/```[\s\S]*?```/g, ' Code example. ')
+            .replace(/```[\s\S]*?```/g, ' Code block. ')
             .replace(/[*_`#]/g, '')
             .replace(/\n+/g, ' ')
             .trim()
             .slice(0, 500);
+
         stopSpeaking();
-        const utt = new SpeechSynthesisUtterance(clean);
-        const urduTokens = ['salam', 'kar', 'karo', 'theek', 'kya', 'kaise', 'bilkul', 'mein', 'hoon', 'aap', 'bhi', 'hai', 'nahi', 'shuru'];
-        const isUrdu = /[\u0600-\u06FF]/.test(clean) ||
-            urduTokens.filter(w => clean.toLowerCase().split(/\W+/).includes(w)).length >= 2;
-        utt.lang = 'en-US'; utt.rate = 0.95; utt.pitch = 1.05;
-        if (isUrdu) utt.lang = 'hi-IN';
-        const doSpeak = () => {
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length) {
-                const langs = isUrdu ? ['hi', 'ur'] : ['en'];
-                const best = voices.find(v => langs.some(l => v.lang.startsWith(l)) && /Google|Natural|Premium|Enhanced/.test(v.name))
-                    || voices.find(v => langs.some(l => v.lang.startsWith(l)));
-                if (best) utt.voice = best;
+
+        // 1s delay to ensure previous utterance is fully cleared
+        setTimeout(() => {
+            const utt = new SpeechSynthesisUtterance(clean);
+
+            // Detection: check Arabic script or common Roman Urdu markers
+            const urduTokens = ['salam', 'kar', 'karo', 'theek', 'kya', 'kaise', 'bilkul', 'mein', 'hoon', 'aap', 'bhi', 'hai', 'nahi', 'shuru', 'hain', 'ji', 'shabash'];
+            const isUrdu = /[\u0600-\u06FF]/.test(clean) ||
+                preferredLang === 'ur-PK' ||
+                urduTokens.filter(w => clean.toLowerCase().split(/\W+/).includes(w)).length >= 1;
+
+            // Voice Priority: Urdu > Hindi (closest phonetic) > English
+            const doSpeak = () => {
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    let bestVoice = null;
+                    if (isUrdu) {
+                        // Priority 1: Urdu (ur-PK, ur-IN)
+                        bestVoice = voices.find(v => v.lang.startsWith('ur') && /Google|Natural|Premium|Enhanced/.test(v.name))
+                            || voices.find(v => v.lang.startsWith('ur'));
+
+                        // Priority 2: Hindi (hi-IN) - very similar phonetics for Roman Urdu
+                        if (!bestVoice) {
+                            bestVoice = voices.find(v => v.lang.startsWith('hi') && /Google|Natural|Premium|Enhanced/.test(v.name))
+                                || voices.find(v => v.lang.startsWith('hi'));
+                        }
+
+                        utt.lang = bestVoice ? bestVoice.lang : 'hi-IN';
+                        utt.rate = 0.92; // Slightly slower for better clarity in Urdu/Hindi
+                        utt.pitch = 1.0;
+                    } else {
+                        bestVoice = voices.find(v => v.lang.startsWith('en') && /Google|Natural|Premium|Enhanced/.test(v.name))
+                            || voices.find(v => v.lang.startsWith('en'));
+                        utt.lang = 'en-US';
+                        utt.rate = 1.0;
+                        utt.pitch = 1.0;
+                    }
+
+                    if (bestVoice) utt.voice = bestVoice;
+                }
+
+                utt.onstart = () => setIsSpeaking(true);
+                utt.onend = () => setIsSpeaking(false);
+                utt.onerror = (e) => {
+                    console.error('Speech synthesis internal error:', e);
+                    setIsSpeaking(false);
+                };
+
+                window.speechSynthesis.speak(utt);
+            };
+
+            if (window.speechSynthesis.getVoices().length > 0) {
+                doSpeak();
+            } else {
+                // Handle async voice loading on some mobile browsers
+                window.speechSynthesis.onvoiceschanged = () => {
+                    doSpeak();
+                    window.speechSynthesis.onvoiceschanged = null;
+                };
+                // Fallback timeout
+                setTimeout(doSpeak, 250);
             }
-            utt.onstart = () => setIsSpeaking(true);
-            utt.onend = () => setIsSpeaking(false);
-            utt.onerror = () => setIsSpeaking(false);
-            window.speechSynthesis.speak(utt);
-        };
-        if (window.speechSynthesis.getVoices().length > 0) doSpeak();
-        else { window.speechSynthesis.onvoiceschanged = () => { doSpeak(); window.speechSynthesis.onvoiceschanged = null; }; setTimeout(doSpeak, 120); }
-    }, [voiceEnabled, stopSpeaking]);
+        }, 50);
+    }, [voiceEnabled, stopSpeaking, preferredLang]);
 
     // ── Mic setup ────────────────────────────────────────────
     useEffect(() => {
@@ -286,18 +335,78 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
     const toggleListening = () => {
         const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SR) { alert('Chrome ya Edge use karein mic ke liye.'); return; }
+        if (!SR) { alert('Aapka browser mic support nahi karta. Chrome ya Edge use karein.'); return; }
+
         const safe = ['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'https:';
-        if (!safe) { alert('⚠️ Mic sirf HTTPS ya localhost pe kaam karta hai.'); return; }
-        if (isListening) { try { recognition?.stop(); } catch { } setIsListening(false); return; }
+        if (!safe) { alert('⚠️ Mic sirf HTTPS ya Localhost pe kaam karta hai.'); return; }
+
+        if (isListening) {
+            try { recognition?.stop(); } catch { }
+            setIsListening(false);
+            return;
+        }
+
         stopSpeaking();
         const rec = new SR();
-        rec.continuous = false; rec.interimResults = false; rec.lang = 'en-US';
-        rec.onstart = () => setIsListening(true);
-        rec.onresult = (e: any) => { const t = e.results[0][0].transcript; if (t) { setInput(t); inputRef.current?.focus(); } setIsListening(false); };
-        rec.onerror = (e: any) => { if (e.error === 'not-allowed') alert('⚠️ Mic blocked. Address bar mein 🔒 allow karein.'); else if (e.error !== 'no-speech') alert(`Mic error: ${e.error}`); setIsListening(false); };
-        rec.onend = () => setIsListening(false);
-        try { rec.start(); setRecognition(rec); } catch { setIsListening(false); }
+        rec.continuous = false;
+        rec.interimResults = true;
+
+        // Language setup with fallback
+        const primaryLang = preferredLang === 'ur-PK' ? 'ur-PK' : 'en-US';
+        const fallbackLang = preferredLang === 'ur-PK' ? 'hi-IN' : 'en-GB';
+
+        rec.lang = primaryLang;
+
+        rec.onstart = () => {
+            setIsListening(true);
+            console.log('Mic started with lang:', rec.lang);
+        };
+
+        rec.onresult = (e: any) => {
+            let finalTranscript = '';
+            for (let i = e.resultIndex; i < e.results.length; ++i) {
+                if (e.results[i].isFinal) {
+                    finalTranscript += e.results[i][0].transcript;
+                }
+            }
+            if (finalTranscript) {
+                setInput(prev => prev + (prev ? ' ' : '') + finalTranscript);
+                if (inputRef.current) inputRef.current.focus();
+            }
+        };
+
+        rec.onerror = (e: any) => {
+            console.error('Mic Error:', e.error);
+            if (e.error === 'language-not-supported' && rec.lang !== fallbackLang) {
+                console.warn('Primary lang not supported, trying fallback:', fallbackLang);
+                rec.lang = fallbackLang;
+                try { rec.start(); return; } catch (err) { }
+            }
+
+            if (e.error === 'not-allowed') {
+                alert('⚠️ Mic blocked. Browser settings (lock icon) mein Mic allow karein.');
+            } else if (e.error === 'network') {
+                alert('⚠️ Internet connection ya API key issue.');
+            } else if (e.error === 'no-speech') {
+                // Ignore silent errors
+            } else {
+                alert(`Mic Error: ${e.error}. Try switching language (URDU/ENG).`);
+            }
+            setIsListening(false);
+        };
+
+        rec.onend = () => {
+            setIsListening(false);
+            console.log('Mic session ended');
+        };
+
+        try {
+            rec.start();
+            setRecognition(rec);
+        } catch (err) {
+            console.error('Rec Start Error:', err);
+            setIsListening(false);
+        }
     };
 
     // ── File ─────────────────────────────────────────────────
@@ -354,9 +463,9 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     };
 
     const statusText = isSpeaking ? '🔊 Bol raha hoon…'
-        : isListening ? '🎙️ Sun raha hoon…'
+        : isListening ? (preferredLang === 'ur-PK' ? '🎙️ Urdu sun raha hoon…' : '🎙️ Listening English…')
             : isLoading ? '⏳ Soch raha hoon…'
-                : '✅ Online • Urdu + English';
+                : `✅ Online • ${preferredLang === 'ur-PK' ? 'Urdu Mode' : 'English Mode'}`;
 
     // ════════════════════════════════════════════════════════
     //  RENDER
@@ -400,7 +509,18 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                        {/* Language Toggle */}
+                        <button onClick={() => setPreferredLang(l => l === 'ur-PK' ? 'en-US' : 'ur-PK')}
+                            title={preferredLang === 'ur-PK' ? 'Urdu (Listen/Speak)' : 'English (Listen/Speak)'}
+                            className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-1
+                                ${preferredLang === 'ur-PK'
+                                    ? 'bg-violet-500/15 border-violet-500/30 text-violet-400'
+                                    : isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${preferredLang === 'ur-PK' ? 'bg-violet-400' : 'bg-slate-400'}`} />
+                            {preferredLang === 'ur-PK' ? 'URDU' : 'ENG'}
+                        </button>
+
                         <button onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
                             title={voiceEnabled ? 'Awaaz band' : 'Awaaz on'}
                             className={`p-2.5 rounded-xl transition-all ${voiceEnabled ? 'bg-violet-500/15 text-violet-400 hover:bg-violet-500/25' : isDarkMode ? 'bg-slate-700 text-slate-500 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
@@ -520,7 +640,11 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                             {/* text */}
                             <input ref={inputRef} type="text" value={input}
                                 onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-                                placeholder={isListening ? '🎙️ Bol rahe hain…' : !micAvailable ? 'JS sawal poochein… (Chrome mein mic milega)' : 'JS sawal poochein ya file attach karein…'}
+                                placeholder={
+                                    isListening
+                                        ? (preferredLang === 'ur-PK' ? '🎙️ Urdu mein bolein…' : '🎙️ Speaking English…')
+                                        : (preferredLang === 'ur-PK' ? 'Urdu/English mein sawal poochein…' : 'Ask JS question in English…')
+                                }
                                 disabled={isLoading}
                                 className={`flex-1 py-3.5 bg-transparent outline-none text-sm font-medium placeholder:font-normal min-w-0
                                     ${isDarkMode ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-400'}`} />
@@ -549,7 +673,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     <p className={`text-center text-[10px] font-semibold uppercase tracking-widest mt-2.5 select-none
                         ${isDarkMode ? 'text-slate-700' : 'text-slate-400'}`}>
                         {voiceEnabled ? '🔊 Awaaz on' : '🔇 Awaaz off'}
-                        {' • '}Enter se bhejo{' • '}📎 File attach{micAvailable ? ' • 🎙️ Mic se bolo' : ''}
+                        {' • '}Enter se bhejo{' • '}📎 File attach{micAvailable ? ` • 🎙️ Mic (${preferredLang === 'ur-PK' ? 'Urdu' : 'Eng'})` : ''}
                     </p>
                 </div>
 

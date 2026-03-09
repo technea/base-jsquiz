@@ -90,7 +90,7 @@ export const PaymentModal = ({
                                 ) : (
                                     <>
                                         <Wallet className="w-5 h-5" />
-                                        Unlock with $0.03 USDC
+                                        Unlock with $0.05 USDC
                                     </>
                                 )}
                             </button>

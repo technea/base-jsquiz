@@ -18,6 +18,7 @@ import {
 } from 'firebase/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { Bot } from 'lucide-react';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -155,7 +156,8 @@ export default function JSQuizApp() {
   const [claimStatus, setClaimStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [todayQuestion, setTodayQuestion] = useState<DailyQuestion | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'ai-chat'>('quiz');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard'>('quiz');
+  const [isAiOpen, setIsAiOpen] = useState(false);
   const [learningLevel, setLearningLevel] = useState(1);
   const quizStateRef = useRef(quizState);
 
@@ -711,7 +713,7 @@ export default function JSQuizApp() {
             onLevelSelect={startQuiz}
             MAX_FREE_ATTEMPTS={MAX_FREE_ATTEMPTS}
             farcasterUser={farcasterUser}
-            onOpenAiChat={() => setActiveTab('ai-chat')}
+            onOpenAiChat={() => setIsAiOpen(true)}
           />
         );
       case 'daily':
@@ -792,8 +794,6 @@ export default function JSQuizApp() {
             Stats Dashboard Coming Soon
           </div>
         );
-      case 'ai-chat':
-        return <AIAssistant isDarkMode={isDarkMode} onClose={() => setActiveTab('quiz')} />;
       default:
         return null;
     }
@@ -862,6 +862,42 @@ export default function JSQuizApp() {
         paymentError={paymentError}
         onUnlock={handleUnlockLevel}
       />
+
+      {/* ═══ GLOBAL AI FLOATING BUTTON ═══ */}
+      {!isAiOpen && (
+        <motion.button
+          initial={{ scale: 0, rotate: -20 }}
+          animate={{ scale: 1, rotate: 0 }}
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsAiOpen(true)}
+          className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-[2rem] bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-2xl shadow-violet-500/50 flex items-center justify-center border-4 border-white/20 backdrop-blur-md group"
+        >
+          <Bot className="w-8 h-8 group-hover:animate-pulse" />
+          <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+
+          {/* Tooltip on hover */}
+          <div className="absolute right-full mr-4 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
+            JS AI Mentor
+          </div>
+        </motion.button>
+      )}
+
+      {/* ═══ GLOBAL AI ASSISTANT OVERLAY ═══ */}
+      <AnimatePresence>
+        {isAiOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+          >
+            <div className="w-full max-w-4xl max-h-screen sm:max-h-[90vh]">
+              <AIAssistant isDarkMode={isDarkMode} onClose={() => setIsAiOpen(false)} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
