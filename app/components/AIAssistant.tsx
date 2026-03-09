@@ -1,13 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Volume2, VolumeX, Loader2, Sparkles, MessageSquare, X, Mic, MicOff } from 'lucide-react';
+import {
+    Send, Bot, User, Volume2, VolumeX, Loader2, Sparkles,
+    X, Mic, MicOff, Paperclip, FileText, Code2, Copy, Check, ChevronDown
+} from 'lucide-react';
+
+// ════════════════════════════════════════════════════════════════
+//  TYPES
+// ════════════════════════════════════════════════════════════════
 
 interface Message {
     id: string;
     role: 'user' | 'assistant';
     content: string;
+    file?: { name: string; type: string; preview?: string };
+}
+
+interface AttachedFile {
+    name: string;
+    type: string;
+    preview?: string;
+    base64?: string;
 }
 
 interface AIAssistantProps {
@@ -15,364 +30,535 @@ interface AIAssistantProps {
     onClose?: () => void;
 }
 
+// ════════════════════════════════════════════════════════════════
+//  SYNTAX HIGHLIGHTER  (zero deps)
+// ════════════════════════════════════════════════════════════════
+
+function escapeHtml(s: string) {
+    if (!s) return '';
+    return s
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function highlightCode(raw: string, lang: string): string {
+    let c = escapeHtml(raw);
+
+    if (['js', 'javascript', 'ts', 'typescript', 'jsx', 'tsx'].includes(lang)) {
+        c = c
+            .replace(/(\/\/[^\n]*)/g, '<s class="hc">$1</s>')
+            .replace(/(\/\*[\s\S]*?\*\/)/g, '<s class="hc">$1</s>')
+            .replace(/(&quot;.*?&quot;|&#x27;.*?&#x27;|`[^`]*`)/g, '<s class="hs">$1</s>')
+            .replace(/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|async|await|try|catch|finally|throw|import|export|default|from|of|in|extends|super|yield|delete|void|null|undefined|true|false|NaN|Infinity)\b/g,
+                '<s class="hk">$1</s>')
+            .replace(/\b(-?\d+\.?\d*)\b/g, '<s class="hn">$1</s>')
+            .replace(/\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g, '<s class="hf">$1</s>')
+            .replace(/([=!<>+\-*/%&|^~?:]+)/g, '<s class="ho">$1</s>');
+    } else if (['css', 'scss'].includes(lang)) {
+        c = c
+            .replace(/(\/\*[\s\S]*?\*\/)/g, '<s class="hc">$1</s>')
+            .replace(/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/g, '<s class="hn">$1</s>')
+            .replace(/(&quot;[^&]*&quot;|&#x27;[^&]*&#x27;)/g, '<s class="hs">$1</s>')
+            .replace(/([.#]?[a-zA-Z_-][a-zA-Z0-9_-]*)(?=\s*\{)/g, '<s class="hf">$1</s>')
+            .replace(/\b([a-zA-Z-]+)(?=\s*:)/g, '<s class="hk">$1</s>');
+    } else if (['html', 'xml'].includes(lang)) {
+        c = c
+            .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<s class="hc">$1</s>')
+            .replace(/(&lt;\/?)([\w-]+)/g, '$1<s class="hk">$2</s>')
+            .replace(/([\w-]+)(?=\s*=)/g, '<s class="hf">$1</s>')
+            .replace(/(&quot;[^&]*&quot;)/g, '<s class="hs">$1</s>');
+    } else if (lang === 'json') {
+        c = c
+            .replace(/(&quot;[^&]*&quot;)\s*:/g, '<s class="hk">$1</s>:')
+            .replace(/:\s*(&quot;[^&]*&quot;)/g, ': <s class="hs">$1</s>')
+            .replace(/\b(true|false|null)\b/g, '<s class="hn">$1</s>')
+            .replace(/\b(-?\d+\.?\d*)\b/g, '<s class="hn">$1</s>');
+    }
+    return c;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CODE BLOCK
+// ════════════════════════════════════════════════════════════════
+
+function CodeBlock({ code, lang }: { code: string; lang: string }) {
+    const [copied, setCopied] = useState(false);
+    const copy = () => {
+        navigator.clipboard.writeText(code).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+    return (
+        <div className="my-3 rounded-2xl overflow-hidden border border-slate-700 bg-[#0d1117] text-left">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-slate-700/80">
+                <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                    </div>
+                    <Code2 className="w-3.5 h-3.5 text-slate-500 ml-1" />
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{lang || 'code'}</span>
+                </div>
+                <button onClick={copy}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-white transition-colors px-2.5 py-1 rounded-lg hover:bg-slate-700/60 active:scale-95">
+                    {copied ? <><Check className="w-3.5 h-3.5 text-emerald-400" />Copied!</>
+                        : <><Copy className="w-3.5 h-3.5" />Copy</>}
+                </button>
+            </div>
+            <div className="overflow-x-auto p-4">
+                <pre className="text-[13px] leading-relaxed font-mono m-0">
+                    <code dangerouslySetInnerHTML={{ __html: highlightCode(code, lang) }} />
+                </pre>
+            </div>
+        </div>
+    );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MESSAGE PARSER  (text ↔ code blocks)
+// ════════════════════════════════════════════════════════════════
+
+type Part = { type: 'text'; content: string } | { type: 'code'; content: string; lang: string };
+
+function parseMessage(text: string): Part[] {
+    const parts: Part[] = [];
+    const re = /```(\w*)\n?([\s\S]*?)```/g;
+    let cursor = 0, m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+        if (m.index > cursor) parts.push({ type: 'text', content: text.slice(cursor, m.index) });
+        parts.push({ type: 'code', lang: m[1] || 'javascript', content: m[2].trim() });
+        cursor = m.index + m[0].length;
+    }
+    if (cursor < text.length) parts.push({ type: 'text', content: text.slice(cursor) });
+    return parts;
+}
+
+function renderInline(text: string) {
+    return text.split(/(\*\*[^*]+\*\*)/g).map((seg, i) =>
+        seg.startsWith('**') && seg.endsWith('**')
+            ? <strong key={i} className="font-bold">{seg.slice(2, -2)}</strong>
+            : <span key={i}>{seg}</span>
+    );
+}
+
+function MessageContent({ content, isDark }: { content: string; isDark: boolean }) {
+    const parts = parseMessage(content);
+    return (
+        <div>
+            {parts.map((p, i) =>
+                p.type === 'code'
+                    ? <CodeBlock key={i} code={p.content} lang={p.lang} />
+                    : <p key={i} className={`leading-relaxed whitespace-pre-wrap text-sm sm:text-[15px] ${i > 0 ? 'mt-2' : ''}`}>
+                        {renderInline(p.content)}
+                    </p>
+            )}
+        </div>
+    );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FILE BADGE
+// ════════════════════════════════════════════════════════════════
+
+function FileBadge({ file, onRemove }: { file: AttachedFile; onRemove: () => void }) {
+    const isImg = file.type.startsWith('image/');
+    return (
+        <motion.div initial={{ opacity: 0, y: 6, scale: .95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: .9 }}
+            className="flex items-center gap-2.5 bg-violet-500/10 border border-violet-400/25 rounded-xl px-3 py-2 mb-2.5 w-fit max-w-full">
+            {isImg && file.preview
+                ? <img src={file.preview} className="w-9 h-9 rounded-lg object-cover border border-violet-400/20" alt="" />
+                : <div className="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4 text-violet-400" />
+                </div>}
+            <div className="min-w-0">
+                <p className="text-xs font-bold text-violet-300 truncate max-w-[200px]">{file.name}</p>
+                <p className="text-[10px] text-violet-400/60 font-medium">{isImg ? 'Image' : 'File'} • Ready to send</p>
+            </div>
+            <button onClick={onRemove}
+                className="w-5 h-5 ml-1 rounded-full bg-violet-400/20 flex items-center justify-center hover:bg-red-500/70 hover:text-white text-violet-300 transition-all shrink-0">
+                <X className="w-3 h-3" />
+            </button>
+        </motion.div>
+    );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PULSE DOT
+// ════════════════════════════════════════════════════════════════
+
+function PulseDot({ color }: { color: string }) {
+    return (
+        <span className="relative flex h-2 w-2">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${color}`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${color}`} />
+        </span>
+    );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════
+
 export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', role: 'assistant', content: "Hello! I'm your AI JavaScript Mentor. Ask me any question about JS, and I'll explain it to you!" }
-    ]);
+
+    const [messages, setMessages] = useState<Message[]>([{
+        id: '1', role: 'assistant',
+        content: `Salam! 👋 Main aapka **AI JavaScript Mentor** hoon.\n\nAap mujh se koi bhi JS sawal pooch sakte hain:\n\n- 📌 Simple Urdu/English mein samjhaoon ga\n- 💻 Working code examples ke saath\n- 📎 File ya image bhi analyze kar sakta hoon\n- 🎙️ Mic se baat bhi kar sakte hain\n\nShuru karte hain! 🚀`
+    }]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<any>(null);
+    const [micAvailable, setMicAvailable] = useState(false);
+    const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+    const [showScrollBtn, setShowScrollBtn] = useState(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const micStreamRef = useRef<MediaStream | null>(null);
-    const localAudioRef = useRef<HTMLAudioElement | null>(null);
+    const chatAreaRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isLoading]);
-
-    const stopSpeaking = () => {
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.resume(); // Fixes a common bug where speech engine gets 'stuck'
-            setIsSpeaking(false);
-        }
-    };
-
-    useEffect(() => {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (typeof window !== 'undefined' && SpeechRecognition) {
-            const rec = new SpeechRecognition();
-            rec.continuous = false;
-            rec.interimResults = false;
-
-            rec.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
-                if (transcript) setInput(transcript);
-                setIsListening(false);
-            };
-
-            rec.onerror = (event: any) => {
-                console.error('Speech recognition error:', event.error);
-                if (event.error === 'not-allowed') {
-                    alert("Microphone access is blocked. Please click the icon in your address bar and ALLOW the microphone to talk to the AI!");
-                } else if (event.error === 'network') {
-                    alert("Speech Network Error. Please check your internet connection.");
-                } else if (event.error === 'no-speech') {
-                    // Just reset quietly for no speech
-                } else {
-                    alert(`Microphone Error: ${event.error}. Please refresh or check your mic settings.`);
-                }
-                setIsListening(false);
-            };
-
-            rec.onend = () => setIsListening(false);
-            setRecognition(rec);
-        }
-        return () => stopSpeaking();
+    // ── Scroll ────────────────────────────────────────────────
+    const scrollToBottom = useCallback((smooth = true) => {
+        messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
     }, []);
 
-    const speak = (text: string) => {
+    useEffect(() => { scrollToBottom(); }, [messages, isLoading, scrollToBottom]);
+
+    useEffect(() => {
+        const el = chatAreaRef.current;
+        if (!el) return;
+        const fn = () => setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 150);
+        el.addEventListener('scroll', fn);
+        return () => el.removeEventListener('scroll', fn);
+    }, []);
+
+    // ── Speech Synthesis ──────────────────────────────────────
+    const stopSpeaking = useCallback(() => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        setIsSpeaking(false);
+    }, []);
+
+    const speak = useCallback((text: string) => {
         if (!voiceEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-
+        const clean = text
+            .replace(/```[\s\S]*?```/g, ' Code example. ')
+            .replace(/[*_`#]/g, '')
+            .replace(/\n+/g, ' ')
+            .trim()
+            .slice(0, 500);
         stopSpeaking();
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        const commonRoman = ['hai', 'kar', 'karo', 'shabash', 'theek', 'kya', 'kaise', 'bilkul', 'mera', 'hum', 'mein', 'tu', 'si', 'ho', 'well done'];
-        const isUrduHindi = /[\u0600-\u06FF\u0900-\u097F]/.test(text) ||
-            commonRoman.some(word => text.toLowerCase().includes(' ' + word + ' ') || text.toLowerCase().startsWith(word + ' '));
-
-        utterance.lang = isUrduHindi ? 'hi-IN' : 'en-US';
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-
-        const setVoiceAndSpeak = () => {
+        const utt = new SpeechSynthesisUtterance(clean);
+        const urduTokens = ['salam', 'kar', 'karo', 'theek', 'kya', 'kaise', 'bilkul', 'mein', 'hoon', 'aap', 'bhi', 'hai', 'nahi', 'shuru'];
+        const isUrdu = /[\u0600-\u06FF]/.test(clean) ||
+            urduTokens.filter(w => clean.toLowerCase().split(/\W+/).includes(w)).length >= 2;
+        utt.lang = 'en-US'; utt.rate = 0.95; utt.pitch = 1.05;
+        if (isUrdu) utt.lang = 'hi-IN';
+        const doSpeak = () => {
             const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                const targetLangs = isUrduHindi ? ['hi', 'ur'] : ['en'];
-                let preferredVoice = voices.find(v =>
-                    targetLangs.some(lang => v.lang.startsWith(lang)) &&
-                    /Google|Neural|Natural|Premium|Enhanced|Online/.test(v.name)
-                );
-                if (!preferredVoice) {
-                    preferredVoice = voices.find(v => targetLangs.some(lang => v.lang.startsWith(lang)));
-                }
-                if (preferredVoice) utterance.voice = preferredVoice;
+            if (voices.length) {
+                const langs = isUrdu ? ['hi', 'ur'] : ['en'];
+                const best = voices.find(v => langs.some(l => v.lang.startsWith(l)) && /Google|Natural|Premium|Enhanced/.test(v.name))
+                    || voices.find(v => langs.some(l => v.lang.startsWith(l)));
+                if (best) utt.voice = best;
             }
-
-            utterance.onstart = () => setIsSpeaking(true);
-            utterance.onend = () => setIsSpeaking(false);
-            utterance.onerror = (e) => {
-                console.error("Utterance error:", e);
-                setIsSpeaking(false);
-            };
-
-            window.speechSynthesis.speak(utterance);
+            utt.onstart = () => setIsSpeaking(true);
+            utt.onend = () => setIsSpeaking(false);
+            utt.onerror = () => setIsSpeaking(false);
+            window.speechSynthesis.speak(utt);
         };
+        if (window.speechSynthesis.getVoices().length > 0) doSpeak();
+        else { window.speechSynthesis.onvoiceschanged = () => { doSpeak(); window.speechSynthesis.onvoiceschanged = null; }; setTimeout(doSpeak, 120); }
+    }, [voiceEnabled, stopSpeaking]);
 
-        // 🚀 Browser Fix: Immediate call is better for mobile security contexts
-        if (window.speechSynthesis.getVoices().length > 0) {
-            setVoiceAndSpeak();
-        } else {
-            // Fallback for async voices loading
-            window.speechSynthesis.onvoiceschanged = () => {
-                setVoiceAndSpeak();
-                window.speechSynthesis.onvoiceschanged = null; // Prevent multiple triggers
-            };
-            // Second fallback: just speak with default if voices take too long
-            setTimeout(setVoiceAndSpeak, 100);
-        }
-    };
+    // ── Mic setup ────────────────────────────────────────────
+    useEffect(() => {
+        const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        setMicAvailable(!!SR);
+        return () => stopSpeaking();
+    }, [stopSpeaking]);
 
-    const toggleListening = async () => {
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (!isLocal && window.location.protocol !== 'https:') {
-            alert("⚠️ Microphone only works on HTTPS or localhost.");
-            return;
-        }
-
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert("Speech recognition not supported. Use Chrome, Edge, or Safari.");
-            return;
-        }
-
-        if (isListening) {
-            if (recognition) {
-                try { recognition.stop(); } catch (e) { console.error(e); }
-            }
-            setIsListening(false);
-            return;
-        }
-
+    const toggleListening = () => {
+        const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SR) { alert('Chrome ya Edge use karein mic ke liye.'); return; }
+        const safe = ['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'https:';
+        if (!safe) { alert('⚠️ Mic sirf HTTPS ya localhost pe kaam karta hai.'); return; }
+        if (isListening) { try { recognition?.stop(); } catch { } setIsListening(false); return; }
         stopSpeaking();
-
-        const rec = new SpeechRecognition();
-        rec.continuous = false;
-        rec.interimResults = false;
-        rec.lang = 'en-US';
-
+        const rec = new SR();
+        rec.continuous = false; rec.interimResults = false; rec.lang = 'en-US';
         rec.onstart = () => setIsListening(true);
-
-        rec.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
-            if (transcript) setInput(transcript);
-            setIsListening(false);
-        };
-
-        rec.onerror = (event: any) => {
-            if (event.error === 'not-allowed') {
-                alert("⚠️ Mic blocked. Allow it in the address bar 🔒 and refresh.");
-            } else if (event.error !== 'no-speech') {
-                alert(`Mic Error: ${event.error}`);
-            }
-            setIsListening(false);
-        };
-
+        rec.onresult = (e: any) => { const t = e.results[0][0].transcript; if (t) { setInput(t); inputRef.current?.focus(); } setIsListening(false); };
+        rec.onerror = (e: any) => { if (e.error === 'not-allowed') alert('⚠️ Mic blocked. Address bar mein 🔒 allow karein.'); else if (e.error !== 'no-speech') alert(`Mic error: ${e.error}`); setIsListening(false); };
         rec.onend = () => setIsListening(false);
-
-        try {
-            rec.start();
-            setRecognition(rec);
-        } catch (e) {
-            console.error("Start error:", e);
-            setIsListening(false);
-        }
+        try { rec.start(); setRecognition(rec); } catch { setIsListening(false); }
     };
 
-
-
-    const handleSend = async () => {
-        if (!input.trim()) return;
-
-        // 🎙️ Voice Priming: Unlock speech synthesis on user interaction (Crucial for Safari/Mobile)
-        if (voiceEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
-            try {
-                const prime = new SpeechSynthesisUtterance("");
-                prime.volume = 0;
-                window.speechSynthesis.speak(prime);
-            } catch (e) { }
-        }
-
-        const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() };
-        setMessages(prev => [...prev, userMsg]);
-        setInput('');
-        setIsLoading(true);
-
-        try {
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: userMsg.content,
-                    history: messages.map(m => ({ role: m.role, content: m.content }))
-                })
+    // ── File ─────────────────────────────────────────────────
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0]; if (!f) return;
+        if (f.size > 5 * 1024 * 1024) { alert('File max 5MB honi chahiye.'); return; }
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const dataUrl = ev.target?.result as string;
+            setAttachedFile({
+                name: f.name, type: f.type,
+                preview: f.type.startsWith('image/') ? dataUrl : undefined,
+                base64: dataUrl.split(',')[1]
             });
-            const data = await res.json();
+        };
+        reader.readAsDataURL(f);
+        e.target.value = '';
+    };
 
-            const aiResponseText = data.message || "Something went wrong processing your request.";
-            const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: aiResponseText };
-
-            setMessages(prev => [...prev, aiMsg]);
-            if (voiceEnabled) speak(aiResponseText);
-        } catch (error) {
-            const errorMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: "Sorry, I'm having trouble connecting right now." };
-            setMessages(prev => [...prev, errorMsg]);
-            if (voiceEnabled) speak("Sorry, I'm having trouble connecting right now.");
-        } finally {
-            setIsLoading(false);
+    // ── Send ─────────────────────────────────────────────────
+    const handleSend = async () => {
+        if (!input.trim() && !attachedFile) return;
+        if (voiceEnabled && window.speechSynthesis) {
+            try { const p = new SpeechSynthesisUtterance(''); p.volume = 0; window.speechSynthesis.speak(p); } catch { }
         }
+        const snap = attachedFile;
+        const userMsg: Message = {
+            id: Date.now().toString(), role: 'user',
+            content: input.trim() || `[File: ${snap?.name}]`,
+            file: snap ? { name: snap.name, type: snap.type, preview: snap.preview } : undefined
+        };
+        setMessages(p => [...p, userMsg]);
+        setInput(''); setAttachedFile(null); setIsLoading(true);
+        try {
+            const body: Record<string, unknown> = {
+                message: userMsg.content,
+                history: messages.map(m => ({ role: m.role, content: m.content }))
+            };
+            if (snap?.base64) body.file = { name: snap.name, type: snap.type, base64: snap.base64 };
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await res.json();
+            const reply = data.message || 'Jawab nahi mila. Dobara try karein.';
+            setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', content: reply }]);
+            if (voiceEnabled) speak(reply);
+        } catch {
+            const err = '⚠️ Internet check karein ya page refresh karein.';
+            setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', content: err }]);
+            if (voiceEnabled) speak(err);
+        } finally { setIsLoading(false); }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') handleSend();
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     };
 
+    const statusText = isSpeaking ? '🔊 Bol raha hoon…'
+        : isListening ? '🎙️ Sun raha hoon…'
+            : isLoading ? '⏳ Soch raha hoon…'
+                : '✅ Online • Urdu + English';
+
+    // ════════════════════════════════════════════════════════
+    //  RENDER
+    // ════════════════════════════════════════════════════════
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`max-w-3xl mx-auto w-full glass-card rounded-2xl sm:rounded-[2.5rem] overflow-hidden flex flex-col items-stretch h-[75vh] min-h-[500px] border-2 shadow-2xl ${isDarkMode ? 'border-primary/20 bg-background/50' : 'border-primary/20 bg-white/50'}`}
-        >
-            {/* Header */}
-            <div className={`p-4 sm:p-6 border-b flex items-center justify-between ${isDarkMode ? 'border-border/50 bg-slate-900/50' : 'border-border/50 bg-slate-50/50'}`}>
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-premium flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                        <Bot className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h2 className="font-black text-lg text-foreground flex items-center gap-2">
-                            AI Mentor <Sparkles className="w-4 h-4 text-primary" />
-                        </h2>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-                            <span className="relative flex h-2 w-2">
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isSpeaking ? 'bg-primary' : 'bg-emerald-400'}`}></span>
-                                <span className={`relative inline-flex rounded-full h-2 w-2 ${isSpeaking ? 'bg-primary' : 'bg-emerald-500'}`}></span>
-                            </span>
-                            {isSpeaking ? 'Speaking...' : 'Online & Ready'}
+        <>
+            <style>{`
+                s{text-decoration:none}
+                .hk{color:#c792ea;font-weight:600}
+                .hs{color:#c3e88d}
+                .hn{color:#f78c6c}
+                .hc{color:#546e7a;font-style:italic}
+                .hf{color:#82aaff}
+                .ho{color:#89ddff}
+            `}</style>
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+                className={`max-w-3xl mx-auto w-full rounded-2xl sm:rounded-[2rem] overflow-hidden flex flex-col h-[82vh] min-h-[540px] border shadow-2xl
+                    ${isDarkMode ? 'border-slate-700/50 bg-slate-900 shadow-black/50' : 'border-slate-200 bg-white shadow-slate-300/60'}`}
+            >
+
+                {/* ═══ HEADER ═══ */}
+                <div className={`px-5 py-4 border-b flex items-center justify-between shrink-0
+                    ${isDarkMode ? 'border-slate-800 bg-slate-800/70' : 'border-slate-100 bg-slate-50'}`}>
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                                <Bot className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-emerald-400" />
+                        </div>
+                        <div>
+                            <h2 className={`font-extrabold text-base flex items-center gap-1.5 leading-none mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                                JS Mentor <Sparkles className="w-4 h-4 text-violet-500" />
+                            </h2>
+                            <div className="flex items-center gap-1.5">
+                                <PulseDot color={isSpeaking ? 'bg-violet-500' : 'bg-emerald-400'} />
+                                <span className={`text-[11px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{statusText}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => {
-                            setVoiceEnabled(!voiceEnabled);
-                            if (isSpeaking) stopSpeaking();
-                        }}
-                        className={`p-2.5 rounded-xl transition-all ${voiceEnabled ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                        title={voiceEnabled ? "Mute Voice" : "Enable Voice"}
-                    >
-                        {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-                    </button>
-
-                    {onClose && (
-                        <button
-                            onClick={onClose}
-                            className={`p-2.5 rounded-xl transition-all ${isDarkMode ? 'hover:bg-slate-800 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}
-                            title="Close Chat"
-                        >
-                            <X className="w-5 h-5" />
+                    <div className="flex items-center gap-1.5">
+                        <button onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
+                            title={voiceEnabled ? 'Awaaz band' : 'Awaaz on'}
+                            className={`p-2.5 rounded-xl transition-all ${voiceEnabled ? 'bg-violet-500/15 text-violet-400 hover:bg-violet-500/25' : isDarkMode ? 'bg-slate-700 text-slate-500 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
+                            {voiceEnabled ? <Volume2 style={{ width: 18, height: 18 }} /> : <VolumeX style={{ width: 18, height: 18 }} />}
                         </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                <AnimatePresence initial={false}>
-                    {messages.map((msg) => (
-                        <motion.div
-                            key={msg.id}
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-slate-800 text-white' : 'bg-gradient-premium text-white shadow-lg'}`}>
-                                    {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                                </div>
-
-                                <div className={`p-4 rounded-2xl text-sm sm:text-base ${msg.role === 'user'
-                                    ? 'bg-primary text-white rounded-tr-sm'
-                                    : isDarkMode
-                                        ? 'bg-slate-800 text-slate-200 rounded-tl-sm border border-slate-700'
-                                        : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 shadow-sm'
-                                    }`}
-                                >
-                                    <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-
-                    {isLoading && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="flex justify-start"
-                        >
-                            <div className="flex gap-3 max-w-[85%]">
-                                <div className="w-8 h-8 rounded-full bg-gradient-premium text-white flex items-center justify-center shrink-0 shadow-lg">
-                                    <Bot className="w-4 h-4" />
-                                </div>
-                                <div className={`p-4 rounded-2xl rounded-tl-sm flex items-center gap-2 ${isDarkMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-200'}`}>
-                                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                                    <span className="text-sm font-medium text-muted-foreground animate-pulse">Generating response...</span>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className={`p-4 sm:p-6 border-t ${isDarkMode ? 'border-border/50 bg-slate-900/30' : 'border-border/50 bg-slate-50/50'}`}>
-                <div className="relative flex items-center">
-                    <div className="absolute left-4 text-muted-foreground">
-                        <MessageSquare className="w-5 h-5" />
-                    </div>
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={isListening ? "Listening..." : (recognition === null ? "Mic Blocked (Allow in Address Bar)" : "Ask in any language (Urdu/English)...")}
-                        className={`w-full pl-12 pr-28 py-4 rounded-xl font-medium outline-none transition-all ${isDarkMode ? 'bg-slate-900/50 focus:bg-slate-900 text-white placeholder-slate-500 border border-slate-800 focus:border-primary/50' : 'bg-white focus:bg-white text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-primary/50 focus:ring-4 focus:ring-primary/5'}`}
-                        disabled={isLoading}
-                    />
-                    <div className="absolute right-2 flex items-center gap-1">
-                        <button
-                            onClick={toggleListening}
-                            className={`p-2.5 rounded-lg transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-muted-foreground hover:bg-slate-100 hover:text-primary'}`}
-                            title="Voice Typing"
-                        >
-                            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                        </button>
-                        <button
-                            onClick={handleSend}
-                            disabled={!input.trim() || isLoading}
-                            className={`p-2.5 rounded-lg transition-all ${!input.trim() || isLoading ? 'bg-transparent text-muted-foreground' : 'bg-primary text-white shadow-md hover:bg-primary/90'}`}
-                        >
-                            <Send className="w-5 h-5" />
-                        </button>
+                        {onClose && (
+                            <button onClick={onClose}
+                                className={`p-2.5 rounded-xl transition-all ${isDarkMode ? 'text-slate-500 hover:bg-slate-700 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}>
+                                <X style={{ width: 18, height: 18 }} />
+                            </button>
+                        )}
                     </div>
                 </div>
-                <div className="text-center mt-3">
-                    <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">
-                        {voiceEnabled ? "🎙️ Voice enabled • Human readable" : "🔇 Voice disabled • Text mode"}
+
+                {/* ═══ MESSAGES ═══ */}
+                <div ref={chatAreaRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5 scroll-smooth">
+                    <AnimatePresence initial={false}>
+
+                        {messages.map(msg => (
+                            <motion.div key={msg.id}
+                                initial={{ opacity: 0, y: 14, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`flex gap-2.5 max-w-[90%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+
+                                    {/* avatar */}
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow
+                                        ${msg.role === 'user' ? 'bg-gradient-to-br from-slate-600 to-slate-900 text-white' : 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-violet-500/20'}`}>
+                                        {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                                    </div>
+
+                                    {/* bubble */}
+                                    <div className={`px-4 py-3 rounded-2xl
+                                        ${msg.role === 'user'
+                                            ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white rounded-tr-sm shadow-lg shadow-violet-500/20'
+                                            : isDarkMode ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700'
+                                                : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 shadow-sm'}`}>
+                                        {msg.file && (
+                                            <div className="mb-2.5 flex items-center gap-2 bg-black/15 rounded-xl px-3 py-2">
+                                                {msg.file.preview
+                                                    ? <img src={msg.file.preview} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                                                    : <FileText className="w-5 h-5 opacity-70" />}
+                                                <span className="text-xs font-semibold opacity-80 truncate max-w-[180px]">{msg.file.name}</span>
+                                            </div>
+                                        )}
+                                        {msg.role === 'assistant'
+                                            ? <MessageContent content={msg.content} isDark={isDarkMode} />
+                                            : <p className="leading-relaxed text-sm sm:text-[15px] whitespace-pre-wrap">{msg.content}</p>}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+
+                        {/* typing dots */}
+                        {isLoading && (
+                            <motion.div key="loading" initial={{ opacity: 0, y: 10, scale: .95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: .9 }} className="flex justify-start">
+                                <div className="flex gap-2.5 max-w-[90%]">
+                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/20">
+                                        <Bot className="w-4 h-4" />
+                                    </div>
+                                    <div className={`px-5 py-3.5 rounded-2xl rounded-tl-sm flex items-center gap-3
+                                        ${isDarkMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-200 shadow-sm'}`}>
+                                        {[0, 1, 2].map(i => (
+                                            <motion.span key={i} className="w-2.5 h-2.5 rounded-full bg-violet-500"
+                                                animate={{ y: ['0%', '-55%', '0%'] }}
+                                                transition={{ duration: .55, repeat: Infinity, delay: i * .14, ease: 'easeInOut' }} />
+                                        ))}
+                                        <span className={`text-sm font-medium ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Soch raha hoon…</span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    <div ref={messagesEndRef} />
+
+                    {/* scroll pill */}
+                    <AnimatePresence>
+                        {showScrollBtn && (
+                            <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
+                                onClick={() => scrollToBottom()}
+                                className="sticky bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-violet-500/30 transition-colors active:scale-95">
+                                <ChevronDown className="w-3.5 h-3.5" /> Neeche jao
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* ═══ INPUT ═══ */}
+                <div className={`px-4 sm:px-5 pt-3 pb-4 border-t shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/90'}`}>
+
+                    <AnimatePresence>
+                        {attachedFile && <FileBadge file={attachedFile} onRemove={() => setAttachedFile(null)} />}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                        {isListening && (
+                            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="flex items-center gap-2 mb-2 text-xs font-bold text-red-400">
+                                <PulseDot color="bg-red-500" />
+                                Sun raha hoon… (bolo ya mic button dobara dabao)
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="flex items-center gap-2">
+                        {/* field */}
+                        <div className={`flex-1 flex items-center gap-1 rounded-2xl border px-3 transition-all
+                            ${isDarkMode ? 'bg-slate-900/80 border-slate-700 focus-within:border-violet-500/60 focus-within:ring-1 focus-within:ring-violet-500/20'
+                                : 'bg-white border-slate-200 focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-500/10'}`}>
+
+                            {/* paperclip */}
+                            <button onClick={() => fileInputRef.current?.click()} title="File attach karein"
+                                className={`p-2 rounded-xl transition-all shrink-0 ${isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
+                                <Paperclip style={{ width: 17, height: 17 }} />
+                            </button>
+
+                            {/* text */}
+                            <input ref={inputRef} type="text" value={input}
+                                onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+                                placeholder={isListening ? '🎙️ Bol rahe hain…' : !micAvailable ? 'JS sawal poochein… (Chrome mein mic milega)' : 'JS sawal poochein ya file attach karein…'}
+                                disabled={isLoading}
+                                className={`flex-1 py-3.5 bg-transparent outline-none text-sm font-medium placeholder:font-normal min-w-0
+                                    ${isDarkMode ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-400'}`} />
+
+                            {/* mic */}
+                            {micAvailable && (
+                                <button onClick={toggleListening} title={isListening ? 'Sunna band karo' : 'Mic se bolo'}
+                                    className={`p-2 rounded-xl transition-all shrink-0
+                                        ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 animate-pulse'
+                                            : isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
+                                    {isListening ? <MicOff style={{ width: 17, height: 17 }} /> : <Mic style={{ width: 17, height: 17 }} />}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* send */}
+                        <button onClick={handleSend} disabled={(!input.trim() && !attachedFile) || isLoading}
+                            className={`p-3.5 rounded-2xl transition-all shrink-0 shadow-lg active:scale-95
+                                ${(!input.trim() && !attachedFile) || isLoading
+                                    ? isDarkMode ? 'bg-slate-700 text-slate-600' : 'bg-slate-100 text-slate-300'
+                                    : 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white hover:from-violet-600 hover:to-indigo-700 shadow-violet-500/30'}`}>
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                        </button>
+                    </div>
+
+                    <p className={`text-center text-[10px] font-semibold uppercase tracking-widest mt-2.5 select-none
+                        ${isDarkMode ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {voiceEnabled ? '🔊 Awaaz on' : '🔇 Awaaz off'}
+                        {' • '}Enter se bhejo{' • '}📎 File attach{micAvailable ? ' • 🎙️ Mic se bolo' : ''}
                     </p>
                 </div>
-            </div>
-            {/* 🎙️ Hidden Local Audio Stream (Priming) */}
-            <audio ref={localAudioRef} className="hidden" />
-        </motion.div>
+
+                <input ref={fileInputRef} type="file" className="hidden"
+                    accept="image/*,.pdf,.txt,.js,.ts,.jsx,.tsx,.json,.html,.css,.md,.py"
+                    onChange={handleFileChange} />
+            </motion.div>
+        </>
     );
 };
+
+export default AIAssistant;

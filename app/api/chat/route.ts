@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
     try {
-        const { message, history = [] } = await req.json();
+        const { message, history = [], file } = await req.json();
 
         // 1. Keys Gathering
         const rawGeminiKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
@@ -20,27 +20,41 @@ export async function POST(req: Request) {
    - Short explanation (2-3 lines).
    - Real-life example.
    - One MCQ quiz question.
-5. CRITICAL: Double newlines between sections. Max 10 lines. Text-only for voice. NO Arabic/Urdu script.`;
+5. CRITICAL: Double newlines between sections. Max 10 lines. Text-only for voice. NO Arabic/Urdu script.
+6. FILE ANALYSIS: If a file/image is provided, analyze it specifically for JavaScript context or general logic and help the student.`;
 
         let aiMessage = "";
         let success = false;
 
-        // --- 1. Try Gemini (First Priority) ---
+        // --- 1. Try Gemini (First Priority) - Supports Files ---
         if (!success && geminiKeys.length > 0) {
             const apiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
+            const model = "gemini-1.5-flash"; // Better for file analysis
             try {
-                const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`, {
+                const parts: any[] = [{ text: `${systemPrompt}\n\nCONTEXT:\n${context}\n\nSTUDENT: "${message}"` }];
+
+                // Add file part if exists
+                if (file?.base64 && file?.type) {
+                    parts.push({
+                        inline_data: {
+                            mime_type: file.type,
+                            data: file.base64
+                        }
+                    });
+                }
+
+                const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\nCONTEXT:\n${context}\n\nSTUDENT: "${message}"` }] }]
+                        contents: [{ role: 'user', parts }]
                     })
                 });
                 const geminiData = await geminiRes.json();
                 if (geminiRes.ok && geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
                     aiMessage = geminiData.candidates[0].content.parts[0].text;
                     success = true;
-                    console.log("[AI Chat] Gemini Success");
+                    console.log(`[AI Chat] Gemini (${model}) Success`);
                 }
             } catch (e) { console.warn("[AI Chat] Gemini failed"); }
         }
