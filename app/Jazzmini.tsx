@@ -76,7 +76,7 @@ const appId = 'js-level-quiz-default';
 const PUBLIC_COLLECTION_PATH = `artifacts/${appId}/stats`;
 const GLOBAL_STATS_DOC_ID = 'global_progress';
 
-const QUIZ_CONTRACT_ADDRESS = '0x2315d55F06E19D21Ebda68Aa1E54F9aF6924dcE5';
+const QUIZ_CONTRACT_ADDRESS = '0x0881e4c7b81dC36Fc4Fc1c82cE0e97bBB0134F93';
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 // Helpers
@@ -152,6 +152,7 @@ export default function JSQuizApp() {
   const [dailyQuizResult, setDailyQuizResult] = useState<'correct' | 'wrong' | null>(null);
   const [streakMissed, setStreakMissed] = useState(false);
   const [streakRecoveryStatus, setStreakRecoveryStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [claimStatus, setClaimStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [todayQuestion, setTodayQuestion] = useState<DailyQuestion | null>(null);
 
   const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'ai-chat'>('quiz');
@@ -563,6 +564,38 @@ export default function JSQuizApp() {
     }
   }, [updateLeaderboard, sendPayment]);
 
+  const handleQuizClaim = useCallback(async () => {
+    setClaimStatus('pending');
+    try {
+      const tx = await sendPayment(30000); // 0.03 USDC
+      if (tx) {
+        setClaimStatus('success');
+        setLevelPassed(true);
+        // Sync progress
+        const newScores = { ...levelScores, [currentLevel]: Math.max(levelScores[currentLevel] || 0, score || 70) };
+        setLevelScores(newScores);
+        localStorage.setItem('quizScores', JSON.stringify(newScores));
+
+        if (currentLevel === globalStats.highestLevel && currentLevel < TOTAL_LEVELS) {
+          const nextLevel = currentLevel + 1;
+          const id = (connectedAddress || userId || '').toLowerCase();
+          const userRef = ref(db!, `users/${id}/progress`);
+          const newStats = {
+            maxScore: Math.max(globalStats.maxScore, score || 70),
+            highestLevel: nextLevel,
+            levelScores: newScores,
+            levelAttempts: levelAttempts
+          };
+          setGlobalStats({ maxScore: newStats.maxScore, highestLevel: newStats.highestLevel });
+          await set(userRef, newStats);
+        }
+        updateLeaderboard(true);
+      }
+    } catch (e) {
+      setClaimStatus('error');
+    }
+  }, [sendPayment, currentLevel, levelScores, score, globalStats, db, connectedAddress, userId, levelAttempts, updateLeaderboard]);
+
   const handleGm = useCallback(() => {
     const today = getTodayDateKey();
     setGmDoneToday(true);
@@ -607,7 +640,7 @@ export default function JSQuizApp() {
   const handleStreakRestore = useCallback(async () => {
     setStreakRecoveryStatus('pending');
     try {
-      const tx = await sendPayment(50000); // 0.05 USDC
+      const tx = await sendPayment(30000); // 0.03 USDC (Updated to 0.03 as requested)
       if (tx) {
         setStreakRecoveryStatus('success');
         setStreakMissed(false);
@@ -640,6 +673,7 @@ export default function JSQuizApp() {
               onSelectOption={handleOptionSelect}
               showExplanation={showExplanation}
               onNext={handleNextQuestion}
+              onClose={() => setQuizState('start')}
               isLastQuestion={currentQuestionIndex === questions.length - 1}
               isDarkMode={isDarkMode}
             />
@@ -658,8 +692,10 @@ export default function JSQuizApp() {
               onReward={handleLevel1Reward}
               supportStatus={supportStatus}
               onSupport={handleSupportPayment}
-              onRetry={() => setQuizState('in_progress')}
-              onNextLevel={() => startQuiz(currentLevel + 1)}
+              claimStatus={claimStatus}
+              onClaim={handleQuizClaim}
+              onRetry={() => { setQuizState('in_progress'); setClaimStatus('idle'); }}
+              onNextLevel={() => { startQuiz(currentLevel + 1); setClaimStatus('idle'); }}
               connectedAddress={connectedAddress}
             />
           );

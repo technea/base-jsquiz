@@ -14,6 +14,8 @@ interface QuizResultProps {
     onReward: () => void;
     supportStatus: string;
     onSupport: () => void;
+    claimStatus: string;
+    onClaim: () => void;
     onRetry: () => void;
     onNextLevel: () => void;
     connectedAddress: string | null;
@@ -30,6 +32,8 @@ export const QuizResult = ({
     onReward,
     supportStatus,
     onSupport,
+    claimStatus,
+    onClaim,
     onRetry,
     onNextLevel,
     connectedAddress
@@ -146,6 +150,36 @@ export const QuizResult = ({
                             >
                                 <Award className="w-4 h-4" />
                                 {supportStatus === 'pending' ? 'Syncing...' : 'Join Elite — $0.03'}
+                            </button>
+                        </motion.div>
+                    )}
+
+                    {!levelPassed && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="p-5 sm:p-8 rounded-xl sm:rounded-[2rem] bg-amber-500/5 border border-amber-500/20 text-left space-y-4"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-amber-500/10 rounded-lg">
+                                    <Zap className="w-5 h-5 text-amber-500" />
+                                </div>
+                                <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-foreground">Fast Track Claim</p>
+                            </div>
+                            <p className="text-xs sm:text-sm font-bold text-muted-foreground leading-relaxed">
+                                Don't let a mistake stop your progress. <span className="text-amber-500 font-black italic">Claim this level</span> for just $0.03 USDC.
+                            </p>
+
+                            <button
+                                onClick={onClaim}
+                                disabled={claimStatus === 'pending' || claimStatus === 'success'}
+                                className={`w-full py-4 rounded-xl text-white font-black uppercase tracking-widest text-[10px] sm:text-xs flex items-center justify-center gap-3 shadow-xl ${claimStatus === 'pending'
+                                    ? 'bg-amber-500/50 cursor-not-allowed'
+                                    : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
+                                    }`}
+                            >
+                                <Wallet className="w-4 h-4" />
+                                {claimStatus === 'pending' ? 'Processing...' : claimStatus === 'success' ? 'Claimed!' : 'Claim Level — $0.03'}
                             </button>
                         </motion.div>
                     )}

@@ -13,6 +13,7 @@ interface QuizViewProps {
     onSelectOption: (option: string) => void;
     showExplanation: boolean;
     onNext: () => void;
+    onClose: () => void;
     isLastQuestion: boolean;
     isDarkMode: boolean;
 }
@@ -25,6 +26,7 @@ export const QuizView = ({
     onSelectOption,
     showExplanation,
     onNext,
+    onClose,
     isLastQuestion,
     isDarkMode
 }: QuizViewProps) => {
@@ -75,13 +77,20 @@ export const QuizView = ({
                         </span>
                     </div>
 
-                    <div className="flex-1 sm:w-48 h-2 bg-background rounded-full overflow-hidden border border-border/50">
+                    <div className="hidden sm:flex flex-1 sm:w-48 h-2 bg-background rounded-full overflow-hidden border border-border/50">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
                             className="h-full bg-primary shadow-[0_0_10px_rgba(0,82,255,0.4)]"
                         />
                     </div>
+
+                    <button
+                        onClick={onClose}
+                        className={`p-2 rounded-xl transition-all ${isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+                    >
+                        <XCircle className="w-6 h-6" />
+                    </button>
                 </div>
             </div>
 

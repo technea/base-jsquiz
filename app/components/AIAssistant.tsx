@@ -376,7 +376,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
             <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-                className={`max-w-3xl mx-auto w-full rounded-2xl sm:rounded-[2rem] overflow-hidden flex flex-col h-[82vh] min-h-[540px] border shadow-2xl
+                className={`max-w-3xl mx-auto w-full rounded-2xl sm:rounded-[2rem] overflow-hidden flex flex-col h-[90vh] sm:h-[82vh] min-h-[500px] border shadow-2xl
                     ${isDarkMode ? 'border-slate-700/50 bg-slate-900 shadow-black/50' : 'border-slate-200 bg-white shadow-slate-300/60'}`}
             >
 
@@ -433,7 +433,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                                     </div>
 
                                     {/* bubble */}
-                                    <div className={`px-4 py-3 rounded-2xl
+                                    <div className={`px-3 py-2 sm:px-4 sm:py-3 rounded-2xl
                                         ${msg.role === 'user'
                                             ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white rounded-tr-sm shadow-lg shadow-violet-500/20'
                                             : isDarkMode ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700'
@@ -556,7 +556,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                 <input ref={fileInputRef} type="file" className="hidden"
                     accept="image/*,.pdf,.txt,.js,.ts,.jsx,.tsx,.json,.html,.css,.md,.py"
                     onChange={handleFileChange} />
-            </motion.div>
+            </motion.div >
         </>
     );
 };

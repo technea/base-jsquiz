@@ -66,7 +66,7 @@ export const DailyArena = ({
                     <div>
                         <p className="font-black text-rose-500 uppercase tracking-[0.2em] text-sm">Streak Missed!</p>
                         <p className={`text-sm mt-1 font-medium ${isDarkMode ? 'text-slate-200' : 'text-slate-600'}`}>
-                            You missed a day! Pay <span className="text-amber-400 font-black">$0.05 USDC</span> to restore your steak, or it resets to 0.
+                            You missed a day! Pay <span className="text-amber-400 font-black">$0.03 USDC</span> to restore your steak, or it resets to 0.
                         </p>
                     </div>
 
@@ -85,7 +85,7 @@ export const DailyArena = ({
                         ) : (
                             <>
                                 <Wallet className="w-5 h-5" />
-                                Restore Streak — $0.05 USDC
+                                Restore Streak — $0.03 USDC
                             </>
                         )}
                     </motion.button>
