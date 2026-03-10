@@ -205,7 +205,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
     const [messages, setMessages] = useState<Message[]>([{
         id: '1', role: 'assistant',
-        content: `Salam! 👋 Main aapka **AI JavaScript Mentor** hoon.\n\nAap mujh se koi bhi JS sawal pooch sakte hain:\n\n- 📌 Simple Urdu/English mein samjhaoon ga\n- 💻 Working code examples ke saath\n- 📎 File ya image bhi analyze kar sakta hoon\n- 🎙️ Mic se baat bhi kar sakte hain\n\nShuru karte hain! 🚀`
+        content: `Hello! 👋 I am your **AI JavaScript Mentor**.\n\nI'm here to help you master JavaScript. You can ask me anything about JS:\n\n- 📌 I'll explain in simple English or Urdu/Hindi\n- 💻 Provided with working code examples\n- 📎 I can also analyze your files and images\n- 🎙️ You can even talk to me using your microphone\n\nLet's get started! 🚀`
     }]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
