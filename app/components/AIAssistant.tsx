@@ -207,7 +207,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
     const [messages, setMessages] = useState<Message[]>([{
         id: '1', role: 'assistant',
-        content: `Hello! 👋 I am your **AI JavaScript Mentor**.\n\nI'm here to help you master JavaScript. You can ask me anything about JS:\n\n- 📌 I'll explain in simple English\n- 💻 Provided with working code examples\n- 📎 I can also analyze your files and images\n- 🎙️ You can even talk to me using your microphone\n\nLet's get started! 🚀 [[URDU_VOICE: Salam! Main aapka AI JavaScript mentor hoon. Aap mujhse JS ke baare mein kuch bhi pooch sakte hain. Shuru karte hain!]]`
+        content: `Hello! 👋 I am your **AI JavaScript Mentor**.\n\nI'm here to help you master JavaScript. You can ask me anything about JS:\n\n- 📌 I'll explain in simple English\n- 💻 Provided with working code examples (with explanations)\n- 📎 I can also analyze your files and images\n- 🎙️ You can even talk to me using your microphone\n\nLet's get started! 🚀`
     }]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -218,7 +218,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const [micAvailable, setMicAvailable] = useState(false);
     const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
-    const [preferredLang, setPreferredLang] = useState<'ur-PK' | 'en-US'>('ur-PK');
+    const [preferredLang, setPreferredLang] = useState<'ur-PK' | 'en-US'>('en-US');
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatAreaRef = useRef<HTMLDivElement>(null);
@@ -254,83 +254,59 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const speak = useCallback((text: string) => {
         if (!voiceEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
 
-        // ── Detect and extract URDU_VOICE tag ──
-        const voiceMatch = text.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
-        let textToSpeak = voiceMatch ? voiceMatch[1] : text;
+        stopSpeaking();
 
-        // Strip tags for speech
-        const clean = textToSpeak
+        // 1. Split text into English and Urdu parts
+        const englishPart = text.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, '').trim();
+        const urduMatch = text.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
+        const urduPart = urduMatch ? urduMatch[1].trim() : '';
+
+        const cleanEnglish = englishPart
             .replace(/```[\s\S]*?```/g, ' Code block. ')
             .replace(/[*_`#]/g, '')
             .replace(/\n+/g, ' ')
-            .trim()
             .slice(0, 500);
 
-        stopSpeaking();
+        const cleanUrdu = urduPart
+            .replace(/[*_`#]/g, '')
+            .replace(/\n+/g, ' ')
+            .slice(0, 500);
 
-        // 1s delay to ensure previous utterance is fully cleared
-        setTimeout(() => {
-            const utt = new SpeechSynthesisUtterance(clean);
-
-            // Detection: check Arabic script or common Roman Urdu markers
-            const urduTokens = ['salam', 'kar', 'karo', 'theek', 'kya', 'kaise', 'bilkul', 'mein', 'hoon', 'aap', 'bhi', 'hai', 'nahi', 'shuru', 'hain', 'ji', 'shabash'];
-            const isUrdu = /[\u0600-\u06FF]/.test(clean) ||
-                preferredLang === 'ur-PK' ||
-                urduTokens.filter(w => clean.toLowerCase().split(/\W+/).includes(w)).length >= 1;
-
-            // Voice Priority: Urdu > Hindi (closest phonetic) > English
-            const doSpeak = () => {
+        // 2. Play English followed by Urdu
+        const playUtterance = (cleanText: string, lang: 'en' | 'ur') => {
+            return new Promise<void>((resolve) => {
+                const utt = new SpeechSynthesisUtterance(cleanText);
                 const voices = window.speechSynthesis.getVoices();
-                if (voices.length > 0) {
-                    let bestVoice = null;
-                    if (isUrdu) {
-                        // Priority 1: Urdu (ur-PK, ur-IN)
-                        bestVoice = voices.find(v => v.lang.startsWith('ur') && /Google|Natural|Premium|Enhanced/.test(v.name))
-                            || voices.find(v => v.lang.startsWith('ur'));
 
-                        // Priority 2: Hindi (hi-IN) - very similar phonetics for Roman Urdu
-                        if (!bestVoice) {
-                            bestVoice = voices.find(v => v.lang.startsWith('hi') && /Google|Natural|Premium|Enhanced/.test(v.name))
-                                || voices.find(v => v.lang.startsWith('hi'));
-                        }
-
-                        utt.lang = bestVoice ? bestVoice.lang : 'hi-IN';
-                        utt.rate = 0.92; // Slightly slower for better clarity in Urdu/Hindi
-                        utt.pitch = 1.0;
-                    } else {
-                        bestVoice = voices.find(v => v.lang.startsWith('en') && /Google|Natural|Premium|Enhanced/.test(v.name))
-                            || voices.find(v => v.lang.startsWith('en'));
-                        utt.lang = 'en-US';
-                        utt.rate = 1.0;
-                        utt.pitch = 1.0;
-                    }
-
-                    if (bestVoice) utt.voice = bestVoice;
+                if (lang === 'en') {
+                    const v = voices.find(v => v.lang.startsWith('en') && /Google|Natural|Premium|Enhanced/.test(v.name)) || voices.find(v => v.lang.startsWith('en'));
+                    if (v) utt.voice = v;
+                    utt.lang = 'en-US';
+                    utt.rate = 1.0;
+                } else {
+                    const v = voices.find(v => v.lang.startsWith('ur')) || voices.find(v => v.lang.startsWith('hi'));
+                    if (v) utt.voice = v;
+                    utt.lang = v ? v.lang : 'hi-IN';
+                    utt.rate = 0.92;
                 }
 
                 utt.onstart = () => setIsSpeaking(true);
-                utt.onend = () => setIsSpeaking(false);
-                utt.onerror = (e) => {
-                    console.error('Speech synthesis internal error:', e);
-                    setIsSpeaking(false);
-                };
-
+                utt.onend = () => { resolve(); };
+                utt.onerror = () => { resolve(); };
                 window.speechSynthesis.speak(utt);
-            };
+            });
+        };
 
-            if (window.speechSynthesis.getVoices().length > 0) {
-                doSpeak();
-            } else {
-                // Handle async voice loading on some mobile browsers
-                window.speechSynthesis.onvoiceschanged = () => {
-                    doSpeak();
-                    window.speechSynthesis.onvoiceschanged = null;
-                };
-                // Fallback timeout
-                setTimeout(doSpeak, 250);
-            }
-        }, 50);
-    }, [voiceEnabled, stopSpeaking, preferredLang]);
+        const runSpeech = async () => {
+            if (cleanEnglish) await playUtterance(cleanEnglish, 'en');
+            if (cleanUrdu) await playUtterance(cleanUrdu, 'ur');
+            setIsSpeaking(false);
+        };
+
+        // Delay to ensure clearing
+        setTimeout(runSpeech, 100);
+
+    }, [voiceEnabled, stopSpeaking]);
 
     // ── Mic setup ────────────────────────────────────────────
     useEffect(() => {
@@ -418,7 +394,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     // ── File ─────────────────────────────────────────────────
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0]; if (!f) return;
-        if (f.size > 5 * 1024 * 1024) { alert('File max 5MB honi chahiye.'); return; }
+        if (f.size > 10 * 1024 * 1024) { alert('File size must be under 10MB.'); return; }
         const reader = new FileReader();
         reader.onload = ev => {
             const dataUrl = ev.target?.result as string;
@@ -449,16 +425,17 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         try {
             const body: Record<string, unknown> = {
                 message: userMsg.content,
-                history: messages.map(m => ({ role: m.role, content: m.content }))
+                history: messages.map(m => ({ role: m.role, content: m.content })),
+                language: preferredLang
             };
             if (snap?.base64) body.file = { name: snap.name, type: snap.type, base64: snap.base64 };
             const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             const data = await res.json();
-            const reply = data.message || 'Jawab nahi mila. Dobara try karein.';
+            const reply = data.message || (preferredLang === 'ur-PK' ? 'Jawab nahi mila. Dobara try karein.' : 'No response received. Please try again.');
             setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', content: reply }]);
             if (voiceEnabled) speak(reply);
         } catch {
-            const err = '⚠️ Internet check karein ya page refresh karein.';
+            const err = preferredLang === 'ur-PK' ? '⚠️ Internet check karein ya page refresh karein.' : '⚠️ Please check your internet or refresh the page.';
             setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', content: err }]);
             if (voiceEnabled) speak(err);
         } finally { setIsLoading(false); }
@@ -468,9 +445,9 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     };
 
-    const statusText = isSpeaking ? '🔊 Bol raha hoon…'
-        : isListening ? (preferredLang === 'ur-PK' ? '🎙️ Urdu sun raha hoon…' : '🎙️ Listening English…')
-            : isLoading ? '⏳ Soch raha hoon…'
+    const statusText = isSpeaking ? '🔊 Speaking…'
+        : isListening ? (preferredLang === 'ur-PK' ? '🎙️ Listening (Urdu)…' : '🎙️ Listening (English)…')
+            : isLoading ? '⏳ Thinking…'
                 : `✅ Online • ${preferredLang === 'ur-PK' ? 'Urdu Voice Mode' : 'English Voice Mode'}`;
 
     // ════════════════════════════════════════════════════════
@@ -528,7 +505,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                         </button>
 
                         <button onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-                            title={voiceEnabled ? 'Awaaz band' : 'Awaaz on'}
+                            title={voiceEnabled ? 'Turn voice off' : 'Turn voice on'}
                             className={`p-2.5 rounded-xl transition-all ${voiceEnabled ? 'bg-violet-500/15 text-violet-400 hover:bg-violet-500/25' : isDarkMode ? 'bg-slate-700 text-slate-500 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
                             {voiceEnabled ? <Volume2 style={{ width: 18, height: 18 }} /> : <VolumeX style={{ width: 18, height: 18 }} />}
                         </button>
@@ -594,7 +571,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                                                 animate={{ y: ['0%', '-55%', '0%'] }}
                                                 transition={{ duration: .55, repeat: Infinity, delay: i * .14, ease: 'easeInOut' }} />
                                         ))}
-                                        <span className={`text-sm font-medium ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Soch raha hoon…</span>
+                                        <span className={`text-sm font-medium ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Thinking…</span>
                                     </div>
                                 </div>
                             </motion.div>
@@ -608,7 +585,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                             <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
                                 onClick={() => scrollToBottom()}
                                 className="sticky bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-violet-500/30 transition-colors active:scale-95">
-                                <ChevronDown className="w-3.5 h-3.5" /> Neeche jao
+                                <ChevronDown className="w-3.5 h-3.5" /> Scroll down
                             </motion.button>
                         )}
                     </AnimatePresence>
@@ -626,7 +603,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                             <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                                 className="flex items-center gap-2 mb-2 text-xs font-bold text-red-400">
                                 <PulseDot color="bg-red-500" />
-                                Sun raha hoon… (bolo ya mic button dobara dabao)
+                                Listening… (speak or tap mic to stop)
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -638,7 +615,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                                 : 'bg-white border-slate-200 focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-500/10'}`}>
 
                             {/* paperclip */}
-                            <button onClick={() => fileInputRef.current?.click()} title="File attach karein"
+                            <button onClick={() => fileInputRef.current?.click()} title="Attach file"
                                 className={`p-2 rounded-xl transition-all shrink-0 ${isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
                                 <Paperclip style={{ width: 17, height: 17 }} />
                             </button>
@@ -657,7 +634,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
                             {/* mic */}
                             {micAvailable && (
-                                <button onClick={toggleListening} title={isListening ? 'Sunna band karo' : 'Mic se bolo'}
+                                <button onClick={toggleListening} title={isListening ? 'Stop listening' : 'Voice input'}
                                     className={`p-2 rounded-xl transition-all shrink-0
                                         ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 animate-pulse'
                                             : isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
@@ -678,13 +655,13 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
                     <p className={`text-center text-[10px] font-semibold uppercase tracking-widest mt-2.5 select-none
                         ${isDarkMode ? 'text-slate-700' : 'text-slate-400'}`}>
-                        {voiceEnabled ? '🔊 Awaaz on' : '🔇 Awaaz off'}
-                        {' • '}Enter se bhejo{' • '}📎 File attach{micAvailable ? ` • 🎙️ Mic (${preferredLang === 'ur-PK' ? 'Urdu' : 'Eng'})` : ''}
+                        {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
+                        {' • '}Enter to send{' • '}📎 Attach File{micAvailable ? ` • 🎙️ Mic (${preferredLang === 'ur-PK' ? 'Urdu' : 'Eng'})` : ''}
                     </p>
                 </div>
 
                 <input ref={fileInputRef} type="file" className="hidden"
-                    accept="image/*,.pdf,.txt,.js,.ts,.jsx,.tsx,.json,.html,.css,.md,.py"
+                    accept="image/*,.pdf,.txt,.js,.ts,.jsx,.tsx,.json,.html,.css,.md,.py,.c,.cpp,.h,.hpp,.java,.go,.rs,.php,.rb,.sql,.sh,.bat,.yaml,.yml"
                     onChange={handleFileChange} />
             </motion.div >
         </>

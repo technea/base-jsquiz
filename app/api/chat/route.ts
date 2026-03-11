@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
     try {
-        const { message, history = [], file } = await req.json();
+        const { message, history = [], file, language } = await req.json();
+        const isUrduEnabled = language === 'ur-PK';
 
         // 1. Keys Gathering
         const rawGeminiKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
@@ -10,34 +11,53 @@ export async function POST(req: Request) {
         const groqKey = process.env.GROQ_API_KEY;
         const deepseekKey = process.env.DEEPSEEK_API_KEY;
 
-        const context = history.map((m: any) => `${m.role === 'user' ? 'Student' : 'Mentor'}: ${m.content}`).join('\n');
-
-        const systemPrompt = `You are a world-class JavaScript Mentor. 
-1. WRITTEN: Always write your main response in PURE, professional English. NO fillers like 'hmm' or 'oh'.
-2. VOICE: At the very end of your response, you MUST provide a natural, casual Roman Urdu (English letters) summary for voice synthesis. Wrap it exactly in this tag: [[URDU_VOICE: your summary here]]. 
-3. REACTION: Use "Well done!" in the English part.
-4. STRUCTURE: 
-   - Short explanation (2-3 lines).
-   - Real-life example.
-   - One MCQ quiz question.
-5. CRITICAL: NO Arabic/Urdu script. Max 10 lines of English. 
-6. FILE ANALYSIS: Analyze any provided files/images in English, but the [[URDU_VOICE]] tag must summarize the findings in Roman Urdu.`;
+        const systemPrompt = `You are an elite Polyglot Coding Mentor. While you specialize in JavaScript, you are an expert in ALL programming languages (Python, C++, Java, Rust, Go, etc.).
+1. ENGLISH FIRST: You MUST write your entire response in professional English.
+2. FILE/CODE ANALYSIS: If a file or code block is provided, you MUST:
+   - Identify the programming language.
+   - Read and explain the logic of the code thoroughly.
+   - Identify any bugs, security flaws, or performance issues.
+   - Provide a "Result" section where you explain what the code does or what its output would be.
+3. POLYGLOT CAPABILITY: If the student uploads a Python or C++ file, do not just stay limited to JS. Analyze the provided language with expert precision.
+4. CODE EXPLANATION (CRITICAL): Always explain code line-by-line in English.
+5. URDU SUMMARY: ${isUrduEnabled 
+    ? "ONLY at the absolute end, provide a single sentence summary in Roman Urdu (English letters) wrapped in [[URDU_VOICE: summary here]]." 
+    : "DO NOT include any Urdu voice tags or summary. Pure English only."}
+6. STRUCTURE: 
+   - Direct Analysis/Result (English).
+   - Code Explanation & Improvements.
+   - Encouragement & One MCQ quiz question.
+7. RESTRICTIONS: Max 15 lines of total text (excluding code blocks). No Arabic/Urdu script.`;
 
         let aiMessage = "";
         let success = false;
 
-        // --- 1. Try Gemini (First Priority) - Supports Files ---
+        // Ensure mime_type is valid for Gemini (fallback to text/plain for code files)
+        const getMimeType = (type: string, name: string) => {
+            if (type && type !== 'application/octet-stream') return type;
+            const ext = name.split('.').pop()?.toLowerCase();
+            const map: Record<string, string> = {
+                'js': 'text/javascript', 'ts': 'text/typescript', 'py': 'text/x-python',
+                'c': 'text/x-c', 'cpp': 'text/x-c++', 'java': 'text/x-java',
+                'html': 'text/html', 'css': 'text/css', 'json': 'application/json',
+                'md': 'text/markdown', 'sh': 'text/x-shellscript', 'sql': 'text/x-sql'
+            };
+            return map[ext || ''] || 'text/plain';
+        };
+
+        const context = history.map((m: any) => `${m.role === 'user' ? 'Student' : 'Mentor'}: ${m.content}`).join('\n');
+
+        // --- 1. Try Gemini (Priority) - Best for Image/File Analysis ---
         if (!success && geminiKeys.length > 0) {
             const apiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
-            const model = "gemini-1.5-flash"; // Better for file analysis
+            const model = "gemini-2.0-flash";
             try {
                 const parts: any[] = [{ text: `${systemPrompt}\n\nCONTEXT:\n${context}\n\nSTUDENT: "${message}"` }];
 
-                // Add file part if exists
                 if (file?.base64 && file?.type) {
                     parts.push({
                         inline_data: {
-                            mime_type: file.type,
+                            mime_type: getMimeType(file.type, file.name),
                             data: file.base64
                         }
                     });
@@ -54,9 +74,9 @@ export async function POST(req: Request) {
                 if (geminiRes.ok && geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
                     aiMessage = geminiData.candidates[0].content.parts[0].text;
                     success = true;
-                    console.log(`[AI Chat] Gemini (${model}) Success`);
+                    console.log(`[AI Chat] Gemini 2.0 Success`);
                 }
-            } catch (e) { console.warn("[AI Chat] Gemini failed"); }
+            } catch (e) { console.warn("[AI Chat] Gemini 2.0 failed"); }
         }
 
         // --- 2. Try Groq (Fallback) ---
