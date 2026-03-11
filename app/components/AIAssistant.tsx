@@ -144,7 +144,9 @@ function renderInline(text: string) {
 }
 
 function MessageContent({ content, isDark }: { content: string; isDark: boolean }) {
-    const parts = parseMessage(content);
+    // ── Strip URDU_VOICE tag from display ──
+    const displayContent = content.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, '').trim();
+    const parts = parseMessage(displayContent);
     return (
         <div>
             {parts.map((p, i) =>
@@ -205,7 +207,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
     const [messages, setMessages] = useState<Message[]>([{
         id: '1', role: 'assistant',
-        content: `Hello! 👋 I am your **AI JavaScript Mentor**.\n\nI'm here to help you master JavaScript. You can ask me anything about JS:\n\n- 📌 I'll explain in simple English or Urdu/Hindi\n- 💻 Provided with working code examples\n- 📎 I can also analyze your files and images\n- 🎙️ You can even talk to me using your microphone\n\nLet's get started! 🚀`
+        content: `Hello! 👋 I am your **AI JavaScript Mentor**.\n\nI'm here to help you master JavaScript. You can ask me anything about JS:\n\n- 📌 I'll explain in simple English\n- 💻 Provided with working code examples\n- 📎 I can also analyze your files and images\n- 🎙️ You can even talk to me using your microphone\n\nLet's get started! 🚀 [[URDU_VOICE: Salam! Main aapka AI JavaScript mentor hoon. Aap mujhse JS ke baare mein kuch bhi pooch sakte hain. Shuru karte hain!]]`
     }]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -252,8 +254,12 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const speak = useCallback((text: string) => {
         if (!voiceEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
 
-        // Clean text for speech
-        const clean = text
+        // ── Detect and extract URDU_VOICE tag ──
+        const voiceMatch = text.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
+        let textToSpeak = voiceMatch ? voiceMatch[1] : text;
+
+        // Strip tags for speech
+        const clean = textToSpeak
             .replace(/```[\s\S]*?```/g, ' Code block. ')
             .replace(/[*_`#]/g, '')
             .replace(/\n+/g, ' ')
@@ -465,7 +471,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const statusText = isSpeaking ? '🔊 Bol raha hoon…'
         : isListening ? (preferredLang === 'ur-PK' ? '🎙️ Urdu sun raha hoon…' : '🎙️ Listening English…')
             : isLoading ? '⏳ Soch raha hoon…'
-                : `✅ Online • ${preferredLang === 'ur-PK' ? 'Urdu Mode' : 'English Mode'}`;
+                : `✅ Online • ${preferredLang === 'ur-PK' ? 'Urdu Voice Mode' : 'English Voice Mode'}`;
 
     // ════════════════════════════════════════════════════════
     //  RENDER
@@ -512,13 +518,13 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     <div className="flex items-center gap-2">
                         {/* Language Toggle */}
                         <button onClick={() => setPreferredLang(l => l === 'ur-PK' ? 'en-US' : 'ur-PK')}
-                            title={preferredLang === 'ur-PK' ? 'Urdu (Listen/Speak)' : 'English (Listen/Speak)'}
+                            title={preferredLang === 'ur-PK' ? 'Urdu Voice (Preferred)' : 'English Voice (Preferred)'}
                             className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-1
                                 ${preferredLang === 'ur-PK'
                                     ? 'bg-violet-500/15 border-violet-500/30 text-violet-400'
                                     : isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${preferredLang === 'ur-PK' ? 'bg-violet-400' : 'bg-slate-400'}`} />
-                            {preferredLang === 'ur-PK' ? 'URDU' : 'ENG'}
+                            {preferredLang === 'ur-PK' ? 'URDU VOICE' : 'ENG VOICE'}
                         </button>
 
                         <button onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
