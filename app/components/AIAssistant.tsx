@@ -182,18 +182,20 @@ function QuizComponent({ questions, onComplete }: { questions: QuizQuestion[], o
             
             <div className="space-y-2 mb-4">
                 {currentQuestion.options.map(option => (
-                    <button
+                    <motion.button
                         key={option.id}
+                        whileHover={!answered ? { scale: 1.02, x: 5 } : {}}
+                        whileTap={!answered ? { scale: 0.98 } : {}}
                         onClick={() => handleOptionSelect(option.id, option.isCorrect)}
                         disabled={answered}
                         className={`w-full text-left p-3 rounded-xl text-sm transition-all
-                            ${answered && option.isCorrect ? 'bg-green-500/20 border-green-500/50' : ''}
-                            ${answered && selectedOption === option.id && !option.isCorrect ? 'bg-red-500/20 border-red-500/50' : ''}
-                            ${!answered ? 'hover:bg-violet-500/10 border border-violet-500/30' : ''}
-                            ${selectedOption === option.id ? 'border-2' : 'border'}`}
+                            ${answered && option.isCorrect ? 'bg-green-500/20 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : ''}
+                            ${answered && selectedOption === option.id && !option.isCorrect ? 'bg-red-500/20 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : ''}
+                            ${!answered ? 'hover:bg-violet-500/10 border border-violet-500/30 hover:border-violet-500/60' : ''}
+                            ${selectedOption === option.id ? 'border-2 ring-2 ring-violet-500/20' : 'border'}`}
                     >
                         {option.text}
-                    </button>
+                    </motion.button>
                 ))}
             </div>
             
@@ -654,13 +656,24 @@ Let's start learning! 🚀`
             >
                 {/* Header */}
                 <div className={`px-5 py-4 border-b flex items-center justify-between shrink-0
-                    ${isDarkMode ? 'border-slate-800 bg-slate-800/70' : 'border-slate-100 bg-slate-50'}`}>
+                    ${isDarkMode ? 'border-slate-800 bg-slate-900/40 backdrop-blur-md' : 'border-slate-100 bg-white/40 backdrop-blur-md'}`}>
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                            <motion.div 
+                                animate={{ 
+                                    y: [0, -4, 0],
+                                    rotate: [0, 5, -5, 0]
+                                }}
+                                transition={{ 
+                                    duration: 4, 
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                }}
+                                className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30 border border-white/10"
+                            >
                                 <Bot className="w-5 h-5 text-white" />
-                            </div>
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-emerald-400" />
+                            </motion.div>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
                         </div>
                         <div>
                             <h2 className={`font-extrabold text-base flex items-center gap-1.5 leading-none mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -674,16 +687,18 @@ Let's start learning! 🚀`
                     </div>
                     <div className="flex items-center gap-2">
                         {/* Quiz Mode Toggle */}
-                        <button 
+                        <motion.button 
+                            whileHover={{ scale: 1.1, rotate: 10 }}
+                            whileTap={{ scale: 0.9 }}
                             onClick={() => setQuizMode(!quizMode)}
                             title={quizMode ? 'Exit Quiz Mode' : 'Enter Quiz Mode'}
-                            className={`p-2.5 rounded-xl transition-all
+                            className={`p-2.5 rounded-xl transition-all shadow-sm
                                 ${quizMode 
-                                    ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25' 
-                                    : isDarkMode ? 'bg-slate-700 text-slate-500 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                    ? 'bg-amber-500 text-white shadow-amber-500/30' 
+                                    : isDarkMode ? 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >
                             <Brain className="w-4 h-4" />
-                        </button>
+                        </motion.button>
 
                         {/* Language Toggle */}
                         <button 
@@ -697,18 +712,23 @@ Let's start learning! 🚀`
                             {preferredLang === 'ur-PK' ? 'اردو' : 'ENG'}
                         </button>
 
-                        <button 
+                        <motion.button 
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
                             onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
                             title={voiceEnabled ? 'Turn voice off' : 'Turn voice on'}
-                            className={`p-2.5 rounded-xl transition-all ${voiceEnabled ? 'bg-violet-500/15 text-violet-400 hover:bg-violet-500/25' : isDarkMode ? 'bg-slate-700 text-slate-500 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
+                            className={`p-2.5 rounded-xl transition-all ${voiceEnabled ? 'bg-violet-500/15 text-violet-400 hover:bg-violet-500/25' : isDarkMode ? 'bg-slate-800 text-slate-500 hover:bg-slate-600 border border-slate-700' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
                             {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                        </button>
+                        </motion.button>
                         
                         {onClose && (
-                            <button onClick={onClose}
-                                className={`p-2.5 rounded-xl transition-all ${isDarkMode ? 'text-slate-500 hover:bg-slate-700 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}>
+                            <motion.button 
+                                whileHover={{ scale: 1.1, rotate: 90 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={onClose}
+                                className={`p-2.5 rounded-xl transition-all ${isDarkMode ? 'text-slate-500 hover:bg-slate-800 hover:text-white border border-transparent hover:border-slate-700' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}>
                                 <X className="w-4 h-4" />
-                            </button>
+                            </motion.button>
                         )}
                     </div>
                 </div>
@@ -807,19 +827,23 @@ Let's start learning! 🚀`
                 <div className={`px-4 sm:px-5 pt-3 pb-4 border-t shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/90'}`}>
                     
                     {/* Quick action buttons */}
-                    <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-                        <button
+                    <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
+                        <motion.button
+                            whileHover={{ scale: 1.05, backgroundColor: "rgba(139, 92, 246, 0.2)" }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => setInput("Explain this code line by line: ")}
-                            className="px-3 py-1.5 text-xs rounded-full bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors whitespace-nowrap flex items-center gap-1"
+                            className="px-4 py-2 text-xs font-bold rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:border-violet-500/40 transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-sm"
                         >
-                            <Code2 className="w-3 h-3" /> Code Explanation
-                        </button>
-                        <button
+                            <Code2 className="w-3.5 h-3.5" /> Code Explanation
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.05, backgroundColor: "rgba(245, 158, 11, 0.2)" }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => setInput("Generate a 5-question quiz about ")}
-                            className="px-3 py-1.5 text-xs rounded-full bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors whitespace-nowrap flex items-center gap-1"
+                            className="px-4 py-2 text-xs font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:border-amber-500/40 transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-sm"
                         >
-                            <Brain className="w-3 h-3" /> Generate Quiz
-                        </button>
+                            <Brain className="w-3.5 h-3.5" /> Generate Quiz
+                        </motion.button>
                     </div>
 
                     <AnimatePresence>
@@ -908,16 +932,17 @@ Let's start learning! 🚀`
                             )}
                         </div>
 
-                        {/* Send button */}
-                        <button 
+                        <motion.button 
+                            whileHover={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 1.1, rotate: -5 }}
+                            whileTap={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 0.9, rotate: 5 }}
                             onClick={handleSend} 
                             disabled={(!input.trim() && !attachedFile) || isLoading}
                             className={`p-3.5 rounded-2xl transition-all shrink-0 shadow-lg active:scale-95
                                 ${(!input.trim() && !attachedFile) || isLoading
-                                    ? isDarkMode ? 'bg-slate-700 text-slate-600' : 'bg-slate-100 text-slate-300'
-                                    : 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white hover:from-violet-600 hover:to-indigo-700 shadow-violet-500/30'}`}>
-                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                        </button>
+                                    ? isDarkMode ? 'bg-slate-800 text-slate-700 border border-slate-700' : 'bg-slate-100 text-slate-300'
+                                    : 'bg-gradient-to-br from-violet-500 via-indigo-600 to-purple-600 text-white hover:shadow-violet-500/40 border border-white/10'}`}>
+                            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+                        </motion.button>
                     </div>
 
                     <p className={`text-center text-[10px] font-semibold uppercase tracking-widest mt-2.5 select-none
