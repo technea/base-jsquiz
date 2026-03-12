@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Send, Bot, User, Volume2, VolumeX, Loader2, Sparkles,
-    X, Mic, MicOff, Paperclip, FileText, Code2, Copy, Check, ChevronDown
+    X, Mic, MicOff, Paperclip, FileText, Code2, Copy, Check, 
+    ChevronDown, Brain, BookOpen, HelpCircle
 } from 'lucide-react';
 
 // ════════════════════════════════════════════════════════════════
@@ -16,6 +17,7 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     file?: { name: string; type: string; preview?: string };
+    type?: 'code_explanation' | 'quiz' | 'normal';
 }
 
 interface AttachedFile {
@@ -30,15 +32,29 @@ interface AIAssistantProps {
     onClose?: () => void;
 }
 
+interface QuizOption {
+    id: string;
+    text: string;
+    isCorrect: boolean;
+}
+
+interface QuizQuestion {
+    id: string;
+    question: string;
+    options: QuizOption[];
+    explanation: string;
+}
+
 // ════════════════════════════════════════════════════════════════
-//  SYNTAX HIGHLIGHTER  (zero deps)
+//  SYNTAX HIGHLIGHTER
 // ════════════════════════════════════════════════════════════════
 
 function escapeHtml(s: string) {
     if (!s) return '';
     return s
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function highlightCode(raw: string, lang: string): string {
@@ -46,49 +62,33 @@ function highlightCode(raw: string, lang: string): string {
 
     if (['js', 'javascript', 'ts', 'typescript', 'jsx', 'tsx'].includes(lang)) {
         c = c
-            .replace(/(\/\/[^\n]*)/g, '<s class="hc">$1</s>')
-            .replace(/(\/\*[\s\S]*?\*\/)/g, '<s class="hc">$1</s>')
-            .replace(/(&quot;.*?&quot;|&#x27;.*?&#x27;|`[^`]*`)/g, '<s class="hs">$1</s>')
-            .replace(/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|async|await|try|catch|finally|throw|import|export|default|from|of|in|extends|super|yield|delete|void|null|undefined|true|false|NaN|Infinity)\b/g,
-                '<s class="hk">$1</s>')
-            .replace(/\b(-?\d+\.?\d*)\b/g, '<s class="hn">$1</s>')
-            .replace(/\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g, '<s class="hf">$1</s>')
-            .replace(/([=!<>+\-*/%&|^~?:]+)/g, '<s class="ho">$1</s>');
-    } else if (['css', 'scss'].includes(lang)) {
-        c = c
-            .replace(/(\/\*[\s\S]*?\*\/)/g, '<s class="hc">$1</s>')
-            .replace(/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/g, '<s class="hn">$1</s>')
-            .replace(/(&quot;[^&]*&quot;|&#x27;[^&]*&#x27;)/g, '<s class="hs">$1</s>')
-            .replace(/([.#]?[a-zA-Z_-][a-zA-Z0-9_-]*)(?=\s*\{)/g, '<s class="hf">$1</s>')
-            .replace(/\b([a-zA-Z-]+)(?=\s*:)/g, '<s class="hk">$1</s>');
-    } else if (['html', 'xml'].includes(lang)) {
-        c = c
-            .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<s class="hc">$1</s>')
-            .replace(/(&lt;\/?)([\w-]+)/g, '$1<s class="hk">$2</s>')
-            .replace(/([\w-]+)(?=\s*=)/g, '<s class="hf">$1</s>')
-            .replace(/(&quot;[^&]*&quot;)/g, '<s class="hs">$1</s>');
-    } else if (lang === 'json') {
-        c = c
-            .replace(/(&quot;[^&]*&quot;)\s*:/g, '<s class="hk">$1</s>:')
-            .replace(/:\s*(&quot;[^&]*&quot;)/g, ': <s class="hs">$1</s>')
-            .replace(/\b(true|false|null)\b/g, '<s class="hn">$1</s>')
-            .replace(/\b(-?\d+\.?\d*)\b/g, '<s class="hn">$1</s>');
+            .replace(/(\/\/[^\n]*)/g, '<span class="hljs-comment">$1</span>')
+            .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="hljs-comment">$1</span>')
+            .replace(/(&quot;.*?&quot;|&#39;.*?&#39;|`[^`]*`)/g, '<span class="hljs-string">$1</span>')
+            .replace(/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|async|await|try|catch|finally|throw|import|export|default|from|of|in|extends|super)\b/g,
+                '<span class="hljs-keyword">$1</span>')
+            .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="hljs-number">$1</span>')
+            .replace(/\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g, '<span class="hljs-function">$1</span>')
+            .replace(/([=!<>+\-*/%&|^~?:]+)/g, '<span class="hljs-operator">$1</span>');
     }
     return c;
 }
 
 // ════════════════════════════════════════════════════════════════
-//  CODE BLOCK
+//  CODE BLOCK WITH LINE NUMBERS
 // ════════════════════════════════════════════════════════════════
 
-function CodeBlock({ code, lang }: { code: string; lang: string }) {
+function CodeBlock({ code, lang, showLineNumbers = true }: { code: string; lang: string; showLineNumbers?: boolean }) {
     const [copied, setCopied] = useState(false);
+    const lines = code.split('\n');
+    
     const copy = () => {
         navigator.clipboard.writeText(code).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         });
     };
+
     return (
         <div className="my-3 rounded-2xl overflow-hidden border border-slate-700 bg-[#0d1117] text-left">
             <div className="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-slate-700/80">
@@ -107,95 +107,208 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
                         : <><Copy className="w-3.5 h-3.5" />Copy</>}
                 </button>
             </div>
-            <div className="overflow-x-auto p-4">
-                <pre className="text-[13px] leading-relaxed font-mono m-0">
-                    <code dangerouslySetInnerHTML={{ __html: highlightCode(code, lang) }} />
-                </pre>
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                    <tbody>
+                        {lines.map((line, index) => (
+                            <tr key={index} className="hover:bg-slate-800/50">
+                                {showLineNumbers && (
+                                    <td className="text-right text-slate-500 text-xs select-none px-2 py-0.5 border-r border-slate-700/60 w-12">
+                                        {index + 1}
+                                    </td>
+                                )}
+                                <td className="px-3 py-0.5">
+                                    <pre className="text-[13px] leading-relaxed font-mono m-0">
+                                        <code dangerouslySetInnerHTML={{ 
+                                            __html: line ? highlightCode(line, lang) : '<br/>' 
+                                        }} />
+                                    </pre>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
 }
 
 // ════════════════════════════════════════════════════════════════
-//  MESSAGE PARSER  (text ↔ code blocks)
+//  QUIZ COMPONENT
 // ════════════════════════════════════════════════════════════════
 
-type Part = { type: 'text'; content: string } | { type: 'code'; content: string; lang: string };
+function QuizComponent({ questions, onComplete }: { questions: QuizQuestion[], onComplete?: (score: number) => void }) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [showExplanation, setShowExplanation] = useState(false);
+    const [score, setScore] = useState(0);
+    const [answered, setAnswered] = useState(false);
 
-function parseMessage(text: string): Part[] {
-    const parts: Part[] = [];
-    const re = /```(\w*)\n?([\s\S]*?)```/g;
-    let cursor = 0, m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
-        if (m.index > cursor) parts.push({ type: 'text', content: text.slice(cursor, m.index) });
-        parts.push({ type: 'code', lang: m[1] || 'javascript', content: m[2].trim() });
-        cursor = m.index + m[0].length;
-    }
-    if (cursor < text.length) parts.push({ type: 'text', content: text.slice(cursor) });
-    return parts;
-}
+    const currentQuestion = questions[currentIndex];
+    
+    const handleOptionSelect = (optionId: string, isCorrect: boolean) => {
+        if (answered) return;
+        
+        setSelectedOption(optionId);
+        setAnswered(true);
+        setShowExplanation(true);
+        
+        if (isCorrect) {
+            setScore(prev => prev + 1);
+        }
+    };
 
-function renderInline(text: string) {
-    return text.split(/(\*\*[^*]+\*\*)/g).map((seg, i) =>
-        seg.startsWith('**') && seg.endsWith('**')
-            ? <strong key={i} className="font-bold">{seg.slice(2, -2)}</strong>
-            : <span key={i}>{seg}</span>
-    );
-}
+    const handleNext = () => {
+        if (currentIndex < questions.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setSelectedOption(null);
+            setShowExplanation(false);
+            setAnswered(false);
+        } else {
+            // Quiz completed
+            onComplete?.(score);
+        }
+    };
 
-function MessageContent({ content, isDark }: { content: string; isDark: boolean }) {
-    // ── Strip URDU_VOICE tag from display ──
-    const displayContent = content.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, '').trim();
-    const parts = parseMessage(displayContent);
     return (
-        <div>
-            {parts.map((p, i) =>
-                p.type === 'code'
-                    ? <CodeBlock key={i} code={p.content} lang={p.lang} />
-                    : <p key={i} className={`leading-relaxed whitespace-pre-wrap text-sm sm:text-[15px] ${i > 0 ? 'mt-2' : ''}`}>
-                        {renderInline(p.content)}
-                    </p>
+        <div className="my-4 rounded-2xl border border-violet-500/30 bg-violet-500/5 p-4">
+            <div className="flex items-center gap-2 mb-3">
+                <Brain className="w-5 h-5 text-violet-400" />
+                <span className="font-bold text-sm">Quiz Question {currentIndex + 1}/{questions.length}</span>
+                <span className="ml-auto text-xs font-medium text-violet-400">Score: {score}/{questions.length}</span>
+            </div>
+            
+            <p className="text-sm font-medium mb-4">{currentQuestion.question}</p>
+            
+            <div className="space-y-2 mb-4">
+                {currentQuestion.options.map(option => (
+                    <button
+                        key={option.id}
+                        onClick={() => handleOptionSelect(option.id, option.isCorrect)}
+                        disabled={answered}
+                        className={`w-full text-left p-3 rounded-xl text-sm transition-all
+                            ${answered && option.isCorrect ? 'bg-green-500/20 border-green-500/50' : ''}
+                            ${answered && selectedOption === option.id && !option.isCorrect ? 'bg-red-500/20 border-red-500/50' : ''}
+                            ${!answered ? 'hover:bg-violet-500/10 border border-violet-500/30' : ''}
+                            ${selectedOption === option.id ? 'border-2' : 'border'}`}
+                    >
+                        {option.text}
+                    </button>
+                ))}
+            </div>
+            
+            {showExplanation && (
+                <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-3 p-3 rounded-xl bg-slate-800/50 text-xs"
+                >
+                    <span className="font-bold block mb-1">Explanation:</span>
+                    {currentQuestion.explanation}
+                </motion.div>
+            )}
+            
+            {answered && (
+                <button
+                    onClick={handleNext}
+                    className="w-full py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors"
+                >
+                    {currentIndex < questions.length - 1 ? 'Next Question →' : 'Complete Quiz'}
+                </button>
             )}
         </div>
     );
 }
 
 // ════════════════════════════════════════════════════════════════
-//  FILE BADGE
+//  MESSAGE PARSER
 // ════════════════════════════════════════════════════════════════
 
-function FileBadge({ file, onRemove }: { file: AttachedFile; onRemove: () => void }) {
-    const isImg = file.type.startsWith('image/');
-    return (
-        <motion.div initial={{ opacity: 0, y: 6, scale: .95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: .9 }}
-            className="flex items-center gap-2.5 bg-violet-500/10 border border-violet-400/25 rounded-xl px-3 py-2 mb-2.5 w-fit max-w-full">
-            {isImg && file.preview
-                ? <img src={file.preview} className="w-9 h-9 rounded-lg object-cover border border-violet-400/20" alt="" />
-                : <div className="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
-                    <FileText className="w-4 h-4 text-violet-400" />
-                </div>}
-            <div className="min-w-0">
-                <p className="text-xs font-bold text-violet-300 truncate max-w-[200px]">{file.name}</p>
-                <p className="text-[10px] text-violet-400/60 font-medium">{isImg ? 'Image' : 'File'} • Ready to send</p>
-            </div>
-            <button onClick={onRemove}
-                className="w-5 h-5 ml-1 rounded-full bg-violet-400/20 flex items-center justify-center hover:bg-red-500/70 hover:text-white text-violet-300 transition-all shrink-0">
-                <X className="w-3 h-3" />
-            </button>
-        </motion.div>
-    );
+type Part = { type: 'text'; content: string } | { type: 'code'; content: string; lang: string } | { type: 'quiz'; questions: QuizQuestion[] };
+
+function parseMessage(text: string): Part[] {
+    const parts: Part[] = [];
+    
+    // Parse quiz format
+    const quizRegex = /\[\[QUIZ:START\]\]([\s\S]*?)\[\[QUIZ:END\]\]/g;
+    let quizMatch;
+    let lastIndex = 0;
+    
+    while ((quizMatch = quizRegex.exec(text)) !== null) {
+        // Add text before quiz
+        if (quizMatch.index > lastIndex) {
+            parts.push({ type: 'text', content: text.slice(lastIndex, quizMatch.index) });
+        }
+        
+        // Parse quiz questions
+        try {
+            const quizData = JSON.parse(quizMatch[1]);
+            if (Array.isArray(quizData) && quizData.length > 0) {
+                parts.push({ type: 'quiz', questions: quizData });
+            }
+        } catch (e) {
+            // If quiz parsing fails, treat as text
+            parts.push({ type: 'text', content: quizMatch[0] });
+        }
+        
+        lastIndex = quizMatch.index + quizMatch[0].length;
+    }
+    
+    // Parse remaining text for code blocks
+    if (lastIndex < text.length) {
+        const remainingText = text.slice(lastIndex);
+        const codeRegex = /```(\w*)\n?([\s\S]*?)```/g;
+        let cursor = 0;
+        let codeMatch;
+        
+        while ((codeMatch = codeRegex.exec(remainingText)) !== null) {
+            if (codeMatch.index > cursor) {
+                parts.push({ type: 'text', content: remainingText.slice(cursor, codeMatch.index) });
+            }
+            parts.push({ type: 'code', lang: codeMatch[1] || 'javascript', content: codeMatch[2].trim() });
+            cursor = codeMatch.index + codeMatch[0].length;
+        }
+        
+        if (cursor < remainingText.length) {
+            parts.push({ type: 'text', content: remainingText.slice(cursor) });
+        }
+    }
+    
+    return parts;
 }
 
-// ════════════════════════════════════════════════════════════════
-//  PULSE DOT
-// ════════════════════════════════════════════════════════════════
+function renderInline(text: string) {
+    const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+    return parts.map((seg, i) => {
+        if (seg.startsWith('**') && seg.endsWith('**')) {
+            return <strong key={i} className="font-bold">{seg.slice(2, -2)}</strong>;
+        } else if (seg.startsWith('`') && seg.endsWith('`')) {
+            return <code key={i} className="px-1.5 py-0.5 bg-slate-800 rounded-md text-violet-300 text-xs">{seg.slice(1, -1)}</code>;
+        }
+        return <span key={i}>{seg}</span>;
+    });
+}
 
-function PulseDot({ color }: { color: string }) {
+function MessageContent({ content, isDark }: { content: string; isDark: boolean }) {
+    const displayContent = content.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, '').trim();
+    const parts = parseMessage(displayContent);
+    
     return (
-        <span className="relative flex h-2 w-2">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${color}`} />
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${color}`} />
-        </span>
+        <div>
+            {parts.map((p, i) => {
+                if (p.type === 'code') {
+                    return <CodeBlock key={i} code={p.content} lang={p.lang} />;
+                } else if (p.type === 'quiz') {
+                    return <QuizComponent key={i} questions={p.questions} />;
+                } else {
+                    return (
+                        <p key={i} className={`leading-relaxed whitespace-pre-wrap text-sm sm:text-[15px] ${i > 0 ? 'mt-2' : ''}`}>
+                            {renderInline(p.content)}
+                        </p>
+                    );
+                }
+            })}
+        </div>
     );
 }
 
@@ -204,11 +317,27 @@ function PulseDot({ color }: { color: string }) {
 // ════════════════════════════════════════════════════════════════
 
 export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
-
     const [messages, setMessages] = useState<Message[]>([{
-        id: '1', role: 'assistant',
-        content: `Hello! 👋 I am your **AI JavaScript Mentor**.\n\nI'm here to help you master JavaScript. You can ask me anything about JS:\n\n- 📌 I'll explain in simple English\n- 💻 Provided with working code examples (with explanations)\n- 📎 I can also analyze your files and images\n- 🎙️ You can even talk to me using your microphone\n\nLet's get started! 🚀`
+        id: '1', 
+        role: 'assistant',
+        type: 'normal',
+        content: `Hello! 👋 I am your **AI JavaScript Mentor** with advanced capabilities!
+
+I can help you with:
+
+📝 **Code Explanation**: Just paste any JavaScript code and I'll explain it line by line with voice
+❓ **Quizzes**: Ask me to generate quizzes on any topic
+🔊 **Voice Support**: Both English and Urdu voice explanations
+📎 **File Analysis**: Upload code files for analysis
+
+Try these commands:
+• "Explain this code: [paste your code]"
+• "Generate a quiz about JavaScript closures"
+• "Create a 5-question quiz on React hooks"
+
+Let's start learning! 🚀`
     }]);
+
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -219,13 +348,14 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
     const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
     const [preferredLang, setPreferredLang] = useState<'ur-PK' | 'en-US'>('en-US');
+    const [quizMode, setQuizMode] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatAreaRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // ── Scroll ────────────────────────────────────────────────
+    // Scroll to bottom
     const scrollToBottom = useCallback((smooth = true) => {
         messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
     }, []);
@@ -240,12 +370,11 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         return () => el.removeEventListener('scroll', fn);
     }, []);
 
-    // ── Speech Synthesis ──────────────────────────────────────
+    // Speech Synthesis
     const stopSpeaking = useCallback(() => {
         if (typeof window === 'undefined' || !window.speechSynthesis) return;
         try {
             window.speechSynthesis.cancel();
-            // Optional: reset the queue on some browsers
             if (window.speechSynthesis.paused) window.speechSynthesis.resume();
         } catch (e) { console.error('Speech stop error:', e); }
         setIsSpeaking(false);
@@ -256,7 +385,6 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
         stopSpeaking();
 
-        // 1. Split text into English and Urdu parts
         const englishPart = text.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, '').trim();
         const urduMatch = text.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
         const urduPart = urduMatch ? urduMatch[1].trim() : '';
@@ -272,7 +400,6 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
             .replace(/\n+/g, ' ')
             .slice(0, 500);
 
-        // 2. Play English followed by Urdu
         const playUtterance = (cleanText: string, lang: 'en' | 'ur') => {
             return new Promise<void>((resolve) => {
                 const utt = new SpeechSynthesisUtterance(cleanText);
@@ -303,12 +430,10 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
             setIsSpeaking(false);
         };
 
-        // Delay to ensure clearing
         setTimeout(runSpeech, 100);
-
     }, [voiceEnabled, stopSpeaking]);
 
-    // ── Mic setup ────────────────────────────────────────────
+    // Mic setup
     useEffect(() => {
         const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         setMicAvailable(!!SR);
@@ -317,10 +442,16 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
 
     const toggleListening = () => {
         const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SR) { alert('Aapka browser mic support nahi karta. Chrome ya Edge use karein.'); return; }
+        if (!SR) { 
+            alert('Your browser does not support microphone input. Please use Chrome or Edge.'); 
+            return;
+        }
 
         const safe = ['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'https:';
-        if (!safe) { alert('⚠️ Mic sirf HTTPS ya Localhost pe kaam karta hai.'); return; }
+        if (!safe) { 
+            alert('⚠️ Microphone only works on HTTPS or Localhost.'); 
+            return;
+        }
 
         if (isListening) {
             try { recognition?.stop(); } catch { }
@@ -333,7 +464,6 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         rec.continuous = false;
         rec.interimResults = true;
 
-        // Language setup with fallback
         const primaryLang = preferredLang === 'ur-PK' ? 'ur-PK' : 'en-US';
         const fallbackLang = preferredLang === 'ur-PK' ? 'hi-IN' : 'en-GB';
 
@@ -366,13 +496,13 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
             }
 
             if (e.error === 'not-allowed') {
-                alert('⚠️ Mic blocked. Browser settings (lock icon) mein Mic allow karein.');
+                alert('⚠️ Microphone blocked. Please allow microphone access in browser settings.');
             } else if (e.error === 'network') {
-                alert('⚠️ Internet connection ya API key issue.');
+                alert('⚠️ Network issue or API key problem.');
             } else if (e.error === 'no-speech') {
                 // Ignore silent errors
             } else {
-                alert(`Mic Error: ${e.error}. Try switching language (URDU/ENG).`);
+                alert(`Microphone Error: ${e.error}. Try switching language.`);
             }
             setIsListening(false);
         };
@@ -391,15 +521,22 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         }
     };
 
-    // ── File ─────────────────────────────────────────────────
+    // File handling
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const f = e.target.files?.[0]; if (!f) return;
-        if (f.size > 10 * 1024 * 1024) { alert('File size must be under 10MB.'); return; }
+        const f = e.target.files?.[0]; 
+        if (!f) return;
+        
+        if (f.size > 10 * 1024 * 1024) { 
+            alert('File size must be under 10MB.'); 
+            return; 
+        }
+        
         const reader = new FileReader();
         reader.onload = ev => {
             const dataUrl = ev.target?.result as string;
             setAttachedFile({
-                name: f.name, type: f.type,
+                name: f.name, 
+                type: f.type,
                 preview: f.type.startsWith('image/') ? dataUrl : undefined,
                 base64: dataUrl.split(',')[1]
             });
@@ -408,71 +545,114 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
         e.target.value = '';
     };
 
-    // ── Send ─────────────────────────────────────────────────
+    // Send message
     const handleSend = async () => {
         if (!input.trim() && !attachedFile) return;
+        
         if (voiceEnabled && window.speechSynthesis) {
-            try { const p = new SpeechSynthesisUtterance(''); p.volume = 0; window.speechSynthesis.speak(p); } catch { }
+            try { 
+                const p = new SpeechSynthesisUtterance(''); 
+                p.volume = 0; 
+                window.speechSynthesis.speak(p); 
+            } catch { }
         }
+        
         const snap = attachedFile;
         const userMsg: Message = {
-            id: Date.now().toString(), role: 'user',
+            id: Date.now().toString(), 
+            role: 'user',
             content: input.trim() || `[File: ${snap?.name}]`,
             file: snap ? { name: snap.name, type: snap.type, preview: snap.preview } : undefined
         };
+        
         setMessages(p => [...p, userMsg]);
-        setInput(''); setAttachedFile(null); setIsLoading(true);
+        setInput(''); 
+        setAttachedFile(null); 
+        setIsLoading(true);
+
         try {
             const body: Record<string, unknown> = {
                 message: userMsg.content,
                 history: messages.map(m => ({ role: m.role, content: m.content })),
-                language: preferredLang
+                language: preferredLang,
+                mode: quizMode ? 'quiz' : 'normal'
             };
+            
             if (snap?.base64) body.file = { name: snap.name, type: snap.type, base64: snap.base64 };
-            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            
+            const res = await fetch('/api/chat', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(body) 
+            });
+            
             const data = await res.json();
-            const reply = data.message || (preferredLang === 'ur-PK' ? 'Jawab nahi mila. Dobara try karein.' : 'No response received. Please try again.');
-            setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', content: reply }]);
-            if (voiceEnabled) speak(reply);
+            
+            // Check if response contains quiz
+            if (data.type === 'quiz' && data.questions) {
+                const quizMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    type: 'quiz',
+                    content: `[[QUIZ:START]]${JSON.stringify(data.questions)}[[QUIZ:END]]`
+                };
+                setMessages(p => [...p, quizMessage]);
+            } else {
+                const reply = data.message || (preferredLang === 'ur-PK' ? 'Jawab nahi mila. Dobara try karein.' : 'No response received. Please try again.');
+                setMessages(p => [...p, { 
+                    id: (Date.now() + 1).toString(), 
+                    role: 'assistant', 
+                    type: data.type || 'normal',
+                    content: reply 
+                }]);
+                if (voiceEnabled) speak(reply);
+            }
         } catch {
             const err = preferredLang === 'ur-PK' ? '⚠️ Internet check karein ya page refresh karein.' : '⚠️ Please check your internet or refresh the page.';
-            setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', content: err }]);
+            setMessages(p => [...p, { 
+                id: (Date.now() + 1).toString(), 
+                role: 'assistant', 
+                type: 'normal',
+                content: err 
+            }]);
             if (voiceEnabled) speak(err);
-        } finally { setIsLoading(false); }
+        } finally { 
+            setIsLoading(false); 
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+        if (e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault(); 
+            handleSend(); 
+        }
     };
 
-    const statusText = isSpeaking ? '🔊 Speaking…'
-        : isListening ? (preferredLang === 'ur-PK' ? '🎙️ Listening (Urdu)…' : '🎙️ Listening (English)…')
-            : isLoading ? '⏳ Thinking…'
-                : `✅ Online • ${preferredLang === 'ur-PK' ? 'Urdu Voice Mode' : 'English Voice Mode'}`;
+    const statusText = isSpeaking ? '🔊 Speaking...'
+        : isListening ? (preferredLang === 'ur-PK' ? '🎙️ Listening (Urdu)...' : '🎙️ Listening (English)...')
+            : isLoading ? '⏳ Thinking...'
+                : quizMode ? '📝 Quiz Mode • Generate questions'
+                    : `✅ Online • ${preferredLang === 'ur-PK' ? 'Urdu Voice' : 'English Voice'}`;
 
-    // ════════════════════════════════════════════════════════
-    //  RENDER
-    // ════════════════════════════════════════════════════════
     return (
         <>
             <style>{`
-                s{text-decoration:none}
-                .hk{color:#c792ea;font-weight:600}
-                .hs{color:#c3e88d}
-                .hn{color:#f78c6c}
-                .hc{color:#546e7a;font-style:italic}
-                .hf{color:#82aaff}
-                .ho{color:#89ddff}
+                .hljs-keyword { color: #c792ea; font-weight: 600; }
+                .hljs-string { color: #c3e88d; }
+                .hljs-number { color: #f78c6c; }
+                .hljs-comment { color: #546e7a; font-style: italic; }
+                .hljs-function { color: #82aaff; }
+                .hljs-operator { color: #89ddff; }
             `}</style>
 
             <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 26 }}
                 className={`max-w-3xl mx-auto w-full rounded-2xl sm:rounded-[2rem] overflow-hidden flex flex-col h-[90vh] sm:h-[82vh] min-h-[500px] border shadow-2xl
                     ${isDarkMode ? 'border-slate-700/50 bg-slate-900 shadow-black/50' : 'border-slate-200 bg-white shadow-slate-300/60'}`}
             >
-
-                {/* ═══ HEADER ═══ */}
+                {/* Header */}
                 <div className={`px-5 py-4 border-b flex items-center justify-between shrink-0
                     ${isDarkMode ? 'border-slate-800 bg-slate-800/70' : 'border-slate-100 bg-slate-50'}`}>
                     <div className="flex items-center gap-3">
@@ -484,63 +664,84 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                         </div>
                         <div>
                             <h2 className={`font-extrabold text-base flex items-center gap-1.5 leading-none mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                                JS Mentor <Sparkles className="w-4 h-4 text-violet-500" />
+                                JS Mentor Pro <Sparkles className="w-4 h-4 text-violet-500" />
                             </h2>
                             <div className="flex items-center gap-1.5">
-                                <PulseDot color={isSpeaking ? 'bg-violet-500' : 'bg-emerald-400'} />
+                                <span className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-violet-500 animate-pulse' : 'bg-emerald-400'}`} />
                                 <span className={`text-[11px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{statusText}</span>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        {/* Quiz Mode Toggle */}
+                        <button 
+                            onClick={() => setQuizMode(!quizMode)}
+                            title={quizMode ? 'Exit Quiz Mode' : 'Enter Quiz Mode'}
+                            className={`p-2.5 rounded-xl transition-all
+                                ${quizMode 
+                                    ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25' 
+                                    : isDarkMode ? 'bg-slate-700 text-slate-500 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                        >
+                            <Brain className="w-4 h-4" />
+                        </button>
+
                         {/* Language Toggle */}
-                        <button onClick={() => setPreferredLang(l => l === 'ur-PK' ? 'en-US' : 'ur-PK')}
-                            title={preferredLang === 'ur-PK' ? 'Urdu Voice (Preferred)' : 'English Voice (Preferred)'}
+                        <button 
+                            onClick={() => setPreferredLang(l => l === 'ur-PK' ? 'en-US' : 'ur-PK')}
+                            title={preferredLang === 'ur-PK' ? 'Urdu Voice Mode' : 'English Voice Mode'}
                             className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-1
                                 ${preferredLang === 'ur-PK'
                                     ? 'bg-violet-500/15 border-violet-500/30 text-violet-400'
                                     : isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${preferredLang === 'ur-PK' ? 'bg-violet-400' : 'bg-slate-400'}`} />
-                            {preferredLang === 'ur-PK' ? 'URDU VOICE' : 'ENG VOICE'}
+                            {preferredLang === 'ur-PK' ? 'اردو' : 'ENG'}
                         </button>
 
-                        <button onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
+                        <button 
+                            onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
                             title={voiceEnabled ? 'Turn voice off' : 'Turn voice on'}
                             className={`p-2.5 rounded-xl transition-all ${voiceEnabled ? 'bg-violet-500/15 text-violet-400 hover:bg-violet-500/25' : isDarkMode ? 'bg-slate-700 text-slate-500 hover:bg-slate-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
-                            {voiceEnabled ? <Volume2 style={{ width: 18, height: 18 }} /> : <VolumeX style={{ width: 18, height: 18 }} />}
+                            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                         </button>
+                        
                         {onClose && (
                             <button onClick={onClose}
                                 className={`p-2.5 rounded-xl transition-all ${isDarkMode ? 'text-slate-500 hover:bg-slate-700 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}>
-                                <X style={{ width: 18, height: 18 }} />
+                                <X className="w-4 h-4" />
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* ═══ MESSAGES ═══ */}
+                {/* Messages Area */}
                 <div ref={chatAreaRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5 scroll-smooth">
                     <AnimatePresence initial={false}>
-
                         {messages.map(msg => (
                             <motion.div key={msg.id}
-                                initial={{ opacity: 0, y: 14, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                                initial={{ opacity: 0, y: 14, scale: .96 }} 
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 280, damping: 28 }}
                                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`flex gap-2.5 max-w-[90%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-
-                                    {/* avatar */}
+                                    {/* Avatar */}
                                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow
-                                        ${msg.role === 'user' ? 'bg-gradient-to-br from-slate-600 to-slate-900 text-white' : 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-violet-500/20'}`}>
-                                        {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                                        ${msg.role === 'user' 
+                                            ? 'bg-gradient-to-br from-slate-600 to-slate-900 text-white' 
+                                            : msg.type === 'quiz'
+                                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-amber-500/20'
+                                                : 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-violet-500/20'}`}>
+                                        {msg.role === 'user' ? <User className="w-4 h-4" /> : 
+                                         msg.type === 'quiz' ? <Brain className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                                     </div>
 
-                                    {/* bubble */}
+                                    {/* Bubble */}
                                     <div className={`px-3 py-2 sm:px-4 sm:py-3 rounded-2xl
                                         ${msg.role === 'user'
                                             ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white rounded-tr-sm shadow-lg shadow-violet-500/20'
-                                            : isDarkMode ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700'
-                                                : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 shadow-sm'}`}>
+                                            : msg.type === 'quiz'
+                                                ? isDarkMode ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-amber-700' : 'bg-white text-slate-800 rounded-tl-sm border border-amber-200 shadow-sm'
+                                                : isDarkMode ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700' : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 shadow-sm'}`}>
+                                        
                                         {msg.file && (
                                             <div className="mb-2.5 flex items-center gap-2 bg-black/15 rounded-xl px-3 py-2">
                                                 {msg.file.preview
@@ -549,6 +750,7 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                                                 <span className="text-xs font-semibold opacity-80 truncate max-w-[180px]">{msg.file.name}</span>
                                             </div>
                                         )}
+                                        
                                         {msg.role === 'assistant'
                                             ? <MessageContent content={msg.content} isDark={isDarkMode} />
                                             : <p className="leading-relaxed text-sm sm:text-[15px] whitespace-pre-wrap">{msg.content}</p>}
@@ -557,9 +759,13 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                             </motion.div>
                         ))}
 
-                        {/* typing dots */}
+                        {/* Loading indicator */}
                         {isLoading && (
-                            <motion.div key="loading" initial={{ opacity: 0, y: 10, scale: .95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: .9 }} className="flex justify-start">
+                            <motion.div key="loading" 
+                                initial={{ opacity: 0, y: 10, scale: .95 }} 
+                                animate={{ opacity: 1, y: 0, scale: 1 }} 
+                                exit={{ opacity: 0, scale: .9 }} 
+                                className="flex justify-start">
                                 <div className="flex gap-2.5 max-w-[90%]">
                                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/20">
                                         <Bot className="w-4 h-4" />
@@ -567,11 +773,14 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                                     <div className={`px-5 py-3.5 rounded-2xl rounded-tl-sm flex items-center gap-3
                                         ${isDarkMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-200 shadow-sm'}`}>
                                         {[0, 1, 2].map(i => (
-                                            <motion.span key={i} className="w-2.5 h-2.5 rounded-full bg-violet-500"
+                                            <motion.span key={i} 
+                                                className="w-2.5 h-2.5 rounded-full bg-violet-500"
                                                 animate={{ y: ['0%', '-55%', '0%'] }}
                                                 transition={{ duration: .55, repeat: Infinity, delay: i * .14, ease: 'easeInOut' }} />
                                         ))}
-                                        <span className={`text-sm font-medium ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Thinking…</span>
+                                        <span className={`text-sm font-medium ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                            {quizMode ? 'Generating quiz...' : 'Thinking...'}
+                                        </span>
                                     </div>
                                 </div>
                             </motion.div>
@@ -579,10 +788,13 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     </AnimatePresence>
                     <div ref={messagesEndRef} />
 
-                    {/* scroll pill */}
+                    {/* Scroll to bottom button */}
                     <AnimatePresence>
                         {showScrollBtn && (
-                            <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
+                            <motion.button 
+                                initial={{ opacity: 0, y: 6 }} 
+                                animate={{ opacity: 1, y: 0 }} 
+                                exit={{ opacity: 0, y: 6 }}
                                 onClick={() => scrollToBottom()}
                                 className="sticky bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-violet-500/30 transition-colors active:scale-95">
                                 <ChevronDown className="w-3.5 h-3.5" /> Scroll down
@@ -591,60 +803,115 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     </AnimatePresence>
                 </div>
 
-                {/* ═══ INPUT ═══ */}
+                {/* Input Area */}
                 <div className={`px-4 sm:px-5 pt-3 pb-4 border-t shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/90'}`}>
+                    
+                    {/* Quick action buttons */}
+                    <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+                        <button
+                            onClick={() => setInput("Explain this code line by line: ")}
+                            className="px-3 py-1.5 text-xs rounded-full bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors whitespace-nowrap flex items-center gap-1"
+                        >
+                            <Code2 className="w-3 h-3" /> Code Explanation
+                        </button>
+                        <button
+                            onClick={() => setInput("Generate a 5-question quiz about ")}
+                            className="px-3 py-1.5 text-xs rounded-full bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors whitespace-nowrap flex items-center gap-1"
+                        >
+                            <Brain className="w-3 h-3" /> Generate Quiz
+                        </button>
+                    </div>
 
                     <AnimatePresence>
-                        {attachedFile && <FileBadge file={attachedFile} onRemove={() => setAttachedFile(null)} />}
+                        {attachedFile && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 6, scale: .95 }} 
+                                animate={{ opacity: 1, y: 0, scale: 1 }} 
+                                exit={{ opacity: 0, scale: .9 }}
+                                className="flex items-center gap-2.5 bg-violet-500/10 border border-violet-400/25 rounded-xl px-3 py-2 mb-2.5 w-fit max-w-full">
+                                {attachedFile.preview
+                                    ? <img src={attachedFile.preview} className="w-9 h-9 rounded-lg object-cover border border-violet-400/20" alt="" />
+                                    : <div className="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
+                                        <FileText className="w-4 h-4 text-violet-400" />
+                                    </div>}
+                                <div className="min-w-0">
+                                    <p className="text-xs font-bold text-violet-300 truncate max-w-[200px]">{attachedFile.name}</p>
+                                    <p className="text-[10px] text-violet-400/60 font-medium">Ready to analyze</p>
+                                </div>
+                                <button 
+                                    onClick={() => setAttachedFile(null)}
+                                    className="w-5 h-5 ml-1 rounded-full bg-violet-400/20 flex items-center justify-center hover:bg-red-500/70 hover:text-white text-violet-300 transition-all shrink-0">
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </motion.div>
+                        )}
                     </AnimatePresence>
 
                     <AnimatePresence>
                         {isListening && (
-                            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                            <motion.div 
+                                initial={{ opacity: 0, y: 6 }} 
+                                animate={{ opacity: 1, y: 0 }} 
+                                exit={{ opacity: 0 }}
                                 className="flex items-center gap-2 mb-2 text-xs font-bold text-red-400">
-                                <PulseDot color="bg-red-500" />
-                                Listening… (speak or tap mic to stop)
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                                </span>
+                                Listening... (speak or tap mic to stop)
                             </motion.div>
                         )}
                     </AnimatePresence>
 
                     <div className="flex items-center gap-2">
-                        {/* field */}
+                        {/* Input field */}
                         <div className={`flex-1 flex items-center gap-1 rounded-2xl border px-3 transition-all
                             ${isDarkMode ? 'bg-slate-900/80 border-slate-700 focus-within:border-violet-500/60 focus-within:ring-1 focus-within:ring-violet-500/20'
                                 : 'bg-white border-slate-200 focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-500/10'}`}>
 
-                            {/* paperclip */}
-                            <button onClick={() => fileInputRef.current?.click()} title="Attach file"
+                            {/* Attach file button */}
+                            <button 
+                                onClick={() => fileInputRef.current?.click()} 
+                                title="Attach file"
                                 className={`p-2 rounded-xl transition-all shrink-0 ${isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
-                                <Paperclip style={{ width: 17, height: 17 }} />
+                                <Paperclip className="w-4 h-4" />
                             </button>
 
-                            {/* text */}
-                            <input ref={inputRef} type="text" value={input}
-                                onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+                            {/* Text input */}
+                            <input 
+                                ref={inputRef} 
+                                type="text" 
+                                value={input}
+                                onChange={e => setInput(e.target.value)} 
+                                onKeyDown={handleKeyDown}
                                 placeholder={
                                     isListening
-                                        ? (preferredLang === 'ur-PK' ? '🎙️ Urdu mein bolein…' : '🎙️ Speaking English…')
-                                        : (preferredLang === 'ur-PK' ? 'Urdu/English mein sawal poochein…' : 'Ask JS question in English…')
+                                        ? (preferredLang === 'ur-PK' ? '🎙️ Urdu mein bolein...' : '🎙️ Speaking English...')
+                                        : quizMode
+                                            ? 'Enter quiz topic (e.g., "JavaScript closures")...'
+                                            : (preferredLang === 'ur-PK' ? 'Urdu/English mein sawal poochein...' : 'Ask JS question or paste code...')
                                 }
                                 disabled={isLoading}
                                 className={`flex-1 py-3.5 bg-transparent outline-none text-sm font-medium placeholder:font-normal min-w-0
                                     ${isDarkMode ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-400'}`} />
 
-                            {/* mic */}
+                            {/* Microphone button */}
                             {micAvailable && (
-                                <button onClick={toggleListening} title={isListening ? 'Stop listening' : 'Voice input'}
+                                <button 
+                                    onClick={toggleListening} 
+                                    title={isListening ? 'Stop listening' : 'Voice input'}
                                     className={`p-2 rounded-xl transition-all shrink-0
                                         ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 animate-pulse'
                                             : isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
-                                    {isListening ? <MicOff style={{ width: 17, height: 17 }} /> : <Mic style={{ width: 17, height: 17 }} />}
+                                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                                 </button>
                             )}
                         </div>
 
-                        {/* send */}
-                        <button onClick={handleSend} disabled={(!input.trim() && !attachedFile) || isLoading}
+                        {/* Send button */}
+                        <button 
+                            onClick={handleSend} 
+                            disabled={(!input.trim() && !attachedFile) || isLoading}
                             className={`p-3.5 rounded-2xl transition-all shrink-0 shadow-lg active:scale-95
                                 ${(!input.trim() && !attachedFile) || isLoading
                                     ? isDarkMode ? 'bg-slate-700 text-slate-600' : 'bg-slate-100 text-slate-300'
@@ -656,14 +923,18 @@ export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
                     <p className={`text-center text-[10px] font-semibold uppercase tracking-widest mt-2.5 select-none
                         ${isDarkMode ? 'text-slate-700' : 'text-slate-400'}`}>
                         {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
-                        {' • '}Enter to send{' • '}📎 Attach File{micAvailable ? ` • 🎙️ Mic (${preferredLang === 'ur-PK' ? 'Urdu' : 'Eng'})` : ''}
+                        {' • '}Enter to send{' • '}📎 Attach Code File
+                        {micAvailable ? ` • 🎙️ Mic (${preferredLang === 'ur-PK' ? 'Urdu' : 'Eng'})` : ''}
                     </p>
                 </div>
 
-                <input ref={fileInputRef} type="file" className="hidden"
-                    accept="image/*,.pdf,.txt,.js,.ts,.jsx,.tsx,.json,.html,.css,.md,.py,.c,.cpp,.h,.hpp,.java,.go,.rs,.php,.rb,.sql,.sh,.bat,.yaml,.yml"
+                <input 
+                    ref={fileInputRef} 
+                    type="file" 
+                    className="hidden"
+                    accept=".js,.ts,.jsx,.tsx,.json,.html,.css,.txt,.md,.py,.java,.cpp,.c,.h,.php,.rb,.go,.rs"
                     onChange={handleFileChange} />
-            </motion.div >
+            </motion.div>
         </>
     );
 };
