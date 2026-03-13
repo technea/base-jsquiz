@@ -896,9 +896,15 @@ export default function JSQuizApp() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
-            <div className="w-full max-w-4xl max-h-screen sm:max-h-[90vh]">
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="w-full max-w-4xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[90vh]"
+            >
               <AIAssistant isDarkMode={isDarkMode} onClose={() => setIsAiOpen(false)} />
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
