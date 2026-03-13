@@ -150,14 +150,14 @@ export const Header = ({
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsMenuOpen(false)}
-                            className="fixed inset-0 top-[72px] sm:top-[88px] z-[55] bg-black/40 backdrop-blur-sm lg:hidden"
+                            className="fixed inset-0 top-[60px] sm:top-[88px] z-[55] bg-black/40 backdrop-blur-sm lg:hidden"
                         />
                         <motion.div
                             initial={{ x: "100%" }}
                             animate={{ x: 0 }}
                             exit={{ x: "100%" }}
                             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                            className="fixed right-0 top-[72px] sm:top-[88px] bottom-0 w-[280px] z-[58] bg-background border-l border-white/5 p-6 space-y-8 lg:hidden shadow-2xl"
+                            className="fixed right-0 top-[60px] sm:top-[88px] bottom-0 w-[280px] z-[58] bg-background border-l border-white/5 p-6 space-y-6 lg:hidden shadow-2xl overflow-y-auto no-scrollbar"
                         >
                             <nav className="space-y-2">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary opacity-60 mb-4 px-2">Navigation</p>
@@ -169,13 +169,13 @@ export const Header = ({
                                             setQuizState('start');
                                             setIsMenuOpen(false);
                                         }}
-                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${activeTab === item.id
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all ${activeTab === item.id
                                             ? 'bg-primary text-white shadow-lg shadow-primary/20'
                                             : `hover:bg-primary/5 ${isDarkMode ? 'text-white/60' : 'text-slate-600'}`
                                             }`}
                                     >
-                                        {item.label}
-                                        {activeTab === item.id && <motion.div layoutId="activeDot" className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                        <span className="truncate mr-2">{item.label}</span>
+                                        {activeTab === item.id && <motion.div layoutId="activeDot" className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
                                     </button>
                                 ))}
                             </nav>
@@ -219,6 +219,7 @@ export const Header = ({
                                     <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
                                     {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-400" />}
                                 </button>
+                                <div className="h-20 sm:hidden" /> {/* Extra spacing for mobile bottom */}
                             </div>
                         </motion.div>
                     </>
