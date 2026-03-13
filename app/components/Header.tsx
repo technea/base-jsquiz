@@ -33,27 +33,37 @@ export const Header = ({
             className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 sm:mb-16"
         >
             <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
-                <div className="flex items-center gap-4">
-                    <div className="p-2.5 sm:p-3 bg-gradient-premium rounded-2xl shadow-lg shadow-primary/20">
-                        <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <motion.div 
+                    whileHover={{ scale: 1.05, rotate: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-4 cursor-pointer"
+                >
+                    <div className="p-2.5 sm:p-3 bg-gradient-premium rounded-2xl shadow-lg shadow-primary/20 relative group">
+                        <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:rotate-12 transition-transform" />
+                        <motion.div 
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="absolute inset-0 rounded-2xl bg-white/20 blur-md pointer-events-none" 
+                        />
                     </div>
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-foreground">JAZZ<span className="text-primary italic">MINI</span></h1>
                         <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-200' : 'text-slate-600'}`}>v2.0 Premium Experience</p>
                     </div>
-                </div>
-
+                </motion.div>
+                
                 {/* Mobile-only Theme Toggle */}
-                <button
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setIsDarkMode(!isDarkMode)}
                     className="sm:hidden p-2.5 glass-card rounded-xl"
                 >
                     {isDarkMode ? <Sun className="w-4 h-4 text-white" /> : <Moon className="w-4 h-4 text-slate-800" />}
-                </button>
+                </motion.button>
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
-                <nav className="flex items-center glass-card p-1 rounded-2xl overflow-x-auto no-scrollbar max-w-[calc(100vw-48px)] sm:max-w-none">
+                <nav className="flex items-center glass-card p-1 rounded-2xl overflow-x-auto no-scrollbar max-w-[calc(100vw-48px)] sm:max-w-none relative">
                     {(['quiz', 'daily', 'learn', 'dashboard', 'leaderboard'] as const).map((tab) => (
                         <button
                             key={tab}
@@ -61,11 +71,18 @@ export const Header = ({
                                 setActiveTab(tab);
                                 setQuizState('start');
                             }}
-                            className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab
-                                ? 'bg-primary text-white shadow-lg'
+                            className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap relative z-10 ${activeTab === tab
+                                ? 'text-white'
                                 : `${isDarkMode ? 'text-white/60 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`
                                 }`}
                         >
+                            {activeTab === tab && (
+                                <motion.div 
+                                    layoutId="activeTab"
+                                    className="absolute inset-0 bg-primary rounded-xl -z-10 shadow-lg"
+                                    transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
+                                />
+                            )}
                             {tab}
                         </button>
                     ))}

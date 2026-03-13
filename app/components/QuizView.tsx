@@ -121,6 +121,9 @@ export const QuizView = ({
                             return (
                                 <motion.button
                                     key={idx}
+                                    initial={false}
+                                    animate={showExplanation && isSelected ? (isCorrect ? { scale: [1, 1.05, 1], y: [0, -5, 0] } : { x: [-10, 10, -10, 10, 0] }) : {}}
+                                    transition={showExplanation && isSelected ? (isCorrect ? { duration: 0.4 } : { duration: 0.4 }) : {}}
                                     whileHover={!showExplanation ? { y: -2, scale: 1.01, backgroundColor: isDarkMode ? 'rgba(0, 82, 255, 0.05)' : 'rgba(0, 82, 255, 0.03)' } : {}}
                                     onClick={() => onSelectOption(option)}
                                     disabled={!!selectedOption}

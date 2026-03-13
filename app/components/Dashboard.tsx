@@ -37,11 +37,20 @@ export const Dashboard = ({
         >
             <div className="space-y-4">
                 <motion.div
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 5, repeat: Infinity }}
-                    className="w-20 h-20 mx-auto bg-gradient-premium rounded-3xl flex items-center justify-center shadow-lg"
+                    animate={{ 
+                        rotate: [0, 5, -5, 0],
+                        scale: [1, 1.1, 1],
+                        y: [0, -5, 0]
+                    }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-20 h-20 mx-auto bg-gradient-premium rounded-3xl flex items-center justify-center shadow-xl shadow-primary/30 relative"
                 >
                     <BookOpen className="w-10 h-10 text-white" />
+                    <motion.div 
+                        animate={{ opacity: [0, 0.5, 0], scale: [1, 1.5, 1] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        className="absolute inset-0 bg-white/20 blur-xl rounded-full"
+                    />
                 </motion.div>
                 <h2 className={`text-4xl sm:text-5xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                     JAZZMINI <span className="text-primary italic">Quiz</span>
@@ -100,10 +109,21 @@ export const Dashboard = ({
                         </p>
                         <button
                             onClick={connectWallet}
-                            className="w-full py-4 bg-[#0052FF] hover:bg-[#0041CC] hover:shadow-xl hover:shadow-blue-600/30 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all group"
+                            className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all group relative overflow-hidden shadow-2xl hover:-translate-y-1 active:translate-y-0 ${
+                                isDarkMode
+                                    ? 'bg-primary hover:bg-primary-hover text-white shadow-primary/30'
+                                    : 'bg-gradient-premium hover:shadow-primary/40 text-white'
+                            }`}
                         >
-                            Connect Wallet
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            <motion.div 
+                                animate={{ x: ['-100%', '100%'] }}
+                                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"
+                            />
+                            <span className="relative z-10 flex items-center gap-2">
+                                Connect Wallet
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+                            </span>
                         </button>
                     </div>
                 )}
@@ -138,20 +158,42 @@ export const Dashboard = ({
                         </p>
                     </div>
 
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02, x: 5 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={onOpenAiChat}
-                        className="mt-2 w-full py-4 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 hover:shadow-xl hover:shadow-blue-500/25 rounded-xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all group/btn"
+                        className="mt-2 w-full py-4 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 hover:shadow-xl hover:shadow-blue-500/25 rounded-xl text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all group/btn relative overflow-hidden"
                     >
-                        Ask AI Assistant
-                        <Sparkles className="w-4 h-4 group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform" />
-                    </button>
+                        <motion.div 
+                            animate={{ x: ['-100%', '100%'] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"
+                        />
+                        <span className="relative z-10 flex items-center gap-2">
+                            Ask AI Assistant
+                            <Sparkles className="w-4 h-4 group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform" />
+                        </span>
+                    </motion.button>
                 </div>
             </motion.div>
 
             {/* Level Grid - Optimized for Mobile */}
             <div className="space-y-4 pt-4">
                 <h3 className={`text-sm font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Level Selection</h3>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-2 sm:gap-3">
+                <motion.div 
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                        hidden: { opacity: 0 },
+                        visible: {
+                            opacity: 1,
+                            transition: {
+                                staggerChildren: 0.05
+                            }
+                        }
+                    }}
+                    className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-2 sm:gap-3"
+                >
                     {[...Array(TOTAL_LEVELS)].map((_, i) => {
                         const level = i + 1;
                         const unlocked = level <= globalStats.highestLevel;
@@ -160,39 +202,51 @@ export const Dashboard = ({
 
                         if (!unlocked) {
                             return (
-                                <div
+                                <motion.div
                                     key={level}
-                                    className="h-12 relative flex items-center justify-center rounded-xl font-bold bg-slate-800/20 text-slate-600 cursor-not-allowed opacity-30 select-none"
+                                    variants={{
+                                        hidden: { opacity: 0, scale: 0.8 },
+                                        visible: { opacity: 0.3, scale: 1 }
+                                    }}
+                                    className="h-12 relative flex items-center justify-center rounded-xl font-bold bg-slate-800/20 text-slate-600 cursor-not-allowed select-none"
                                 >
                                     🔒
-                                </div>
+                                </motion.div>
                             );
                         }
 
                         return (
                             <motion.button
                                 key={level}
-                                whileHover={unlocked ? { scale: 1.1, y: -2 } : {}}
-                                whileTap={unlocked ? { scale: 0.95 } : {}}
+                                variants={{
+                                    hidden: { opacity: 0, scale: 0.8, y: 10 },
+                                    visible: { opacity: 1, scale: 1, y: 0 }
+                                }}
+                                whileHover={unlocked ? { scale: 1.15, y: -4, rotate: 5 } : {}}
+                                whileTap={unlocked ? { scale: 0.9 } : {}}
                                 onClick={() => onLevelSelect(level)}
                                 disabled={!unlocked}
                                 className={`h-12 relative flex items-center justify-center rounded-xl font-bold transition-all ${unlocked
                                     ? isCurrent
-                                        ? 'bg-primary text-white shadow-lg ring-2 ring-primary/50'
-                                        : 'bg-gradient-premium text-white'
+                                        ? 'bg-primary text-white shadow-lg shadow-primary/40 ring-4 ring-primary/20'
+                                        : 'bg-gradient-premium text-white shadow-md'
                                     : 'bg-slate-800/20 text-slate-500 cursor-not-allowed opacity-40'
                                     }`}
                             >
                                 {level}
                                 {unlocked && attemptsUsed > 0 && (
-                                    <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-[8px] flex items-center justify-center border border-white dark:border-slate-900">
+                                    <motion.div 
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-[10px] font-black flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm"
+                                    >
                                         {attemptsUsed}
-                                    </div>
+                                    </motion.div>
                                 )}
                             </motion.button>
                         );
                     })}
-                </div>
+                </motion.div>
             </div>
         </motion.div>
     );

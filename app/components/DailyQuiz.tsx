@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, CheckCircle, XCircle, Zap, Flame, X, Bot, Sparkles } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Zap, Flame, X, Sparkles } from 'lucide-react';
 import { DailyQuestion } from '../dailyQuizData';
+import { AnimatedAvatar } from './AnimatedAvatar';
 
 interface DailyQuizProps {
     isDarkMode: boolean;
@@ -80,26 +81,19 @@ export const DailyQuiz = ({
             </AnimatePresence>
 
             <div className="text-center space-y-2 sm:space-y-3 pt-8 sm:pt-4">
-                {/* 🤖 ULTRA PREMIUM AI Mentor Avatar with Speech Bubble */}
+                {/* 🤖 INTERACTIVE AI Mentor Avatar */}
                 <motion.div
                     initial={{ scale: 0, y: 50 }}
                     animate={{ scale: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-                    className="relative w-32 h-32 mx-auto mb-10"
+                    className="relative mx-auto mb-6 flex justify-center"
                 >
-                    {/* Pulsing Outer Ring */}
-                    <motion.div
-                        animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1] }}
-                        transition={{ duration: 3, repeat: Infinity }}
-                        className="absolute inset-0 bg-primary rounded-full blur-3xl"
-                    />
-
-                    {/* Speech Bubble Refined */}
+                    {/* Speech Bubble */}
                     <motion.div
                         initial={{ opacity: 0, x: 30, y: 20, scale: 0.5 }}
                         animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
                         transition={{ delay: 1, type: "spring", stiffness: 200 }}
-                        className="absolute -top-16 -right-24 sm:-right-32 z-30 bg-white dark:bg-slate-800 px-5 py-3 rounded-[2rem] rounded-bl-none shadow-[0_10px_40px_rgba(0,0,0,0.2)] border-2 border-primary/20"
+                        className="absolute -top-8 -right-16 sm:-right-28 z-30 bg-white dark:bg-slate-800 px-5 py-3 rounded-[2rem] rounded-bl-none shadow-[0_10px_40px_rgba(0,0,0,0.2)] border-2 border-primary/20"
                     >
                         <p className="text-xs sm:text-sm font-black text-primary uppercase tracking-tight leading-tight">
                             Good Morning! ☕<br />
@@ -108,35 +102,11 @@ export const DailyQuiz = ({
                         <div className="absolute -bottom-3 left-0 w-4 h-4 bg-inherit border-l-2 border-b-2 border-primary/10 rotate-45" />
                     </motion.div>
 
-                    {/* The Robot Itself */}
-                    <motion.div
-                        animate={{ y: [0, -12, 0] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                        className="relative w-full h-full"
-                    >
-                        {/* Robot Head */}
-                        <div className="w-full h-full bg-gradient-to-br from-primary via-blue-600 to-indigo-700 rounded-[2.5rem] p-6 shadow-2xl border-4 border-white/20 relative z-10 overflow-hidden">
-                            <Bot className="w-full h-full text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
-
-                            {/* Animated Eyes */}
-                            <div className="absolute top-[40%] left-0 w-full flex justify-center gap-4">
-                                <motion.div animate={{ scaleY: [1, 0.1, 1] }} transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }} className="w-2 h-2 bg-cyan-300 rounded-full shadow-[0_0_8px_#67e8f9]" />
-                                <motion.div animate={{ scaleY: [1, 0.1, 1] }} transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }} className="w-2 h-2 bg-cyan-300 rounded-full shadow-[0_0_8px_#67e8f9]" />
-                            </div>
-
-                            {/* Internal Glow */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none" />
-                        </div>
-
-                        {/* Floating Limb/Antenna */}
-                        <motion.div
-                            animate={{ rotate: [0, 15, 0], scale: [1, 1.2, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="absolute -top-4 -right-2 z-20"
-                        >
-                            <Sparkles className="w-8 h-8 text-amber-400 fill-amber-300 drop-shadow-lg" />
-                        </motion.div>
-                    </motion.div>
+                    <AnimatedAvatar
+                        size={130}
+                        isSpeaking={!dailyQuizAnswer}
+                        mood={dailyQuizResult === 'correct' ? 'excited' : dailyQuizResult === 'wrong' ? 'thinking' : 'happy'}
+                    />
                 </motion.div>
 
                 <motion.div

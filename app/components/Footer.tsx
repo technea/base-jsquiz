@@ -60,7 +60,13 @@ export const Footer = ({ isDarkMode, activeTab, setActiveTab }: FooterProps) => 
                             <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                                 © {currentYear} Jazzmini Lab <span className="mx-2 hidden md:inline">|</span>
                                 <span className="opacity-50"> Built with </span>
-                                <Heart className="w-3 h-3 text-accent inline mx-0.5" />
+                                <motion.span
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 0.8, repeat: Infinity }}
+                                    className="inline-block"
+                                >
+                                    <Heart className="w-3 h-3 text-rose-500 fill-rose-500 inline mx-0.5" />
+                                </motion.span>
                                 <span className="opacity-50"> for the Base Community </span>
                             </p>
                         </div>

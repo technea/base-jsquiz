@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
@@ -46,6 +46,7 @@ import { PaymentModal } from './components/PaymentModal';
 import { Footer } from './components/Footer';
 import { DailyGMIntro } from './components/DailyGMIntro';
 import { AIAssistant } from './components/AIAssistant';
+import { useGsapButtons } from './hooks/useGsapButtons';
 
 // --- Farcaster SDK ---
 let sdk: any = null;
@@ -160,6 +161,9 @@ export default function JSQuizApp() {
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [learningLevel, setLearningLevel] = useState(1);
   const quizStateRef = useRef(quizState);
+
+  // ═══ GSAP global button enhancements ═══
+  useGsapButtons();
 
   // Keep ref in sync
   useEffect(() => {
