@@ -211,7 +211,7 @@ h6,
   }
   
   .glass-card {
-    border-radius: 1.5rem;
+    border-radius: 1.25rem !important;
     padding: 1.25rem !important;
   }
 
@@ -219,14 +219,41 @@ h6,
     font-size: 14px;
   }
 
-  h1 { font-size: 1.875rem !important; }
-  h2 { font-size: 1.5rem !important; }
+  h1 { font-size: 1.75rem !important; letter-spacing: -0.02em !important; }
+  h2 { font-size: 1.5rem !important; letter-spacing: -0.01em !important; }
   h3 { font-size: 1.25rem !important; }
 
-  /* Hide mouse-only effects */
-  .group-hover\:opacity-100 {
-    display: none;
+  /* Ensure containers have consistent padding */
+  .max-w-7xl {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
+
+  /* Optimized Grid for mobile */
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  /* Interactive feedback */
+  .hover\:scale-101:hover {
+    transform: none !important;
+  }
+
+  /* Hide tooltips on mobile */
+  .group-hover\:opacity-100 {
+    display: none !important;
+  }
+}
+
+/* Very Small Devices */
+@media (max-width: 380px) {
+  .glass-card {
+    padding: 1rem !important;
+    border-radius: 1rem !important;
+  }
+  
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
 }
 
 /* Fix for mobile horizontal scroll */

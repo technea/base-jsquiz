@@ -814,20 +814,20 @@ export default function JSQuizApp() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 blur-[130px] rounded-full delay-1000 animate-soft-pulse" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-12">
-        <Header
-          isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          setQuizState={setQuizState}
-          connectedAddress={connectedAddress}
-          connectWallet={connectWallet}
-          farcasterUser={farcasterUser}
-          basename={basename}
-        />
+      <Header
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setQuizState={setQuizState}
+        connectedAddress={connectedAddress}
+        connectWallet={connectWallet}
+        farcasterUser={farcasterUser}
+        basename={basename}
+      />
 
-        <main className="min-h-[60vh] px-2 sm:px-0">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+        <main className="min-h-[60vh]">
           {showGmIntro && (
             <DailyGMIntro
               isDarkMode={isDarkMode}
