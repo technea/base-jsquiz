@@ -875,10 +875,12 @@ export default function JSQuizApp() {
           whileHover={{ scale: 1.1, rotate: 5 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsAiOpen(true)}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-2xl shadow-violet-500/50 flex items-center justify-center border-2 sm:border-4 border-white/20 backdrop-blur-md group"
+          className="fixed z-50 w-16 h-16 sm:w-20 sm:h-20 rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-br from-violet-600 via-indigo-700 to-purple-800 text-white shadow-[0_20px_50px_rgba(99,102,241,0.4)] flex items-center justify-center border-2 sm:border-4 border-white/20 backdrop-blur-xl group"
+          style={{ bottom: '24px', right: '24px', left: 'auto' }}
         >
-          <Bot className="w-7 h-7 sm:w-8 sm:h-8 group-hover:animate-pulse" />
-          <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+          <Code2 className="w-8 h-8 sm:w-10 sm:h-10 group-hover:scale-110 transition-transform" />
+          <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+
 
           {/* Tooltip on hover */}
           <div className="absolute right-full mr-4 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
