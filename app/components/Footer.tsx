@@ -52,6 +52,11 @@ export const Footer = ({ isDarkMode, activeTab, setActiveTab }: FooterProps) => 
             <div className="pt-10 border-t border-white/5">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
                     <div className="flex flex-col md:flex-row items-center gap-6">
+                        {/* Moved Badge back to Left */}
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-full glass border-primary/20 bg-primary/5 shadow-lg shadow-primary/5">
+                            <ShieldCheck className="w-4 h-4 text-primary" />
+                            <span className="text-xs sm:text-sm font-black uppercase tracking-widest text-primary">Base Network Verified</span>
+                        </div>
                         <div className="space-y-1 md:space-y-0">
 
                             <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -74,12 +79,6 @@ export const Footer = ({ isDarkMode, activeTab, setActiveTab }: FooterProps) => 
                             <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>Secured by</span>
                             <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[10px] text-white">B</div>
                             <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>Base L2</span>
-                        </div>
-
-                        {/* Moved Badge to Right */}
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-full glass border-primary/20 bg-primary/5 shadow-lg shadow-primary/5">
-                            <ShieldCheck className="w-4 h-4 text-primary" />
-                            <span className="text-xs sm:text-sm font-black uppercase tracking-widest text-primary">Base Network Verified</span>
                         </div>
                     </div>
                 </div>

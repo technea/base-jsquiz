@@ -18,7 +18,7 @@ import {
 } from 'firebase/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Bot } from 'lucide-react';
+import { Code2 } from 'lucide-react';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -876,14 +876,14 @@ export default function JSQuizApp() {
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsAiOpen(true)}
           className="fixed z-50 w-16 h-16 sm:w-20 sm:h-20 rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-br from-violet-600 via-indigo-700 to-purple-800 text-white shadow-[0_20px_50px_rgba(99,102,241,0.4)] flex items-center justify-center border-2 sm:border-4 border-white/20 backdrop-blur-xl group"
-          style={{ bottom: '24px', right: '24px', left: 'auto' }}
+          style={{ bottom: '24px', left: '24px', right: 'auto' }}
         >
           <Code2 className="w-8 h-8 sm:w-10 sm:h-10 group-hover:scale-110 transition-transform" />
           <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
 
 
           {/* Tooltip on hover */}
-          <div className="absolute right-full mr-4 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
+          <div className="absolute left-full ml-4 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
             JS AI Mentor
           </div>
         </motion.button>
