@@ -209,6 +209,33 @@ h6,
   .glass {
     backdrop-filter: blur(8px);
   }
+  
+  .glass-card {
+    border-radius: 1.5rem;
+    padding: 1.25rem !important;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  h1 { font-size: 1.875rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.25rem !important; }
+
+  /* Hide mouse-only effects */
+  .group-hover\:opacity-100 {
+    display: none;
+  }
+}
+
+/* Fix for mobile horizontal scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ═══════════════════════════════════════════════
