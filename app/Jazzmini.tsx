@@ -875,10 +875,10 @@ export default function JSQuizApp() {
           whileHover={{ scale: 1.1, rotate: 5 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsAiOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-[2rem] bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-2xl shadow-violet-500/50 flex items-center justify-center border-4 border-white/20 backdrop-blur-md group"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-2xl shadow-violet-500/50 flex items-center justify-center border-2 sm:border-4 border-white/20 backdrop-blur-md group"
         >
-          <Bot className="w-8 h-8 group-hover:animate-pulse" />
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+          <Bot className="w-7 h-7 sm:w-8 sm:h-8 group-hover:animate-pulse" />
+          <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
 
           {/* Tooltip on hover */}
           <div className="absolute right-full mr-4 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
