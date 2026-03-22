@@ -33,30 +33,30 @@ export const LeaderboardTable = ({
             className="max-w-2xl mx-auto space-y-8 px-4 pb-12"
         >
             {/* Header Card */}
-            <div className="relative overflow-hidden rounded-[2.5rem] p-10 text-center bg-primary shadow-2xl shadow-primary/20">
+            <div className="relative overflow-hidden rounded-[2rem] p-8 text-center bg-primary shadow-2xl shadow-primary/20">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
                 <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-48 h-48 bg-black/10 rounded-full blur-3xl" />
                 
                 <div className="relative z-10 space-y-6">
-                    <div className="flex flex-col items-center gap-3">
-                        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-xl mb-2">
-                            <Trophy className="w-8 h-8 text-white fill-white/20" />
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl mb-1">
+                            <Trophy className="w-6 h-6 text-white fill-white/20" />
                         </div>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Hall of Fame</h2>
-                        <p className="text-white/70 text-sm font-medium max-w-xs">
+                        <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight italic">Hall of Fame</h2>
+                        <p className="text-white/70 text-xs font-medium max-w-[200px] leading-relaxed">
                             Top developers pushing the boundaries of JavaScript and Web3.
                         </p>
                     </div>
 
-                    <div className="flex gap-4 justify-center">
-                        <div className="flex-1 max-w-[160px] flex flex-col items-center gap-1 px-4 py-4 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10">
-                            <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Global Points</p>
-                            <p className="text-xl font-extrabold text-white tracking-tight">{totalPoints.toLocaleString()}</p>
+                    <div className="flex gap-3 justify-center">
+                        <div className="flex-1 max-w-[140px] flex flex-col items-center gap-1 px-3 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
+                            <p className="text-[9px] text-white/50 font-bold uppercase tracking-widest">Global Points</p>
+                            <p className="text-lg font-extrabold text-white tracking-tight">{totalPoints.toLocaleString()}</p>
                         </div>
-                        <div className="flex-1 max-w-[160px] flex flex-col items-center gap-1 px-4 py-4 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10">
-                            <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Active Players</p>
-                            <p className="text-xl font-extrabold text-white tracking-tight">{leaderboardData.length}</p>
+                        <div className="flex-1 max-w-[140px] flex flex-col items-center gap-1 px-3 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
+                            <p className="text-[9px] text-white/50 font-bold uppercase tracking-widest">Active Players</p>
+                            <p className="text-lg font-extrabold text-white tracking-tight">{leaderboardData.length}</p>
                         </div>
                     </div>
                 </div>
@@ -105,7 +105,7 @@ export const LeaderboardTable = ({
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    className={`relative flex items-center gap-4 p-5 sm:p-6 rounded-[2rem] border transition-all duration-300 ${
+                                    className={`relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
                                         isCurrentUser
                                             ? 'border-primary/40 bg-primary/5 shadow-2xl shadow-primary/10 ring-2 ring-primary/20'
                                             : 'glass-card hover:bg-white/[0.02] border-border/40'
@@ -123,7 +123,7 @@ export const LeaderboardTable = ({
                                     </div>
 
                                     {/* Avatar/Profile Image */}
-                                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-[1.25rem] shrink-0 flex items-center justify-center font-extrabold text-white overflow-hidden relative shadow-lg ${
+                                    <div className={`w-11 h-11 sm:w-13 sm:h-13 rounded-xl shrink-0 flex items-center justify-center font-extrabold text-white overflow-hidden relative shadow-lg ${
                                         isTop3
                                             ? `bg-gradient-to-br ${RANK_COLORS[idx]} ring-4 ring-white/10`
                                             : 'bg-primary/20 text-primary border border-primary/20'
@@ -141,7 +141,7 @@ export const LeaderboardTable = ({
                                     {/* Player Details */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <p className="text-lg font-extrabold truncate text-foreground tracking-tight">
+                                            <p className="text-base font-extrabold truncate text-foreground tracking-tight">
                                                 {displayName}
                                             </p>
                                             {isCurrentUser && (
@@ -170,7 +170,7 @@ export const LeaderboardTable = ({
                                             <div className="p-1 px-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-[10px] font-bold tracking-tighter uppercase">
                                                 PTS
                                             </div>
-                                            <span className={`text-2xl font-black tracking-tighter ${
+                                            <span className={`text-xl font-black tracking-tighter ${
                                                 isTop3 ? 'text-amber-500' : 'text-foreground'
                                             }`}>
                                                 {Number(player.totalPoints).toLocaleString()}
