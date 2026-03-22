@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Send, Bot, User, Volume2, VolumeX, Loader2, Sparkles,
     X, Mic, MicOff, Paperclip, FileText, Code2, Copy, Check, 
-    ChevronDown, Brain, BookOpen, HelpCircle, ArrowRight
+    ChevronDown, Brain, BookOpen, HelpCircle, ArrowRight,
+    ChevronLeft, PlusCircle
 } from 'lucide-react';
 
 // ════════════════════════════════════════════════════════════════
@@ -666,84 +667,44 @@ Let's start learning! 🚀`
                 .hljs-operator { color: #89ddff; }
             `}</style>
 
-            <motion.div
+            <motion.div 
                 initial={{ opacity: 0, y: 20 }} 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 28 }}
                 className={`w-full h-full overflow-hidden flex flex-col relative z-50
-                    ${isDarkMode ? 'bg-slate-950/40 backdrop-blur-3xl' : 'bg-white/95 shadow-slate-200/60'}`}
+                    ${isDarkMode ? 'bg-[#0f1115]' : 'bg-[#f8faff]'}`}
             >
                 {/* Header Section */}
-                <div className={`px-5 py-4 sm:px-6 sm:py-5 border-b flex items-center justify-between shrink-0 relative overflow-hidden
-                    ${isDarkMode ? 'border-slate-800/50' : 'border-slate-100'}`}>
+                <div className={`px-5 py-3 flex items-center shrink-0 border-b
+                    ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
                     
-                    {/* Decorative Header Background */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
-                    
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="relative">
-                            <motion.div 
-                                animate={{ 
-                                    y: [0, -3, 0],
-                                }}
-                                transition={{ 
-                                    duration: 3, 
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                }}
-                                className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary/20 border border-white/10"
-                            >
-                                <Bot className="w-6 h-6 text-white" />
-                            </motion.div>
-                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-background bg-success shadow-lg shadow-success/40" />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="font-extrabold text-lg sm:text-xl text-foreground tracking-tight leading-none">
-                                    AI Mentor <span className="text-primary italic">Pro</span>
-                                </h2>
-                                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                            </div>
-                            <div className="flex items-center gap-2 mt-1.5">
-                                <span className={`text-[11px] font-bold tracking-widest uppercase opacity-60 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                    {statusText}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    {onClose && (
+                        <button onClick={onClose} className="p-2 -ml-1 text-muted-foreground hover:text-foreground">
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                    )}
 
-                    <div className="flex items-center gap-2 relative z-10">
-                        <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setQuizMode(!quizMode)}
-                            className={`p-3 rounded-2xl transition-all shadow-sm flex items-center gap-2
-                                ${quizMode 
-                                    ? 'bg-amber-500 text-white shadow-amber-500/20' 
-                                    : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'}`}
-                        >
-                            <Brain className="w-4 h-4" />
-                            {quizMode && <span className="text-[10px] font-bold uppercase tracking-widest hidden xs:inline">Quiz Mode</span>}
-                        </motion.button>
-                        
-                        <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-                            className={`p-3 rounded-2xl transition-all ${voiceEnabled ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground'}`}>
-                            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                        </motion.button>
-                        
-                        {onClose && (
-                            <motion.button 
-                                whileHover={{ scale: 1.05, rotate: 90 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={onClose}
-                                className="p-3 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 transition-all">
-                                <X className="w-5 h-5" />
-                            </motion.button>
-                        )}
+                    <div className="flex-1 text-center">
+                        <h2 className="text-sm font-bold tracking-tight text-foreground">AI Mentor</h2>
                     </div>
+                    
+                    <div className="w-10"></div> {/* Spacer for symmetry */}
+                </div>
+
+                {/* Chips Section */}
+                <div className="px-5 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth shrink-0">
+                    <button 
+                        onClick={() => setQuizMode(!quizMode)}
+                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all
+                            ${quizMode ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        Quick Quiz
+                    </button>
+                    <button 
+                        onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
+                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all
+                            ${voiceEnabled ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        {voiceEnabled ? 'Voice On' : 'Voice Off'}
+                    </button>
                 </div>
 
                 {/* Messages Container */}
@@ -754,41 +715,35 @@ Let's start learning! 🚀`
                                 initial={{ opacity: 0, y: 15 }} 
                                 animate={{ opacity: 1, y: 0 }}
                                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex gap-4 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                <div className={`flex gap-3 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                     {/* Avatar/Icon Section */}
-                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-1 shadow-lg transition-transform hover:scale-110
-                                        ${msg.role === 'user' 
-                                            ? 'bg-slate-800 text-white' 
-                                            : msg.type === 'quiz'
-                                                ? 'bg-amber-500 text-white shadow-amber-500/20'
-                                                : 'bg-primary text-white shadow-primary/20'}`}>
-                                        {msg.role === 'user' ? <User className="w-5 h-5" /> : 
-                                         msg.type === 'quiz' ? <Brain className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm overflow-hidden">
+                                        {msg.role === 'user' 
+                                            ? <div className="w-full h-full bg-slate-200 flex items-center justify-center"><User className="w-4 h-4 text-slate-500" /></div>
+                                            : <div className="w-full h-full bg-slate-100 flex items-center justify-center"><Bot className="w-4 h-4 text-primary" /></div>}
                                     </div>
 
-                                    {/* Message Bubble */}
-                                    <div className={`relative px-5 py-4 sm:px-6 sm:py-5 rounded-[1.75rem] shadow-sm tracking-tight
-                                        ${msg.role === 'user'
-                                            ? 'bg-primary text-white rounded-tr-sm'
-                                            : isDarkMode 
-                                                ? 'bg-slate-800/90 border border-slate-700/50 text-slate-100 rounded-tl-sm' 
-                                                : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-slate-100/50'}`}>
-                                        
-                                        {msg.file && (
-                                            <div className="mb-4 flex items-center gap-3 bg-black/10 rounded-2xl px-4 py-2 border border-white/5">
-                                                {msg.file.preview
-                                                    ? <img src={msg.file.preview} className="w-10 h-10 rounded-xl object-cover shadow-inner" alt="" />
-                                                    : <FileText className="w-6 h-6 opacity-60" />}
-                                                <div className="min-w-0">
-                                                    <p className="text-[11px] font-bold opacity-90 truncate max-w-[150px]">{msg.file.name}</p>
-                                                    <p className="text-[9px] font-medium opacity-50 uppercase tracking-widest">Document Attached</p>
+                                    {/* Message Bubble & Info */}
+                                    <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                        <div className={`relative px-5 py-3.5 rounded-[1.75rem] shadow-sm tracking-tight
+                                            ${msg.role === 'user'
+                                                ? 'bg-primary text-white rounded-tr-sm'
+                                                : isDarkMode 
+                                                    ? 'bg-slate-800 border border-slate-700/50 text-slate-100 rounded-tl-sm' 
+                                                    : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}>
+                                            
+                                            {msg.file && (
+                                                <div className="mb-4 flex items-center gap-3 bg-black/5 rounded-2xl px-4 py-2 border border-white/5">
+                                                    <FileText className="w-4 h-4 text-primary" />
+                                                    <span className="text-[10px] font-bold truncate max-w-[120px]">{msg.file.name}</span>
                                                 </div>
-                                            </div>
-                                        )}
-                                        
-                                        {msg.role === 'assistant'
-                                            ? <MessageContent content={msg.content} isDark={isDarkMode} />
-                                            : <p className="leading-relaxed text-[14px] sm:text-base font-semibold whitespace-pre-wrap">{msg.content}</p>}
+                                            )}
+                                            
+                                            {msg.role === 'assistant'
+                                                ? <MessageContent content={msg.content} isDark={isDarkMode} />
+                                                : <p className="leading-relaxed text-[14px] sm:text-base font-semibold whitespace-pre-wrap">{msg.content}</p>}
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground/60 mt-1 px-2 font-medium">Just now</span>
                                     </div>
                                 </div>
                             </motion.div>
@@ -839,34 +794,25 @@ Let's start learning! 🚀`
                 </div>
 
                 {/* Input Area Section */}
-                <div className={`px-6 py-6 border-t shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-900/50' : 'border-slate-100 bg-slate-50'}`}>
+                <div className={`px-4 py-4 border-t shrink-0 ${isDarkMode ? 'border-white/5 bg-slate-950' : 'border-slate-100 bg-white'}`}>
                     
                     {/* Suggestion Chips */}
-                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
-                        <motion.button
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setInput("Can you explain how async/await works under the hood?")}
-                            className="px-4 py-2 text-[10px] font-bold rounded-xl bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all whitespace-nowrap shadow-sm"
-                        >
-                            <Code2 className="w-3.5 h-3.5 inline mr-1.5" /> Explain Async/Await
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => { setQuizMode(true); setInput("Generate a hard quiz about JavaScript Prototypal Inheritance."); }}
-                            className="px-4 py-2 text-[10px] font-bold rounded-xl bg-background border border-border text-muted-foreground hover:text-amber-500 hover:border-amber-500/30 transition-all whitespace-nowrap shadow-sm"
-                        >
-                            <Brain className="w-3.5 h-3.5 inline mr-1.5" /> Prototypal Quiz
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setInput("What are the best practices for React 18+ performance?")}
-                            className="px-4 py-2 text-[10px] font-bold rounded-xl bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all whitespace-nowrap shadow-sm"
-                        >
-                            <Sparkles className="w-3.5 h-3.5 inline mr-1.5" /> Best Practices
-                        </motion.button>
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+                        <button
+                            onClick={() => setInput("Explain async/await simply")}
+                            className="px-4 py-1.5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground hover:text-primary transition-all whitespace-nowrap">
+                            Async/Await
+                        </button>
+                        <button
+                            onClick={() => { setQuizMode(true); setInput("JavaScript Quiz"); }}
+                            className="px-4 py-1.5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground hover:text-amber-500 transition-all whitespace-nowrap">
+                            Take Quiz
+                        </button>
+                        <button
+                            onClick={() => setInput("Best practices for React")}
+                            className="px-4 py-1.5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground hover:text-primary transition-all whitespace-nowrap">
+                            Best Practices
+                        </button>
                     </div>
 
                     {/* Active File Preview */}
@@ -875,80 +821,68 @@ Let's start learning! 🚀`
                             <motion.div 
                                 initial={{ opacity: 0, scale: 0.95 }} 
                                 animate={{ opacity: 1, scale: 1 }} 
-                                className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-2xl px-4 py-3 mb-4 w-fit max-w-full">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center gap-3 bg-primary/5 border border-primary/10 rounded-2xl px-3 py-2.5 mb-4 w-fit max-w-full group">
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
                                     {attachedFile.preview
-                                        ? <img src={attachedFile.preview} className="w-full h-full rounded-lg object-cover" alt="" />
-                                        : <FileText className="w-5 h-5 text-primary" />}
+                                        ? <img src={attachedFile.preview} className="w-full h-full rounded-md object-cover" alt="" />
+                                        : <FileText className="w-4 h-4 text-primary" />}
                                 </div>
-                                <div className="min-w-0 pr-4">
-                                    <p className="text-xs font-bold text-foreground truncate max-w-[200px]">{attachedFile.name}</p>
-                                    <p className="text-[10px] text-primary font-bold uppercase tracking-widest">Selected for analysis</p>
+                                <div className="min-w-0 pr-2">
+                                    <p className="text-[10px] font-bold text-foreground truncate max-w-[150px]">{attachedFile.name}</p>
+                                    <p className="text-[8px] text-primary/60 font-medium uppercase tracking-widest">Selected</p>
                                 </div>
                                 <button 
                                     onClick={() => setAttachedFile(null)}
-                                    className="p-1.5 rounded-full hover:bg-error/10 text-muted-foreground hover:text-error transition-all shrink-0">
-                                    <X className="w-4 h-4" />
+                                    className="p-1.5 rounded-full hover:bg-error/10 text-muted-foreground hover:text-error transition-all">
+                                    <X className="w-3.5 h-3.5" />
                                 </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
                     {/* Interactive Input Bar */}
-                    <div className="flex items-end gap-3">
-                        <div className={`flex-1 flex items-center gap-1 rounded-3xl border px-3 py-1.5 transition-all
-                            ${isDarkMode ? 'bg-slate-800/80 border-slate-700/50 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10'
-                                : 'bg-white border-slate-200 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 shadow-sm'}`}>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <button 
+                            onClick={() => fileInputRef.current?.click()} 
+                            className="p-2.5 rounded-full text-muted-foreground hover:text-primary transition-all shrink-0">
+                            <PlusCircle className="w-6 h-6" />
+                        </button>
 
-                            <button 
-                                onClick={() => fileInputRef.current?.click()} 
-                                className="p-2.5 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shrink-0">
-                                <Paperclip className="w-5 h-5" />
-                            </button>
-
+                        <div className={`flex-1 flex items-center rounded-full border px-4 py-1 transition-all
+                            ${isDarkMode ? 'bg-slate-900 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                            
                             <input 
                                 ref={inputRef} 
                                 type="text" 
                                 value={input}
                                 onChange={e => setInput(e.target.value)} 
                                 onKeyDown={handleKeyDown}
-                                placeholder={isListening ? 'Listening...' : quizMode ? 'What should we quiz on?' : 'Type your question...'}
+                                placeholder="Type your message..."
                                 disabled={isLoading}
-                                className="flex-1 py-3 bg-transparent outline-none text-sm font-medium placeholder:font-normal" />
+                                className="flex-1 py-2.5 bg-transparent outline-none text-sm font-medium placeholder:text-muted-foreground/60" />
 
-                            {micAvailable && (
+                            <div className="flex items-center gap-1">
+                                {micAvailable && (
+                                    <button 
+                                        onClick={toggleListening} 
+                                        className={`p-2 transition-all shrink-0 ${isListening ? 'text-error' : 'text-muted-foreground'}`}>
+                                        <Mic className="w-5 h-5" />
+                                    </button>
+                                )}
+                                
                                 <button 
-                                    onClick={toggleListening} 
-                                    className={`p-2.5 rounded-xl transition-all shrink-0
-                                        ${isListening ? 'bg-error text-white shadow-lg shadow-error/20 animate-pulse'
-                                            : 'text-muted-foreground hover:text-primary hover:bg-primary/5'}`}>
-                                    {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                                    onClick={handleSend} 
+                                    disabled={(!input.trim() && !attachedFile) || isLoading}
+                                    className={`p-2 transition-all shrink-0 ${(!input.trim() && !attachedFile) || isLoading ? 'text-muted-foreground/30' : 'text-primary'}`}>
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 </button>
-                            )}
+                            </div>
                         </div>
-
-                        <motion.button 
-                            whileHover={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 1.05 }}
-                            whileTap={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 0.95 }}
-                            onClick={handleSend} 
-                            disabled={(!input.trim() && !attachedFile) || isLoading}
-                            className={`w-14 h-14 rounded-3xl transition-all shrink-0 shadow-xl flex items-center justify-center
-                                ${(!input.trim() && !attachedFile) || isLoading
-                                    ? 'bg-muted text-muted-foreground'
-                                    : 'btn-premium text-white shadow-primary/25'}`}>
-                            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6 ml-0.5" />}
-                        </motion.button>
                     </div>
 
-                    <div className="flex justify-center gap-6 mt-4">
-                        <div className="flex items-center gap-1.5 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-default group">
-                            <Volume2 className={`w-3.5 h-3.5 ${voiceEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">{voiceEnabled ? 'Audio Active' : 'Audio Muted'}</span>
-                        </div>
-                        <div className="w-px h-3 bg-border" />
-                        <div className="flex items-center gap-1.5 opacity-40 cursor-default">
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Powered by GPT-4o</span>
-                        </div>
+                    <div className="flex justify-center gap-4 mt-3 opacity-30">
+                        <span className="text-[9px] font-bold uppercase tracking-[0.2em]">GPT-4o Learning Model</span>
                     </div>
                 </div>
 
