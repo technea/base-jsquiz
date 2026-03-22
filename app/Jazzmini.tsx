@@ -18,7 +18,7 @@ import {
 } from 'firebase/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Code2, Sparkles } from 'lucide-react';
+import { Code2, Sparkles, Bot } from 'lucide-react';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -894,7 +894,7 @@ export default function JSQuizApp() {
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           
           <div className="relative z-10">
-            <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-white group-hover:animate-spin-slow transition-transform" />
+            <Bot className="w-9 h-9 sm:w-11 sm:h-11 text-white group-hover:scale-110 transition-transform" />
           </div>
 
           <div className="absolute top-2 right-2 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-lg shadow-emerald-500/50" />
