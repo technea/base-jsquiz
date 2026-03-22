@@ -102,7 +102,7 @@ export const QuizView = ({
                         <BookOpen className="w-32 h-32 sm:w-48 sm:h-48" />
                     </div>
 
-                    <h3 className="text-xl sm:text-2xl font-extrabold leading-tight text-foreground tracking-tight mb-8 sm:mb-10 relative z-10">
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold leading-tight text-foreground tracking-tight mb-8 sm:mb-10 relative z-10">
                         {currentQuestion.question}
                     </h3>
 

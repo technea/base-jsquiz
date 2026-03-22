@@ -109,12 +109,12 @@ export const DailyQuiz = ({
                 className="relative group"
             >
                 <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full translate-y-12" />
-                <div className="relative glass-card p-6 sm:p-12 rounded-[2.5rem] bg-opacity-40 border-border/40 overflow-hidden">
+                <div className="relative glass-card p-5 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] bg-opacity-40 border-border/40 overflow-hidden">
                     <div className="absolute -top-6 -right-6 opacity-[0.05] pointer-events-none">
                         <BookOpen className="w-48 h-48" />
                     </div>
 
-                    <h3 className="text-2xl sm:text-4xl font-extrabold leading-tight text-foreground tracking-tight mb-10 relative z-10">
+                    <h3 className="text-xl sm:text-2xl font-extrabold leading-tight text-foreground tracking-tight mb-8 sm:mb-10 relative z-10">
                         {todayQuestion.question}
                     </h3>
 
@@ -144,17 +144,17 @@ export const DailyQuiz = ({
                                     transition={{ delay: 0.1 * idx }}
                                     onClick={() => onAnswer(opt)}
                                     disabled={isAnswered}
-                                    className={`w-full p-5 sm:p-7 rounded-3xl text-left font-bold transition-all border-2 flex items-center justify-between group relative overflow-hidden ${btnStyle}`}
+                                    className={`w-full p-4 sm:p-5.5 rounded-2xl sm:rounded-3xl text-left font-bold transition-all border-2 flex items-center justify-between group relative overflow-hidden ${btnStyle}`}
                                 >
                                     <div className="flex items-center gap-4 sm:gap-6 w-full relative z-10">
-                                        <span className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl flex items-center justify-center text-sm font-extrabold border-2 transition-all ${
+                                        <span className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl flex items-center justify-center text-xs font-extrabold border-2 transition-all ${
                                             isSelected
                                                 ? 'bg-primary border-primary text-white shadow-lg'
                                                 : 'border-border/60 bg-white/5 text-muted-foreground group-hover:bg-primary/5 group-hover:border-primary/20'
                                             }`}>
                                             {String.fromCharCode(65 + idx)}
                                         </span>
-                                        <span className="flex-1 break-words text-lg sm:text-xl font-bold tracking-tight">
+                                        <span className="flex-1 break-words text-sm sm:text-lg font-bold tracking-tight">
                                             {opt}
                                         </span>
                                     </div>
