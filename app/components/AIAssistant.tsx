@@ -318,7 +318,7 @@ function MessageContent({ content, isDark }: { content: string; isDark: boolean 
                     return <QuizComponent key={i} questions={p.questions} />;
                 } else {
                     return (
-                        <p key={i} className={`leading-relaxed whitespace-pre-wrap text-[15px] sm:text-[17px] font-medium ${i > 0 ? 'mt-3' : ''}`}>
+                        <p key={i} className={`leading-relaxed whitespace-pre-wrap text-[14px] sm:text-base font-medium ${i > 0 ? 'mt-3' : ''}`}>
                             {renderInline(p.content)}
                         </p>
                     );
@@ -670,12 +670,12 @@ Let's start learning! 🚀`
                 initial={{ opacity: 0, y: 20 }} 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-                className={`max-w-3xl mx-auto w-full sm:rounded-[2.5rem] overflow-hidden flex flex-col h-[100dvh] sm:h-[85vh] min-h-0 sm:min-h-[600px] border shadow-2xl relative z-50
-                    ${isDarkMode ? 'border-slate-800 bg-slate-900/90 backdrop-blur-xl' : 'border-slate-200 bg-white/95 backdrop-blur-xl shadow-slate-200/60'}`}
+                className={`w-full h-full overflow-hidden flex flex-col relative z-50
+                    ${isDarkMode ? 'bg-slate-950/40 backdrop-blur-3xl' : 'bg-white/95 shadow-slate-200/60'}`}
             >
                 {/* Header Section */}
-                <div className={`px-6 py-5 border-b flex items-center justify-between shrink-0 relative overflow-hidden
-                    ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                <div className={`px-5 py-4 sm:px-6 sm:py-5 border-b flex items-center justify-between shrink-0 relative overflow-hidden
+                    ${isDarkMode ? 'border-slate-800/50' : 'border-slate-100'}`}>
                     
                     {/* Decorative Header Background */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
@@ -739,15 +739,15 @@ Let's start learning! 🚀`
                                 whileHover={{ scale: 1.05, rotate: 90 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={onClose}
-                                className="p-3 rounded-2xl bg-muted text-muted-foreground hover:text-foreground transition-all">
-                                <X className="w-4 h-4" />
+                                className="p-3 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 transition-all">
+                                <X className="w-5 h-5" />
                             </motion.button>
                         )}
                     </div>
                 </div>
 
                 {/* Messages Container */}
-                <div ref={chatAreaRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-8 scroll-smooth no-scrollbar">
+                <div ref={chatAreaRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 space-y-8 scroll-smooth no-scrollbar">
                     <AnimatePresence initial={false}>
                         {messages.map(msg => (
                             <motion.div key={msg.id}
@@ -788,7 +788,7 @@ Let's start learning! 🚀`
                                         
                                         {msg.role === 'assistant'
                                             ? <MessageContent content={msg.content} isDark={isDarkMode} />
-                                            : <p className="leading-relaxed text-[15px] sm:text-[17px] font-semibold whitespace-pre-wrap">{msg.content}</p>}
+                                            : <p className="leading-relaxed text-[14px] sm:text-base font-semibold whitespace-pre-wrap">{msg.content}</p>}
                                     </div>
                                 </div>
                             </motion.div>
@@ -914,7 +914,7 @@ Let's start learning! 🚀`
                                 onKeyDown={handleKeyDown}
                                 placeholder={isListening ? 'Listening...' : quizMode ? 'What should we quiz on?' : 'Type your question...'}
                                 disabled={isLoading}
-                                className="flex-1 py-3 bg-transparent outline-none text-[15px] font-medium placeholder:font-normal" />
+                                className="flex-1 py-3 bg-transparent outline-none text-sm font-medium placeholder:font-normal" />
 
                             {micAvailable && (
                                 <button 
