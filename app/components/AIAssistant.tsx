@@ -85,8 +85,8 @@ class SpeechManager {
     this.stop();
 
     const englishPart = rawText.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
-    const urduMatch = rawText.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
-    const urduPart = urduMatch ? urduMatch[1].trim() : "";
+    const urduMatch  = rawText.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
+    const urduPart   = urduMatch ? urduMatch[1].trim() : "";
 
     const clean = (t) =>
       t.replace(/```[\s\S]*?```/g, " Code block. ")
@@ -98,7 +98,7 @@ class SpeechManager {
     this.#emit(true);
     try {
       if (englishPart) await this.#speak(clean(englishPart), "en");
-      if (urduPart) await this.#speak(clean(urduPart), "ur");
+      if (urduPart)   await this.#speak(clean(urduPart), "ur");
     } finally {
       this.#emit(false);
     }
@@ -157,10 +157,10 @@ class SyntaxHighlighter {
 
 class QuizStateMachine {
   static STATES = Object.freeze({
-    IDLE: "IDLE",
+    IDLE:      "IDLE",
     ANSWERING: "ANSWERING",
-    ANSWERED: "ANSWERED",
-    COMPLETE: "COMPLETE",
+    ANSWERED:  "ANSWERED",
+    COMPLETE:  "COMPLETE",
   });
 
   #state;
@@ -174,12 +174,12 @@ class QuizStateMachine {
     if (!Array.isArray(questions) || questions.length === 0) {
       throw new Error("QuizStateMachine requires a non-empty questions array.");
     }
-    this.#state = QuizStateMachine.STATES.ANSWERING;
-    this.#questions = questions;
-    this.#currentIndex = 0;
-    this.#score = 0;
+    this.#state          = QuizStateMachine.STATES.ANSWERING;
+    this.#questions      = questions;
+    this.#currentIndex   = 0;
+    this.#score          = 0;
     this.#selectedOptionId = null;
-    this.#listeners = new Set();
+    this.#listeners      = new Set();
   }
 
   // ── Observers ──────────────────────────────────────────────────
@@ -197,13 +197,13 @@ class QuizStateMachine {
 
   snapshot() {
     return Object.freeze({
-      state: this.#state,
-      question: this.#questions[this.#currentIndex],
-      currentIndex: this.#currentIndex,
-      totalQuestions: this.#questions.length,
-      score: this.#score,
+      state:           this.#state,
+      question:        this.#questions[this.#currentIndex],
+      currentIndex:    this.#currentIndex,
+      totalQuestions:  this.#questions.length,
+      score:           this.#score,
       selectedOptionId: this.#selectedOptionId,
-      isLastQuestion: this.#currentIndex === this.#questions.length - 1,
+      isLastQuestion:  this.#currentIndex === this.#questions.length - 1,
     });
   }
 
@@ -229,9 +229,9 @@ class QuizStateMachine {
   next() {
     if (this.#state !== QuizStateMachine.STATES.ANSWERED) return;
 
-    this.#currentIndex += 1;
+    this.#currentIndex    += 1;
     this.#selectedOptionId = null;
-    this.#state = QuizStateMachine.STATES.ANSWERING;
+    this.#state            = QuizStateMachine.STATES.ANSWERING;
 
     this.#notify();
   }
@@ -376,7 +376,7 @@ function QuizCard({ questions }) {
   function optionClass(option) {
     if (snap.state === ANSWERING) return "quiz__option";
 
-    if (option.isCorrect) return "quiz__option quiz__option--correct";
+    if (option.isCorrect)                                        return "quiz__option quiz__option--correct";
     if (snap.selectedOptionId === option.id && !option.isCorrect) return "quiz__option quiz__option--wrong";
     return "quiz__option quiz__option--dim";
   }
@@ -501,19 +501,19 @@ Let's start! 🚀`,
     },
   ]);
 
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [voiceOn, setVoiceOn] = useState(true);
+  const [input, setInput]           = useState("");
+  const [isLoading, setIsLoading]   = useState(false);
+  const [voiceOn, setVoiceOn]       = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [micAvailable, setMicAvailable] = useState(false);
   const [attachedFile, setAttachedFile] = useState(null);
-  const [quizMode, setQuizMode] = useState(false);
-  const [lang, setLang] = useState("en-US");
+  const [quizMode, setQuizMode]     = useState(false);
+  const [lang, setLang]             = useState("en-US");
 
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const bottomRef     = useRef(null);
+  const inputRef      = useRef(null);
+  const fileInputRef  = useRef(null);
   const recognitionRef = useRef(null);
 
   // ── Speech observer ────────────────────────────────────────────
@@ -555,10 +555,10 @@ Let's start! 🚀`,
     reader.onload = (ev) => {
       const dataUrl = ev.target.result;
       setAttachedFile({
-        name: file.name,
-        type: file.type,
+        name:    file.name,
+        type:    file.type,
         preview: file.type.startsWith("image/") ? dataUrl : undefined,
-        base64: dataUrl.split(",")[1],
+        base64:  dataUrl.split(",")[1],
       });
     };
     reader.readAsDataURL(file);
@@ -578,13 +578,13 @@ Let's start! 🚀`,
     speech.stop();
 
     const rec = new SR();
-    rec.continuous = false;
-    rec.interimResults = true;
-    rec.lang = lang;
+    rec.continuous      = false;
+    rec.interimResults  = true;
+    rec.lang            = lang;
 
-    rec.onstart = () => setIsListening(true);
-    rec.onend = () => setIsListening(false);
-    rec.onerror = (e) => {
+    rec.onstart   = () => setIsListening(true);
+    rec.onend     = () => setIsListening(false);
+    rec.onerror   = (e) => {
       if (e.error !== "no-speech") alert(`Voice error: ${e.error}`);
       setIsListening(false);
     };
@@ -617,10 +617,10 @@ Let's start! 🚀`,
     const fileSnap = attachedFile;
 
     const userMessage = {
-      id: Date.now().toString(),
-      role: "user",
+      id:      Date.now().toString(),
+      role:    "user",
       content: text || `[File: ${fileSnap?.name}]`,
-      file: fileSnap ? { name: fileSnap.name, type: fileSnap.type, preview: fileSnap.preview } : undefined,
+      file:    fileSnap ? { name: fileSnap.name, type: fileSnap.type, preview: fileSnap.preview } : undefined,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -630,10 +630,10 @@ Let's start! 🚀`,
 
     try {
       const payload = {
-        message: userMessage.content,
-        history: messages.map((m) => ({ role: m.role, content: m.content })),
+        message:  userMessage.content,
+        history:  messages.map((m) => ({ role: m.role, content: m.content })),
         language: lang,
-        mode: quizMode ? "quiz" : "normal",
+        mode:     quizMode ? "quiz" : "normal",
       };
 
       if (fileSnap?.base64) {
@@ -654,9 +654,9 @@ Let's start! 🚀`,
         setMessages((prev) => [
           ...prev,
           {
-            id: (Date.now() + 1).toString(),
-            role: "assistant",
-            type: "quiz",
+            id:      (Date.now() + 1).toString(),
+            role:    "assistant",
+            type:    "quiz",
             content: `[[QUIZ:START]]${JSON.stringify(data.questions)}[[QUIZ:END]]`,
           },
         ]);
@@ -689,9 +689,9 @@ Let's start! 🚀`,
   const status = isSpeaking
     ? "Speaking..."
     : isListening ? "Listening..."
-      : isLoading ? "Thinking..."
-        : quizMode ? "Quiz Mode"
-          : "Online";
+    : isLoading   ? "Thinking..."
+    : quizMode    ? "Quiz Mode"
+    : "Online";
 
   // ── Render ─────────────────────────────────────────────────────
 
