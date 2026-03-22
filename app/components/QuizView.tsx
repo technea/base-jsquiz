@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, ArrowRight, BookOpen, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, BookOpen, Clock, Sparkles } from 'lucide-react';
 import { QuizQuestion } from '../types';
 
 interface QuizViewProps {
@@ -39,7 +39,7 @@ export const QuizView = ({
     useEffect(() => {
         if (showExplanation || timeLeft === 0) {
             if (timeLeft === 0 && !selectedOption) {
-                onSelectOption("TIME_EXPIRED"); // Special case for timeout
+                onSelectOption("TIME_EXPIRED");
             }
             return;
         }
@@ -53,96 +53,103 @@ export const QuizView = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-8 px-4 sm:px-6"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-8 sm:pb-12 px-3 sm:px-4"
         >
-            <div className="flex flex-col sm:flex-row justify-between items-center bg-muted/30 p-3 sm:p-4 rounded-2xl sm:rounded-[2rem] border border-border/50 gap-3">
-                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary text-white rounded-xl sm:rounded-2xl flex items-center justify-center text-base sm:text-lg font-black shadow-lg shadow-primary/20">
+            {/* Session Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-center glass p-3 sm:p-4 rounded-[1.5rem] sm:rounded-[2rem] gap-3 sm:gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center text-lg font-extrabold shadow-lg shadow-primary/20">
                         {currentQuestionIndex + 1}
                     </div>
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Active Session</p>
-                        <p className="text-xs sm:text-sm font-bold text-foreground">Question {currentQuestionIndex + 1} of {totalQuestions}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Challenge Progress</p>
+                        <p className="text-sm font-bold text-foreground opacity-80">Question {currentQuestionIndex + 1} of {totalQuestions}</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                    {/* Timer UI */}
-                    <div className="flex items-center gap-2 bg-background/50 px-3 py-1.5 rounded-full border border-border/50">
-                        <div className={`w-2 h-2 rounded-full animate-pulse ${timeLeft < 10 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                        <span className={`text-xs font-black tabular-nums ${timeLeft < 10 ? 'text-amber-500' : 'text-foreground'}`}>
+                <div className="flex items-center gap-4 w-full sm:w-auto flex-1">
+                    <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden border border-border/50 hidden sm:block">
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
+                            className="h-full bg-primary shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-background/50 px-4 py-2 rounded-2xl border border-border shadow-sm">
+                        <Clock className={`w-4 h-4 ${timeLeft < 10 ? 'text-error animate-pulse' : 'text-primary'}`} />
+                        <span className={`text-sm font-bold tabular-nums ${timeLeft < 10 ? 'text-error' : 'text-foreground'}`}>
                             00:{timeLeft.toString().padStart(2, '0')}
                         </span>
                     </div>
 
-                    <div className="hidden sm:flex flex-1 sm:w-48 h-2 bg-background rounded-full overflow-hidden border border-border/50">
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
-                            className="h-full bg-primary shadow-[0_0_10px_rgba(0,82,255,0.4)]"
-                        />
-                    </div>
-
                     <button
                         onClick={onClose}
-                        className={`p-2 rounded-xl transition-all ${isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+                        className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground hover:text-foreground"
                     >
                         <XCircle className="w-6 h-6" />
                     </button>
                 </div>
             </div>
 
+            {/* Question Card */}
             <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl sm:rounded-[2.5rem] blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                <div className="relative glass-card p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] bg-background/50 border-border/40 overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 p-4 sm:p-8 opacity-[0.03] select-none pointer-events-none">
-                        <BookOpen className="w-24 h-24 sm:w-48 sm:h-48" />
+                <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full translate-y-12" />
+                <div className="relative glass-card p-5 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] bg-opacity-40 border-border/40 overflow-hidden">
+                    <div className="absolute -top-6 -right-6 opacity-[0.05] pointer-events-none">
+                        <BookOpen className="w-32 h-32 sm:w-48 sm:h-48" />
                     </div>
 
-                    <h3 className="text-xl sm:text-3xl font-black leading-tight text-foreground tracking-tight mb-6 sm:mb-8 relative z-10">
+                    <h3 className="text-xl sm:text-2xl font-extrabold leading-tight text-foreground tracking-tight mb-8 sm:mb-10 relative z-10">
                         {currentQuestion.question}
                     </h3>
 
-                    <div className="grid grid-cols-1 gap-3 relative z-10">
+                    <div className="grid grid-cols-1 gap-4 relative z-10">
                         {currentQuestion.options.map((option, idx) => {
                             const isCorrect = option === currentQuestion.answer;
                             const isSelected = option === selectedOption;
-                            const isTimedOut = selectedOption === "TIME_EXPIRED";
+                            
+                            let btnStyle = "bg-background/40 border-border hover:border-primary/40 hover:bg-background/60";
+                            let iconColor = "text-muted-foreground";
 
-                            let btnStyle = "bg-muted/30 border-border/50 hover:border-primary/50 text-foreground";
                             if (showExplanation) {
-                                if (isCorrect) btnStyle = "bg-emerald-500/10 border-emerald-500/40 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.1)]";
-                                else if (isSelected) btnStyle = "bg-rose-500/10 border-rose-500/40 text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]";
-                                else btnStyle = "opacity-40 grayscale blur-[0.5px] border-transparent scale-[0.98]";
+                                if (isCorrect) {
+                                    btnStyle = "bg-success/5 border-success/30 text-success shadow-[0_0_40px_rgba(16,185,129,0.08)] ring-1 ring-success/10";
+                                    iconColor = "text-success";
+                                } else if (isSelected) {
+                                    btnStyle = "bg-error/5 border-error/30 text-error shadow-[0_0_40px_rgba(244,63,94,0.08)] ring-1 ring-error/10";
+                                    iconColor = "text-error";
+                                } else {
+                                    btnStyle = "opacity-30 grayscale-[50%] blur-[0.3px] border-transparent scale-[0.98]";
+                                }
                             }
 
                             return (
                                 <motion.button
                                     key={idx}
-                                    initial={false}
-                                    animate={showExplanation && isSelected ? (isCorrect ? { scale: [1, 1.05, 1], y: [0, -5, 0] } : { x: [-10, 10, -10, 10, 0] }) : {}}
-                                    transition={showExplanation && isSelected ? (isCorrect ? { duration: 0.4 } : { duration: 0.4 }) : {}}
-                                    whileHover={!showExplanation ? { y: -2, scale: 1.01, backgroundColor: isDarkMode ? 'rgba(0, 82, 255, 0.05)' : 'rgba(0, 82, 255, 0.03)' } : {}}
+                                    whileHover={!showExplanation ? { x: 8 } : {}}
                                     onClick={() => onSelectOption(option)}
                                     disabled={!!selectedOption}
-                                    className={`w-full p-4 sm:p-5 rounded-xl sm:rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group relative overflow-hidden ${btnStyle}`}
+                                    className={`w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group relative overflow-hidden ${btnStyle}`}
                                 >
-                                    <div className="flex items-center gap-3 sm:gap-5 w-full relative z-10">
-                                        <span className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-black border-2 transition-all ${isSelected
-                                            ? 'bg-primary border-primary text-white shadow-lg'
-                                            : 'border-border bg-background/50 text-muted-foreground'
+                                    <div className="flex items-center gap-4 sm:gap-6 w-full relative z-10">
+                                        <span className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl flex items-center justify-center text-xs font-extrabold border-2 transition-all ${
+                                            isSelected
+                                                ? 'bg-primary border-primary text-white shadow-lg'
+                                                : 'border-border/60 bg-white/5 text-muted-foreground group-hover:bg-primary/5 group-hover:border-primary/20'
                                             }`}>
                                             {String.fromCharCode(65 + idx)}
                                         </span>
-                                        <span className="flex-1 break-words text-sm sm:text-lg leading-snug">
+                                        <span className="flex-1 break-words text-sm sm:text-lg font-bold tracking-tight">
                                             {option}
                                         </span>
                                     </div>
                                     <div className="relative z-10">
-                                        {showExplanation && isCorrect && <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 shrink-0" />}
-                                        {showExplanation && isSelected && !isCorrect && <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 shrink-0" />}
+                                        {showExplanation && (isCorrect || isSelected) && (
+                                            isCorrect ? <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8" /> : <XCircle className="w-6 h-6 sm:w-8 sm:h-8" />
+                                        )}
                                     </div>
                                 </motion.button>
                             );
@@ -151,40 +158,31 @@ export const QuizView = ({
                 </div>
             </div>
 
+            {/* Explanation Section */}
             <AnimatePresence>
                 {showExplanation && (
                     <motion.div
-                        initial={{ opacity: 0, y: 15 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`p-6 sm:p-8 rounded-2xl sm:rounded-[2rem] border-2 shadow-2xl relative overflow-hidden ${selectedOption === currentQuestion.answer
-                            ? 'bg-emerald-500/5 border-emerald-500/20'
-                            : selectedOption === "TIME_EXPIRED"
-                                ? 'bg-amber-500/5 border-amber-500/20'
-                                : 'bg-rose-500/5 border-rose-500/20'
-                            }`}
+                        className={`p-6 sm:p-10 rounded-[2.5rem] border-2 shadow-2xl relative overflow-hidden backdrop-blur-md ${
+                            selectedOption === currentQuestion.answer
+                                ? 'bg-success/5 border-success/20'
+                                : 'bg-primary/5 border-primary/20'
+                        }`}
                     >
-                        <div className="flex gap-4 sm:gap-6 relative z-10">
-                            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl shrink-0 flex items-center justify-center ${selectedOption === currentQuestion.answer
-                                ? 'bg-emerald-500/10'
-                                : selectedOption === "TIME_EXPIRED"
-                                    ? 'bg-amber-500/10'
-                                    : 'bg-rose-500/10'
-                                }`}>
+                        <div className="flex gap-6 relative z-10">
+                            <div className={`w-14 h-14 rounded-2xl shrink-0 flex items-center justify-center ${
+                                selectedOption === currentQuestion.answer ? 'bg-success/10' : 'bg-primary/10'
+                            }`}>
                                 {selectedOption === currentQuestion.answer
-                                    ? <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-500" />
-                                    : selectedOption === "TIME_EXPIRED"
-                                        ? <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-amber-500" />
-                                        : <XCircle className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500" />
+                                    ? <CheckCircle className="w-8 h-8 text-success" />
+                                    : <Sparkles className="w-8 h-8 text-primary" />
                                 }
                             </div>
-                            <div className="space-y-1 sm:space-y-2">
-                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground">
-                                    {selectedOption === "TIME_EXPIRED" ? "TIME'S UP!" : "Deep Dive Insight"}
-                                </p>
-                                <p className="text-sm sm:text-lg font-bold leading-relaxed italic text-foreground">
-                                    {selectedOption === "TIME_EXPIRED"
-                                        ? "Speed matters! You ran out of time for this challenge. Correct answer was highlighted."
-                                        : currentQuestion.explanation}
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary">Insider Insight</p>
+                                <p className="text-sm sm:text-base font-medium leading-relaxed text-foreground opacity-90">
+                                    {currentQuestion.explanation}
                                 </p>
                             </div>
                         </div>
@@ -192,24 +190,27 @@ export const QuizView = ({
                 )}
             </AnimatePresence>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center pt-2 gap-4">
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-center pt-4 gap-6">
                 <button
                     onClick={() => window.location.reload()}
-                    className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-all order-2 sm:order-1"
+                    className="text-[10px] sm:text-xs font-bold text-muted-foreground hover:text-error transition-colors order-2 sm:order-1 flex items-center gap-2"
                 >
+                    <XCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                     Terminate Session
                 </button>
                 <motion.button
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={onNext}
                     disabled={!selectedOption}
-                    className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-primary text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 sm:gap-4 shadow-2xl shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed group order-1 sm:order-2"
+                    className="w-full sm:w-auto px-8 py-3.5 btn-premium rounded-2xl text-[13px] font-bold flex items-center justify-center gap-3 transition-all disabled:opacity-50 group order-1 sm:order-2"
                 >
-                    {isLastQuestion ? 'Complete Assessment' : 'Next Challenge'}
+                    {isLastQuestion ? 'Complete Level' : 'Next Question'}
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
             </div>
         </motion.div>
     );
 };
+

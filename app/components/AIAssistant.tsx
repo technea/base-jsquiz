@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Send, Bot, User, Volume2, VolumeX, Loader2, Sparkles,
     X, Mic, MicOff, Paperclip, FileText, Code2, Copy, Check, 
-    ChevronDown, Brain, BookOpen, HelpCircle
+    ChevronDown, Brain, BookOpen, HelpCircle, ArrowRight
 } from 'lucide-react';
 
 // ════════════════════════════════════════════════════════════════
@@ -90,35 +90,35 @@ function CodeBlock({ code, lang, showLineNumbers = true }: { code: string; lang:
     };
 
     return (
-        <div className="my-3 rounded-2xl overflow-hidden border border-slate-700 bg-[#0d1117] text-left">
-            <div className="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-slate-700/80">
+        <div className="my-4 rounded-2xl overflow-hidden border border-border bg-[#0d1117] text-left shadow-xl">
+            <div className="flex items-center justify-between px-4 py-3 bg-[#161b22] border-b border-white/5">
                 <div className="flex items-center gap-2">
                     <div className="flex gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-red-500/80" />
-                        <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                        <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
                     </div>
-                    <Code2 className="w-3.5 h-3.5 text-slate-500 ml-1" />
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{lang || 'code'}</span>
+                    <Code2 className="w-4 h-4 text-slate-500 ml-2" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang || 'code'}</span>
                 </div>
                 <button onClick={copy}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-white transition-colors px-2.5 py-1 rounded-lg hover:bg-slate-700/60 active:scale-95">
+                    className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-white transition-all px-3 py-1.5 rounded-lg hover:bg-white/5 active:scale-95">
                     {copied ? <><Check className="w-3.5 h-3.5 text-emerald-400" />Copied!</>
                         : <><Copy className="w-3.5 h-3.5" />Copy</>}
                 </button>
             </div>
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700">
-                <table className="w-full border-collapse min-w-[300px]">
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
                     <tbody>
                         {lines.map((line, index) => (
-                            <tr key={index} className="hover:bg-slate-800/50">
+                            <tr key={index} className="hover:bg-white/[0.02] transition-colors">
                                 {showLineNumbers && (
-                                    <td className="text-right text-slate-500 text-[10px] sm:text-xs select-none px-2 py-0.5 border-r border-slate-700/60 w-8 sm:w-12">
+                                    <td className="text-right text-slate-600 text-[10px] select-none px-3 py-0.5 border-r border-white/5 w-10">
                                         {index + 1}
                                     </td>
                                 )}
-                                <td className="px-3 py-0.5">
-                                    <pre className="text-[12px] sm:text-[13px] leading-relaxed font-mono m-0">
+                                <td className="px-4 py-0.5">
+                                    <pre className="text-[13px] leading-relaxed font-mono m-0">
                                         <code dangerouslySetInnerHTML={{ 
                                             __html: line ? highlightCode(line, lang) : '<br/>' 
                                         }} />
@@ -165,57 +165,71 @@ function QuizComponent({ questions, onComplete }: { questions: QuizQuestion[], o
             setShowExplanation(false);
             setAnswered(false);
         } else {
-            // Quiz completed
             onComplete?.(score);
         }
     };
 
     return (
-        <div className="my-4 rounded-2xl border border-violet-500/30 bg-violet-500/5 p-4">
-            <div className="flex items-center gap-2 mb-3">
-                <Brain className="w-5 h-5 text-violet-400" />
-                <span className="font-bold text-sm">Quiz Question {currentIndex + 1}/{questions.length}</span>
-                <span className="ml-auto text-xs font-medium text-violet-400">Score: {score}/{questions.length}</span>
+        <div className="my-6 rounded-3xl border border-primary/20 bg-primary/5 p-6 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                <Brain className="w-24 h-24" />
+            </div>
+
+            <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Brain className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] leading-none mb-1">Knowledge Check</p>
+                    <p className="text-sm font-extrabold text-foreground">Question {currentIndex + 1} of {questions.length}</p>
+                </div>
+                <div className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold text-muted-foreground uppercase">
+                    Score: {score}
+                </div>
             </div>
             
-            <p className="text-sm font-medium mb-4">{currentQuestion.question}</p>
+            <p className="text-lg font-bold text-foreground mb-6 leading-tight relative z-10">{currentQuestion.question}</p>
             
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2.5 mb-6 relative z-10">
                 {currentQuestion.options.map(option => (
                     <motion.button
                         key={option.id}
-                        whileHover={!answered ? { scale: 1.02, x: 5 } : {}}
+                        whileHover={!answered ? { x: 4, backgroundColor: 'rgba(var(--primary-rgb), 0.05)' } : {}}
                         whileTap={!answered ? { scale: 0.98 } : {}}
                         onClick={() => handleOptionSelect(option.id, option.isCorrect)}
                         disabled={answered}
-                        className={`w-full text-left p-3 rounded-xl text-sm transition-all
-                            ${answered && option.isCorrect ? 'bg-green-500/20 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : ''}
-                            ${answered && selectedOption === option.id && !option.isCorrect ? 'bg-red-500/20 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : ''}
-                            ${!answered ? 'hover:bg-violet-500/10 border border-violet-500/30 hover:border-violet-500/60' : ''}
-                            ${selectedOption === option.id ? 'border-2 ring-2 ring-violet-500/20' : 'border'}`}
+                        className={`w-full text-left p-4 rounded-2xl text-sm font-semibold transition-all border-2
+                            ${answered && option.isCorrect ? 'bg-success/5 border-success/30 text-success shadow-lg shadow-success/5' : ''}
+                            ${answered && selectedOption === option.id && !option.isCorrect ? 'bg-error/5 border-error/30 text-error shadow-lg shadow-error/5' : ''}
+                            ${!answered ? 'bg-background/40 border-border group-hover:border-primary/40' : ''}
+                            ${selectedOption === option.id && !answered ? 'border-primary ring-4 ring-primary/10' : 'border-border/60'}
+                            ${answered && selectedOption !== option.id && !option.isCorrect ? 'opacity-40 grayscale-[50%]' : ''}`}
                     >
                         {option.text}
                     </motion.button>
                 ))}
             </div>
             
-            {showExplanation && (
-                <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-3 p-3 rounded-xl bg-slate-800/50 text-xs"
-                >
-                    <span className="font-bold block mb-1">Explanation:</span>
-                    {currentQuestion.explanation}
-                </motion.div>
-            )}
+            <AnimatePresence>
+                {showExplanation && (
+                    <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mb-6 p-4 rounded-2xl bg-muted/50 border border-border text-xs leading-relaxed italic text-muted-foreground"
+                    >
+                        <span className="font-bold text-foreground not-italic block mb-1 uppercase tracking-widest text-[9px]">Deep Dive:</span>
+                        {currentQuestion.explanation}
+                    </motion.div>
+                )}
+            </AnimatePresence>
             
             {answered && (
                 <button
                     onClick={handleNext}
-                    className="w-full py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors"
+                    className="w-full py-4 rounded-2xl btn-premium text-sm font-bold shadow-xl flex items-center justify-center gap-2 group transition-all"
                 >
-                    {currentIndex < questions.length - 1 ? 'Next Question →' : 'Complete Quiz'}
+                    {currentIndex < questions.length - 1 ? 'Next Challenge' : 'Finish Quiz'}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
             )}
         </div>
@@ -304,7 +318,7 @@ function MessageContent({ content, isDark }: { content: string; isDark: boolean 
                     return <QuizComponent key={i} questions={p.questions} />;
                 } else {
                     return (
-                        <p key={i} className={`leading-relaxed whitespace-pre-wrap text-sm sm:text-[15px] ${i > 0 ? 'mt-2' : ''}`}>
+                        <p key={i} className={`leading-relaxed whitespace-pre-wrap text-[15px] sm:text-[17px] font-medium ${i > 0 ? 'mt-3' : ''}`}>
                             {renderInline(p.content)}
                         </p>
                     );
@@ -408,15 +422,20 @@ Let's start learning! 🚀`
                 const voices = window.speechSynthesis.getVoices();
 
                 if (lang === 'en') {
-                    const v = voices.find(v => v.lang.startsWith('en') && /Google|Natural|Premium|Enhanced/.test(v.name)) || voices.find(v => v.lang.startsWith('en'));
+                    // Prioritize clear English voices
+                    const v = voices.find(v => v.lang.startsWith('en') && /Google|Natural|Enhanced|Neural|Premium/.test(v.name)) 
+                           || voices.find(v => v.lang.startsWith('en-US')) 
+                           || voices.find(v => v.lang.startsWith('en'));
                     if (v) utt.voice = v;
                     utt.lang = 'en-US';
-                    utt.rate = 1.0;
+                    utt.rate = 1.05; // Slightly faster for clarity
+                    utt.pitch = 1.0;
                 } else {
                     const v = voices.find(v => v.lang.startsWith('ur')) || voices.find(v => v.lang.startsWith('hi'));
                     if (v) utt.voice = v;
                     utt.lang = v ? v.lang : 'hi-IN';
-                    utt.rate = 0.92;
+                    utt.rate = 0.95;
+                    utt.pitch = 1.0;
                 }
 
                 utt.onstart = () => setIsSpeaking(true);
@@ -650,145 +669,152 @@ Let's start learning! 🚀`
             <motion.div
                 initial={{ opacity: 0, y: 20 }} 
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-                className={`max-w-3xl mx-auto w-full sm:rounded-[2rem] overflow-hidden flex flex-col h-[100dvh] sm:h-[82vh] min-h-0 sm:min-h-[500px] border shadow-2xl
-                    ${isDarkMode ? 'border-slate-700/50 bg-slate-900 shadow-black/50' : 'border-slate-200 bg-white shadow-slate-300/60'}`}
+                transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+                className={`max-w-3xl mx-auto w-full sm:rounded-[2.5rem] overflow-hidden flex flex-col h-[100dvh] sm:h-[85vh] min-h-0 sm:min-h-[600px] border shadow-2xl relative z-50
+                    ${isDarkMode ? 'border-slate-800 bg-slate-900/90 backdrop-blur-xl' : 'border-slate-200 bg-white/95 backdrop-blur-xl shadow-slate-200/60'}`}
             >
-                {/* Header */}
-                <div className={`px-4 sm:px-5 py-3 sm:py-4 border-b flex items-center justify-between shrink-0
-                    ${isDarkMode ? 'border-slate-800 bg-slate-900/40 backdrop-blur-md' : 'border-slate-100 bg-white/40 backdrop-blur-md'}`}>
-                    <div className="flex items-center gap-2 sm:gap-3">
+                {/* Header Section */}
+                <div className={`px-6 py-5 border-b flex items-center justify-between shrink-0 relative overflow-hidden
+                    ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                    
+                    {/* Decorative Header Background */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
+                    
+                    <div className="flex items-center gap-4 relative z-10">
                         <div className="relative">
                             <motion.div 
                                 animate={{ 
-                                    y: [0, -4, 0],
-                                    rotate: [0, 5, -5, 0]
+                                    y: [0, -3, 0],
                                 }}
                                 transition={{ 
-                                    duration: 4, 
+                                    duration: 3, 
                                     repeat: Infinity,
                                     ease: "easeInOut"
                                 }}
-                                className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30 border border-white/10"
+                                className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary/20 border border-white/10"
                             >
-                                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                <Bot className="w-6 h-6 text-white" />
                             </motion.div>
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-background bg-success shadow-lg shadow-success/40" />
                         </div>
                         <div>
-                            <h2 className={`font-extrabold text-sm sm:text-base flex items-center gap-1 leading-none mb-0.5 sm:mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                                JS Mentor <span className="hidden xs:inline">Pro</span> <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-                            </h2>
-                            <div className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-violet-500 animate-pulse' : 'bg-emerald-400'}`} />
-                                <span className={`text-[10px] sm:text-[11px] font-semibold truncate max-w-[80px] sm:max-w-none ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{statusText}</span>
+                            <div className="flex items-center gap-2">
+                                <h2 className="font-extrabold text-lg sm:text-xl text-foreground tracking-tight leading-none">
+                                    AI Mentor <span className="text-primary italic">Pro</span>
+                                </h2>
+                                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5">
+                                <span className={`text-[11px] font-bold tracking-widest uppercase opacity-60 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {statusText}
+                                </span>
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                        {/* Quiz Mode Toggle */}
+
+                    <div className="flex items-center gap-2 relative z-10">
                         <motion.button 
-                            whileHover={{ scale: 1.1, rotate: 10 }}
-                            whileTap={{ scale: 0.9 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => setQuizMode(!quizMode)}
-                            title={quizMode ? 'Exit Quiz Mode' : 'Enter Quiz Mode'}
-                            className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shadow-sm
+                            className={`p-3 rounded-2xl transition-all shadow-sm flex items-center gap-2
                                 ${quizMode 
-                                    ? 'bg-amber-500 text-white shadow-amber-500/30' 
-                                    : isDarkMode ? 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                    ? 'bg-amber-500 text-white shadow-amber-500/20' 
+                                    : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'}`}
                         >
-                            <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <Brain className="w-4 h-4" />
+                            {quizMode && <span className="text-[10px] font-bold uppercase tracking-widest hidden xs:inline">Quiz Mode</span>}
                         </motion.button>
                         
                         <motion.button 
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => { setVoiceEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-                            title={voiceEnabled ? 'Turn voice off' : 'Turn voice on'}
-                            className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all ${voiceEnabled ? 'bg-violet-500/15 text-violet-400 hover:bg-violet-500/25' : isDarkMode ? 'bg-slate-800 text-slate-500 hover:bg-slate-600 border border-slate-700' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
-                            {voiceEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                            className={`p-3 rounded-2xl transition-all ${voiceEnabled ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground'}`}>
+                            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                         </motion.button>
                         
                         {onClose && (
                             <motion.button 
-                                whileHover={{ scale: 1.1, rotate: 90 }}
-                                whileTap={{ scale: 0.9 }}
+                                whileHover={{ scale: 1.05, rotate: 90 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={onClose}
-                                className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all ${isDarkMode ? 'text-slate-500 hover:bg-slate-800 hover:text-white border border-transparent hover:border-slate-700' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}>
-                                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                className="p-3 rounded-2xl bg-muted text-muted-foreground hover:text-foreground transition-all">
+                                <X className="w-4 h-4" />
                             </motion.button>
                         )}
                     </div>
                 </div>
 
-                {/* Messages Area */}
-                <div ref={chatAreaRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5 scroll-smooth">
+                {/* Messages Container */}
+                <div ref={chatAreaRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-8 scroll-smooth no-scrollbar">
                     <AnimatePresence initial={false}>
                         {messages.map(msg => (
                             <motion.div key={msg.id}
-                                initial={{ opacity: 0, y: 14, scale: .96 }} 
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+                                initial={{ opacity: 0, y: 15 }} 
+                                animate={{ opacity: 1, y: 0 }}
                                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex gap-2.5 max-w-[95%] sm:max-w-[90%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    {/* Avatar */}
-                                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow
+                                <div className={`flex gap-4 max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    {/* Avatar/Icon Section */}
+                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-1 shadow-lg transition-transform hover:scale-110
                                         ${msg.role === 'user' 
-                                            ? 'bg-gradient-to-br from-slate-600 to-slate-900 text-white' 
+                                            ? 'bg-slate-800 text-white' 
                                             : msg.type === 'quiz'
-                                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-amber-500/20'
-                                                : 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-violet-500/20'}`}>
-                                        {msg.role === 'user' ? <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : 
-                                         msg.type === 'quiz' ? <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                                                ? 'bg-amber-500 text-white shadow-amber-500/20'
+                                                : 'bg-primary text-white shadow-primary/20'}`}>
+                                        {msg.role === 'user' ? <User className="w-5 h-5" /> : 
+                                         msg.type === 'quiz' ? <Brain className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                                     </div>
 
-                                    {/* Bubble */}
-                                    <div className={`px-3 py-2 sm:px-4 sm:py-3 rounded-2xl
+                                    {/* Message Bubble */}
+                                    <div className={`relative px-5 py-4 sm:px-6 sm:py-5 rounded-[1.75rem] shadow-sm tracking-tight
                                         ${msg.role === 'user'
-                                            ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white rounded-tr-sm shadow-sm sm:shadow-lg shadow-violet-500/20'
-                                            : msg.type === 'quiz'
-                                                ? isDarkMode ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-amber-700' : 'bg-white text-slate-800 rounded-tl-sm border border-amber-200 shadow-sm'
-                                                : isDarkMode ? 'bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700' : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 shadow-sm'}`}>
+                                            ? 'bg-primary text-white rounded-tr-sm'
+                                            : isDarkMode 
+                                                ? 'bg-slate-800/90 border border-slate-700/50 text-slate-100 rounded-tl-sm' 
+                                                : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-slate-100/50'}`}>
                                         
                                         {msg.file && (
-                                            <div className="mb-2.5 flex items-center gap-2 bg-black/15 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2">
+                                            <div className="mb-4 flex items-center gap-3 bg-black/10 rounded-2xl px-4 py-2 border border-white/5">
                                                 {msg.file.preview
-                                                    ? <img src={msg.file.preview} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" alt="" />
-                                                    : <FileText className="w-4 h-4 sm:w-5 sm:h-5 opacity-70" />}
-                                                <span className="text-[10px] sm:text-xs font-semibold opacity-80 truncate max-w-[120px] sm:max-w-[180px]">{msg.file.name}</span>
+                                                    ? <img src={msg.file.preview} className="w-10 h-10 rounded-xl object-cover shadow-inner" alt="" />
+                                                    : <FileText className="w-6 h-6 opacity-60" />}
+                                                <div className="min-w-0">
+                                                    <p className="text-[11px] font-bold opacity-90 truncate max-w-[150px]">{msg.file.name}</p>
+                                                    <p className="text-[9px] font-medium opacity-50 uppercase tracking-widest">Document Attached</p>
+                                                </div>
                                             </div>
                                         )}
                                         
                                         {msg.role === 'assistant'
                                             ? <MessageContent content={msg.content} isDark={isDarkMode} />
-                                            : <p className="leading-relaxed text-[13.5px] sm:text-[15px] whitespace-pre-wrap">{msg.content}</p>}
+                                            : <p className="leading-relaxed text-[15px] sm:text-[17px] font-semibold whitespace-pre-wrap">{msg.content}</p>}
                                     </div>
                                 </div>
                             </motion.div>
                         ))}
 
-                        {/* Loading indicator */}
+                        {/* Typing Animation */}
                         {isLoading && (
                             <motion.div key="loading" 
-                                initial={{ opacity: 0, y: 10, scale: .95 }} 
-                                animate={{ opacity: 1, y: 0, scale: 1 }} 
-                                exit={{ opacity: 0, scale: .9 }} 
+                                initial={{ opacity: 0, y: 10 }} 
+                                animate={{ opacity: 1, y: 0 }} 
                                 className="flex justify-start">
-                                <div className="flex gap-2.5 max-w-[90%]">
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/20">
-                                        <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                <div className="flex gap-4 max-w-[90%]">
+                                    <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                                        <Bot className="w-5 h-5" />
                                     </div>
-                                    <div className={`px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl rounded-tl-sm flex items-center gap-2 sm:gap-3
-                                        ${isDarkMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-200 shadow-sm'}`}>
+                                    <div className={`px-6 py-4 rounded-[1.75rem] rounded-tl-md flex items-center gap-3
+                                        ${isDarkMode ? 'bg-slate-800/80 border border-slate-700' : 'bg-white border border-slate-200'}`}>
                                         {[0, 1, 2].map(i => (
                                             <motion.span key={i} 
-                                                className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-violet-500"
-                                                animate={{ y: ['0%', '-55%', '0%'] }}
-                                                transition={{ duration: .55, repeat: Infinity, delay: i * .14, ease: 'easeInOut' }} />
+                                                className="w-2.5 h-2.5 rounded-full bg-primary/40"
+                                                animate={{ 
+                                                    scale: [1, 1.5, 1],
+                                                    backgroundColor: ['rgba(var(--primary-rgb), 0.4)', 'rgba(var(--primary-rgb), 1)', 'rgba(var(--primary-rgb), 0.4)'] 
+                                                }}
+                                                transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }} />
                                         ))}
-                                        <span className={`text-[13px] sm:text-sm font-medium ml-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                            {quizMode ? 'Generating quiz...' : 'Thinking...'}
-                                        </span>
                                     </div>
                                 </div>
                             </motion.div>
@@ -796,149 +822,134 @@ Let's start learning! 🚀`
                     </AnimatePresence>
                     <div ref={messagesEndRef} />
 
-                    {/* Scroll to bottom button */}
+                    {/* Quick Jump Point */}
                     <AnimatePresence>
                         {showScrollBtn && (
                             <motion.button 
-                                initial={{ opacity: 0, y: 6 }} 
+                                initial={{ opacity: 0, y: 10 }} 
                                 animate={{ opacity: 1, y: 0 }} 
-                                exit={{ opacity: 0, y: 6 }}
+                                exit={{ opacity: 0, y: 10 }}
                                 onClick={() => scrollToBottom()}
-                                className="sticky bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[10px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-lg shadow-violet-500/30 transition-colors active:scale-95">
-                                <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Scroll down
+                                className="sticky bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-foreground text-background px-5 py-2.5 rounded-full shadow-2xl transition-all active:scale-95 group z-50">
+                                <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                                <span className="text-[11px] font-extrabold uppercase tracking-widest">New Messages</span>
                             </motion.button>
                         )}
                     </AnimatePresence>
                 </div>
 
-                {/* Input Area */}
-                <div className={`px-4 sm:px-5 pt-3 pb-4 border-t shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50/90'}`}>
+                {/* Input Area Section */}
+                <div className={`px-6 py-6 border-t shrink-0 ${isDarkMode ? 'border-slate-800 bg-slate-900/50' : 'border-slate-100 bg-slate-50'}`}>
                     
-                    {/* Quick action buttons */}
-                    <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
+                    {/* Suggestion Chips */}
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
                         <motion.button
-                            whileHover={{ scale: 1.05, backgroundColor: "rgba(139, 92, 246, 0.2)" }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setInput("Explain this code line by line: ")}
-                            className="px-4 py-2 text-xs font-bold rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:border-violet-500/40 transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-sm"
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setInput("Can you explain how async/await works under the hood?")}
+                            className="px-4 py-2 text-[10px] font-bold rounded-xl bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all whitespace-nowrap shadow-sm"
                         >
-                            <Code2 className="w-3.5 h-3.5" /> Code Explanation
+                            <Code2 className="w-3.5 h-3.5 inline mr-1.5" /> Explain Async/Await
                         </motion.button>
                         <motion.button
-                            whileHover={{ scale: 1.05, backgroundColor: "rgba(245, 158, 11, 0.2)" }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setInput("Generate a 5-question quiz about ")}
-                            className="px-4 py-2 text-xs font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:border-amber-500/40 transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-sm"
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => { setQuizMode(true); setInput("Generate a hard quiz about JavaScript Prototypal Inheritance."); }}
+                            className="px-4 py-2 text-[10px] font-bold rounded-xl bg-background border border-border text-muted-foreground hover:text-amber-500 hover:border-amber-500/30 transition-all whitespace-nowrap shadow-sm"
                         >
-                            <Brain className="w-3.5 h-3.5" /> Generate Quiz
+                            <Brain className="w-3.5 h-3.5 inline mr-1.5" /> Prototypal Quiz
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setInput("What are the best practices for React 18+ performance?")}
+                            className="px-4 py-2 text-[10px] font-bold rounded-xl bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all whitespace-nowrap shadow-sm"
+                        >
+                            <Sparkles className="w-3.5 h-3.5 inline mr-1.5" /> Best Practices
                         </motion.button>
                     </div>
 
+                    {/* Active File Preview */}
                     <AnimatePresence>
                         {attachedFile && (
                             <motion.div 
-                                initial={{ opacity: 0, y: 6, scale: .95 }} 
-                                animate={{ opacity: 1, y: 0, scale: 1 }} 
-                                exit={{ opacity: 0, scale: .9 }}
-                                className="flex items-center gap-2.5 bg-violet-500/10 border border-violet-400/25 rounded-xl px-3 py-2 mb-2.5 w-fit max-w-full">
-                                {attachedFile.preview
-                                    ? <img src={attachedFile.preview} className="w-9 h-9 rounded-lg object-cover border border-violet-400/20" alt="" />
-                                    : <div className="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
-                                        <FileText className="w-4 h-4 text-violet-400" />
-                                    </div>}
-                                <div className="min-w-0">
-                                    <p className="text-xs font-bold text-violet-300 truncate max-w-[200px]">{attachedFile.name}</p>
-                                    <p className="text-[10px] text-violet-400/60 font-medium">Ready to analyze</p>
+                                initial={{ opacity: 0, scale: 0.95 }} 
+                                animate={{ opacity: 1, scale: 1 }} 
+                                className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-2xl px-4 py-3 mb-4 w-fit max-w-full">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                                    {attachedFile.preview
+                                        ? <img src={attachedFile.preview} className="w-full h-full rounded-lg object-cover" alt="" />
+                                        : <FileText className="w-5 h-5 text-primary" />}
+                                </div>
+                                <div className="min-w-0 pr-4">
+                                    <p className="text-xs font-bold text-foreground truncate max-w-[200px]">{attachedFile.name}</p>
+                                    <p className="text-[10px] text-primary font-bold uppercase tracking-widest">Selected for analysis</p>
                                 </div>
                                 <button 
                                     onClick={() => setAttachedFile(null)}
-                                    className="w-5 h-5 ml-1 rounded-full bg-violet-400/20 flex items-center justify-center hover:bg-red-500/70 hover:text-white text-violet-300 transition-all shrink-0">
-                                    <X className="w-3 h-3" />
+                                    className="p-1.5 rounded-full hover:bg-error/10 text-muted-foreground hover:text-error transition-all shrink-0">
+                                    <X className="w-4 h-4" />
                                 </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    <AnimatePresence>
-                        {isListening && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 6 }} 
-                                animate={{ opacity: 1, y: 0 }} 
-                                exit={{ opacity: 0 }}
-                                className="flex items-center gap-2 mb-2 text-xs font-bold text-red-400">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                                </span>
-                                Listening... (speak or tap mic to stop)
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {/* Interactive Input Bar */}
+                    <div className="flex items-end gap-3">
+                        <div className={`flex-1 flex items-center gap-1 rounded-3xl border px-3 py-1.5 transition-all
+                            ${isDarkMode ? 'bg-slate-800/80 border-slate-700/50 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10'
+                                : 'bg-white border-slate-200 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 shadow-sm'}`}>
 
-                    <div className="flex items-center gap-2">
-                        {/* Input field */}
-                        <div className={`flex-1 flex items-center gap-1 rounded-2xl border px-2 sm:px-3 transition-all
-                            ${isDarkMode ? 'bg-slate-900/80 border-slate-700 focus-within:border-violet-500/60 focus-within:ring-1 focus-within:ring-violet-500/20'
-                                : 'bg-white border-slate-200 focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-500/10'}`}>
-
-                            {/* Attach file button */}
                             <button 
                                 onClick={() => fileInputRef.current?.click()} 
-                                title="Attach file"
-                                className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all shrink-0 ${isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
-                                <Paperclip className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                className="p-2.5 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shrink-0">
+                                <Paperclip className="w-5 h-5" />
                             </button>
 
-                            {/* Text input */}
                             <input 
                                 ref={inputRef} 
                                 type="text" 
                                 value={input}
                                 onChange={e => setInput(e.target.value)} 
                                 onKeyDown={handleKeyDown}
-                                placeholder={
-                                    isListening
-                                        ? (preferredLang === 'ur-PK' ? '🎙️ Urdu mein...' : '🎙️ Speaking...')
-                                        : quizMode
-                                            ? 'Quiz topic...'
-                                            : (preferredLang === 'ur-PK' ? 'Sawal poochein...' : 'Ask JS question...')
-                                }
+                                placeholder={isListening ? 'Listening...' : quizMode ? 'What should we quiz on?' : 'Type your question...'}
                                 disabled={isLoading}
-                                className={`flex-1 py-3 sm:py-3.5 bg-transparent outline-none text-[13px] sm:text-sm font-medium placeholder:font-normal min-w-0
-                                    ${isDarkMode ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-400'}`} />
+                                className="flex-1 py-3 bg-transparent outline-none text-[15px] font-medium placeholder:font-normal" />
 
-                            {/* Microphone button */}
                             {micAvailable && (
                                 <button 
                                     onClick={toggleListening} 
-                                    title={isListening ? 'Stop listening' : 'Voice input'}
-                                    className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all shrink-0
-                                        ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 animate-pulse'
-                                            : isDarkMode ? 'text-slate-500 hover:text-violet-400 hover:bg-slate-800' : 'text-slate-400 hover:text-violet-500 hover:bg-violet-50'}`}>
-                                    {isListening ? <MicOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                                    className={`p-2.5 rounded-xl transition-all shrink-0
+                                        ${isListening ? 'bg-error text-white shadow-lg shadow-error/20 animate-pulse'
+                                            : 'text-muted-foreground hover:text-primary hover:bg-primary/5'}`}>
+                                    {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                                 </button>
                             )}
                         </div>
 
                         <motion.button 
-                            whileHover={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 1.1, rotate: -5 }}
-                            whileTap={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 0.9, rotate: 5 }}
+                            whileHover={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 1.05 }}
+                            whileTap={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 0.95 }}
                             onClick={handleSend} 
                             disabled={(!input.trim() && !attachedFile) || isLoading}
-                            className={`p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl transition-all shrink-0 shadow-lg active:scale-95
+                            className={`w-14 h-14 rounded-3xl transition-all shrink-0 shadow-xl flex items-center justify-center
                                 ${(!input.trim() && !attachedFile) || isLoading
-                                    ? isDarkMode ? 'bg-slate-800 text-slate-700 border border-slate-700' : 'bg-slate-100 text-slate-300'
-                                    : 'bg-gradient-to-br from-violet-500 via-indigo-600 to-purple-600 text-white hover:shadow-violet-500/40 border border-white/10'}`}>
-                            {isLoading ? <Loader2 className="w-4 h-4 sm:w-6 sm:h-6 animate-spin" /> : <Send className="w-4 h-4 sm:w-6 sm:h-6" />}
+                                    ? 'bg-muted text-muted-foreground'
+                                    : 'btn-premium text-white shadow-primary/25'}`}>
+                            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6 ml-0.5" />}
                         </motion.button>
                     </div>
 
-                    <p className={`text-center text-[10px] font-semibold uppercase tracking-widest mt-2.5 select-none
-                        ${isDarkMode ? 'text-slate-700' : 'text-slate-400'}`}>
-                        {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
-                        {' • '}Enter to send{' • '}📎 Attach Code File
-                        {micAvailable ? ` • 🎙️ Mic (${preferredLang === 'ur-PK' ? 'Urdu' : 'Eng'})` : ''}
-                    </p>
+                    <div className="flex justify-center gap-6 mt-4">
+                        <div className="flex items-center gap-1.5 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-default group">
+                            <Volume2 className={`w-3.5 h-3.5 ${voiceEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{voiceEnabled ? 'Audio Active' : 'Audio Muted'}</span>
+                        </div>
+                        <div className="w-px h-3 bg-border" />
+                        <div className="flex items-center gap-1.5 opacity-40 cursor-default">
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Powered by GPT-4o</span>
+                        </div>
+                    </div>
                 </div>
 
                 <input 

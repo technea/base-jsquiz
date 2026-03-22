@@ -18,7 +18,7 @@ import {
 } from 'firebase/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Code2 } from 'lucide-react';
+import { Code2, Sparkles } from 'lucide-react';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -794,8 +794,20 @@ export default function JSQuizApp() {
         );
       case 'dashboard':
         return (
-          <div className="text-center opacity-50 py-20 font-black uppercase tracking-widest">
-            Stats Dashboard Coming Soon
+          <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8 glass-card p-12 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none uppercase text-foreground font-black text-5xl sm:text-7xl tracking-tighter">Stats</div>
+            <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-4xl shadow-2xl shadow-primary/20 transform rotate-12">
+              📊
+            </div>
+            <div className="text-center space-y-3 relative z-10">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Performance Analytics</h2>
+              <p className="text-muted-foreground font-medium max-w-sm mx-auto text-sm sm:text-base">
+                Detailed insights into your learning progress and coding performance are coming soon to your dashboard.
+              </p>
+            </div>
+            <button className="px-8 py-3 rounded-2xl bg-muted/50 border border-border text-xs font-bold uppercase tracking-widest text-muted-foreground cursor-not-allowed">
+              Under Development
+            </button>
           </div>
         );
       default:
@@ -803,15 +815,16 @@ export default function JSQuizApp() {
     }
   };
 
-  if (!themeLoaded) return <div className="min-h-screen bg-slate-900" />;
+  if (!themeLoaded) return <div className="min-h-screen bg-slate-950" />;
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-primary/30 ${isDarkMode ? 'dark bg-background text-foreground' : 'bg-[#f8fafc] text-slate-900'
-      }`}>
-      {/* Background Aesthetic */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-60">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/30 blur-[130px] rounded-full animate-soft-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 blur-[130px] rounded-full delay-1000 animate-soft-pulse" />
+    <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-primary/30 ${
+      isDarkMode ? 'dark bg-background text-foreground' : 'bg-[#f8fafc] text-slate-900'
+    }`}>
+      {/* Immersive Background Canvas */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-40">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full animate-pulse duration-7000" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-violet-600/10 blur-[150px] rounded-full delay-2000 animate-pulse duration-10000" />
       </div>
 
       <Header
@@ -826,7 +839,7 @@ export default function JSQuizApp() {
         basename={basename}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
         <main className="min-h-[60vh]">
           {showGmIntro && (
             <DailyGMIntro
@@ -841,10 +854,10 @@ export default function JSQuizApp() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab + quizState}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             >
               {renderTabContent()}
             </motion.div>
@@ -867,43 +880,47 @@ export default function JSQuizApp() {
         onUnlock={handleUnlockLevel}
       />
 
-      {/* ═══ GLOBAL AI FLOATING BUTTON ═══ */}
+      {/* ═══ PREMIUM FLOATING AI MENTOR ═══ */}
       {!isAiOpen && (
         <motion.button
-          initial={{ scale: 0, rotate: -20 }}
-          animate={{ scale: 1, rotate: 0 }}
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
+          initial={{ scale: 0, y: 50 }}
+          animate={{ scale: 1, y: 0 }}
+          whileHover={{ scale: 1.1, y: -5 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setIsAiOpen(true)}
-          className="fixed z-50 w-16 h-16 sm:w-20 sm:h-20 rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-br from-violet-600 via-indigo-700 to-purple-800 text-white shadow-[0_20px_50px_rgba(99,102,241,0.4)] flex items-center justify-center border-2 sm:border-4 border-white/20 backdrop-blur-xl group"
-          style={{ bottom: '24px', left: '24px', right: 'auto' }}
+          className="fixed z-50 bottom-8 right-8 w-18 h-18 sm:w-20 sm:h-20 rounded-[2rem] bg-gradient-to-br from-primary via-indigo-600 to-violet-700 text-white shadow-[0_20px_50px_rgba(37,99,235,0.4)] flex items-center justify-center border border-white/20 backdrop-blur-xl group overflow-hidden"
         >
-          <Code2 className="w-8 h-8 sm:w-10 sm:h-10 group-hover:scale-110 transition-transform" />
-          <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+          {/* Inner Glow Effect */}
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          
+          <div className="relative z-10">
+            <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-white group-hover:animate-spin-slow transition-transform" />
+          </div>
 
+          <div className="absolute top-2 right-2 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-lg shadow-emerald-500/50" />
 
-          {/* Tooltip on hover */}
-          <div className="absolute left-full ml-4 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
-            JS AI Mentor
+          {/* Expanded Label on Hover */}
+          <div className="absolute right-full mr-4 px-4 py-2 rounded-2xl bg-foreground text-background text-[11px] font-extrabold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap shadow-2xl">
+            AI Mentor
           </div>
         </motion.button>
       )}
 
-      {/* ═══ GLOBAL AI ASSISTANT OVERLAY ═══ */}
+      {/* ═══ AI ASSISTANT FULLSCREEN MODAL ═══ */}
       <AnimatePresence>
         {isAiOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="w-full max-w-4xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[90vh]"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="w-full max-w-5xl h-full sm:h-[85vh] sm:rounded-3xl overflow-hidden shadow-2xl border border-border bg-card"
             >
               <AIAssistant isDarkMode={isDarkMode} onClose={() => setIsAiOpen(false)} />
             </motion.div>

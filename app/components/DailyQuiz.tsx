@@ -23,8 +23,6 @@ export const DailyQuiz = ({
     onAnswer,
     onClose
 }: DailyQuizProps) => {
-    // 🎙️ Voice Greeting removed in favor of Premium GM Intro to avoid browser blocks
-
     useEffect(() => {
         if (dailyQuizAnswer && onClose) {
             const timer = setTimeout(() => {
@@ -38,32 +36,13 @@ export const DailyQuiz = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-2xl mx-auto space-y-6 sm:space-y-8 pb-8 px-4 sm:px-6 relative"
+            className="w-full max-w-2xl mx-auto space-y-8 pb-12 px-4 relative"
         >
-            {/* ✨ Premium Background Animations */}
+            {/* ✨ Premium Background Elements */}
             <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-                <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        rotate: [0, 90, 0],
-                        x: [0, 50, 0],
-                        y: [0, 30, 0]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute -top-20 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-[80px]"
-                />
-                <motion.div
-                    animate={{
-                        scale: [1, 1.3, 1],
-                        rotate: [0, -90, 0],
-                        x: [0, -40, 0],
-                        y: [0, -50, 0]
-                    }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute -bottom-20 -right-20 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px]"
-                />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[500px] bg-primary/5 blur-[120px] rounded-full" />
             </div>
 
             <AnimatePresence>
@@ -73,129 +52,115 @@ export const DailyQuiz = ({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         onClick={onClose}
-                        className="absolute right-4 top-0 z-50 p-2 sm:p-3 rounded-full bg-background/80 backdrop-blur-sm border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-primary/50 transition-all shadow-xl"
+                        className="absolute right-4 top-4 z-50 p-3 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-2xl text-muted-foreground hover:text-foreground transition-all"
                     >
-                        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <X className="w-6 h-6" />
                     </motion.button>
                 )}
             </AnimatePresence>
 
-            <div className="text-center space-y-2 sm:space-y-3 pt-8 sm:pt-4">
-                {/* 🤖 INTERACTIVE AI Mentor Avatar */}
+            <div className="text-center space-y-4 pt-10">
+                {/* AI Mentor Avatar */}
                 <motion.div
-                    initial={{ scale: 0, y: 50 }}
+                    initial={{ scale: 0, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-                    className="relative mx-auto mb-6 flex justify-center"
+                    className="relative mx-auto mb-8 flex justify-center"
                 >
-                    {/* Speech Bubble */}
                     <motion.div
-                        initial={{ opacity: 0, x: 30, y: 20, scale: 0.5 }}
-                        animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                        transition={{ delay: 1, type: "spring", stiffness: 200 }}
-                        className="absolute -top-8 -right-16 sm:-right-28 z-30 bg-white dark:bg-slate-800 px-5 py-3 rounded-[2rem] rounded-bl-none shadow-[0_10px_40px_rgba(0,0,0,0.2)] border-2 border-primary/20"
+                        initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 0.8 }}
+                        className="absolute -top-12 -right-12 sm:-right-20 z-30 glass-card px-6 py-4 rounded-[2.5rem] bg-opacity-90 border-primary/20 shadow-2xl"
                     >
-                        <p className="text-xs sm:text-sm font-black text-primary uppercase tracking-tight leading-tight">
-                            Good Morning! ☕<br />
-                            <span className="text-[10px] opacity-70">Time for Quiz!</span>
+                        <p className="text-sm font-extrabold text-primary leading-tight">
+                            Ready for the<br />
+                            <span className="text-foreground">Daily Puzzle? ☕</span>
                         </p>
-                        <div className="absolute -bottom-3 left-0 w-4 h-4 bg-inherit border-l-2 border-b-2 border-primary/10 rotate-45" />
                     </motion.div>
 
                     <AnimatedAvatar
-                        size={130}
+                        size={140}
                         isSpeaking={!dailyQuizAnswer}
                         mood={dailyQuizResult === 'correct' ? 'excited' : dailyQuizResult === 'wrong' ? 'thinking' : 'happy'}
                     />
                 </motion.div>
 
-                <motion.div
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-1 sm:mb-2 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
-                >
-                    <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">24H Challenge</span>
-                </motion.div>
-                <motion.h2
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-3xl sm:text-4xl font-black text-foreground tracking-tight leading-none italic uppercase"
-                >
-                    Daily <span className="text-primary not-italic">Puzzle</span>
-                </motion.h2>
-                <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-60">
-                    High Stakes • One Attempt
-                </p>
+                <div className="space-y-2">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-bold uppercase tracking-widest"
+                    >
+                        <Zap className="w-3 h-3 fill-amber-500" />
+                        High Stakes Challenge
+                    </motion.div>
+                    <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight">
+                        Daily <span className="text-primary italic">Puzzle</span>
+                    </h2>
+                    <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} tracking-wide`}>
+                        ONE ATTEMPT • SURVIVE OR RESET
+                    </p>
+                </div>
             </div>
 
+            {/* Question Card */}
             <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ type: "spring", stiffness: 300 }}
+                whileHover={{ y: -5 }}
                 className="relative group"
             >
-                <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/10 to-primary/10 rounded-2xl sm:rounded-[2.5rem] blur opacity-20"></div>
-                <div className="relative glass-card p-6 sm:p-12 rounded-2xl sm:rounded-[2.5rem] bg-background/50 border-border/40 overflow-hidden shadow-2xl">
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 0.03, x: 0 }}
-                        className="absolute top-0 right-0 p-4 sm:p-8 select-none pointer-events-none"
-                    >
-                        <BookOpen className="w-32 h-32 sm:w-48 sm:h-48" />
-                    </motion.div>
+                <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full translate-y-12" />
+                <div className="relative glass-card p-6 sm:p-12 rounded-[2.5rem] bg-opacity-40 border-border/40 overflow-hidden">
+                    <div className="absolute -top-6 -right-6 opacity-[0.05] pointer-events-none">
+                        <BookOpen className="w-48 h-48" />
+                    </div>
 
-                    <h3 className="text-xl sm:text-3xl font-black leading-tight text-foreground tracking-tight mb-8 sm:mb-12 relative z-10">
+                    <h3 className="text-2xl sm:text-4xl font-extrabold leading-tight text-foreground tracking-tight mb-10 relative z-10">
                         {todayQuestion.question}
                     </h3>
 
-                    <div className="grid grid-cols-1 gap-3 sm:gap-4 relative z-10">
+                    <div className="grid grid-cols-1 gap-4 relative z-10">
                         {todayQuestion.options.map((opt, idx) => {
                             const isSelected = dailyQuizAnswer === opt;
                             const isAnswered = !!dailyQuizAnswer;
                             const isCorrect = opt === todayQuestion.answer;
 
-                            let btnStyle = "bg-muted/30 border-border/50 hover:border-primary/50 text-foreground";
+                            let btnStyle = "bg-background/40 border-border hover:border-primary/40 hover:bg-background/60 shadow-sm";
+                            
                             if (isAnswered) {
-                                if (isCorrect) btnStyle = "bg-emerald-500/10 border-emerald-500/40 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.1)]";
-                                else if (isSelected) btnStyle = "bg-rose-500/10 border-rose-500/40 text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]";
-                                else btnStyle = "opacity-40 grayscale blur-[0.5px] border-transparent scale-[0.98]";
+                                if (isCorrect) {
+                                    btnStyle = "bg-success/5 border-success/30 text-success shadow-[0_0_40px_rgba(16,185,129,0.08)] ring-1 ring-success/10";
+                                } else if (isSelected) {
+                                    btnStyle = "bg-error/5 border-error/30 text-error shadow-[0_0_40px_rgba(244,63,94,0.08)] ring-1 ring-error/10";
+                                } else {
+                                    btnStyle = "opacity-30 grayscale-[50%] blur-[0.3px] border-transparent scale-[0.98]";
+                                }
                             }
 
                             return (
                                 <motion.button
                                     key={idx}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.1 }}
-                                    whileHover={!isAnswered ? { y: -2, scale: 1.01, backgroundColor: isDarkMode ? 'rgba(0, 82, 255, 0.05)' : 'rgba(0, 82, 255, 0.03)' } : {}}
-                                    whileTap={!isAnswered ? { scale: 0.98 } : {}}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.1 * idx }}
                                     onClick={() => onAnswer(opt)}
                                     disabled={isAnswered}
-                                    className={`w-full p-4 sm:p-6 rounded-xl sm:rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group overflow-hidden ${btnStyle}`}
+                                    className={`w-full p-5 sm:p-7 rounded-3xl text-left font-bold transition-all border-2 flex items-center justify-between group relative overflow-hidden ${btnStyle}`}
                                 >
-                                    <div className="flex items-center gap-4 sm:gap-5 w-full">
-                                        <motion.span
-                                            animate={isSelected ? { scale: [1, 1.2, 1] } : {}}
-                                            className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-black border-2 transition-all ${isSelected
+                                    <div className="flex items-center gap-4 sm:gap-6 w-full relative z-10">
+                                        <span className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl flex items-center justify-center text-sm font-extrabold border-2 transition-all ${
+                                            isSelected
                                                 ? 'bg-primary border-primary text-white shadow-lg'
-                                                : 'border-border bg-background/50 text-muted-foreground'
-                                                }`}>
+                                                : 'border-border/60 bg-white/5 text-muted-foreground group-hover:bg-primary/5 group-hover:border-primary/20'
+                                            }`}>
                                             {String.fromCharCode(65 + idx)}
-                                        </motion.span>
-                                        <span className="flex-1 break-words text-sm sm:text-lg leading-snug">
+                                        </span>
+                                        <span className="flex-1 break-words text-lg sm:text-xl font-bold tracking-tight">
                                             {opt}
                                         </span>
                                     </div>
-                                    <div className="relative">
-                                        {isAnswered && isCorrect && (
-                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                                                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
-                                            </motion.div>
-                                        )}
-                                        {isAnswered && isSelected && !isCorrect && (
-                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                                                <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500" />
-                                            </motion.div>
+                                    <div className="relative z-10">
+                                        {isAnswered && (isCorrect || isSelected) && (
+                                            isCorrect ? <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8" /> : <XCircle className="w-6 h-6 sm:w-8 sm:h-8" />
                                         )}
                                     </div>
                                 </motion.button>
@@ -205,46 +170,49 @@ export const DailyQuiz = ({
                 </div>
             </motion.div>
 
-            <AnimatePresence mode="wait">
+            {/* Explanation Section */}
+            <AnimatePresence>
                 {dailyQuizAnswer && (
                     <motion.div
-                        key="result"
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className={`p-6 sm:p-10 rounded-2xl sm:rounded-[2rem] border-2 shadow-2xl relative overflow-hidden ${dailyQuizResult === 'correct'
-                            ? 'bg-emerald-500/5 border-emerald-500/20 shadow-emerald-500/10'
-                            : 'bg-rose-500/5 border-rose-500/20 shadow-rose-500/10'
-                            }`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`p-6 sm:p-10 rounded-[2.5rem] border-2 shadow-2xl relative overflow-hidden backdrop-blur-md ${
+                            dailyQuizResult === 'correct'
+                                ? 'bg-success/5 border-success/20'
+                                : 'bg-primary/5 border-primary/20'
+                        }`}
                     >
-                        {/* Animated background highlights for result */}
-                        <div className={`absolute inset-0 opacity-10 ${dailyQuizResult === 'correct' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-
-                        <div className="flex gap-4 sm:gap-6 relative z-10">
-                            <motion.div
-                                initial={{ rotate: -15, scale: 0.5 }}
-                                animate={{ rotate: 0, scale: 1 }}
-                                className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl shrink-0 flex items-center justify-center ${dailyQuizResult === 'correct' ? 'bg-emerald-500/10' : 'bg-rose-500/10'
-                                    }`}>
+                        <div className="flex gap-6 relative z-10">
+                            <div className={`w-14 h-14 rounded-2xl shrink-0 flex items-center justify-center ${
+                                dailyQuizResult === 'correct' ? 'bg-success/10' : 'bg-primary/10'
+                            }`}>
                                 {dailyQuizResult === 'correct'
-                                    ? <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-500" />
-                                    : <XCircle className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500" />
+                                    ? <CheckCircle className="w-8 h-8 text-success" />
+                                    : <Sparkles className="w-8 h-8 text-primary" />
                                 }
-                            </motion.div>
-                            <div className="space-y-1 sm:space-y-2">
-                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground">Detailed Breakdown</p>
-                                <p className="text-sm sm:text-lg font-bold leading-relaxed italic text-foreground">{todayQuestion.explanation}</p>
-                                {dailyQuizResult === 'correct' ? (
-                                    <div className="pt-1 sm:pt-2 flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                                        <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 1 }}>
-                                            <Flame className="w-3 h-3" />
-                                        </motion.div>
-                                        Streak Extended
-                                    </div>
-                                ) : (
-                                    <div className="pt-1 sm:pt-2 flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest">
-                                        <XCircle className="w-3 h-3" /> Streak Lost
-                                    </div>
-                                )}
+                            </div>
+                            <div className="space-y-3">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary">Daily Insight</p>
+                                    <p className="text-base sm:text-xl font-medium leading-relaxed text-foreground opacity-90">
+                                        {todayQuestion.explanation}
+                                    </p>
+                                </div>
+                                <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest ${
+                                    dailyQuizResult === 'correct' ? 'text-success' : 'text-error'
+                                }`}>
+                                    {dailyQuizResult === 'correct' ? (
+                                        <>
+                                            <Flame className="w-4 h-4" />
+                                            Streak Extended! 🔥
+                                        </>
+                                    ) : (
+                                        <>
+                                            <XCircle className="w-4 h-4" />
+                                            Streak Lost 💔
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -253,3 +221,4 @@ export const DailyQuiz = ({
         </motion.div>
     );
 };
+

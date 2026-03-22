@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Users, Wallet } from 'lucide-react';
+import { Trophy, Users, Wallet, ArrowRight } from 'lucide-react';
 
 interface LeaderboardTableProps {
     isDarkMode: boolean;
@@ -30,69 +30,65 @@ export const LeaderboardTable = ({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-lg mx-auto space-y-4"
+            className="max-w-2xl mx-auto space-y-8 px-4 pb-12"
         >
             {/* Header Card */}
-            <div className="relative overflow-hidden rounded-3xl p-6 text-center"
-                style={{ background: 'linear-gradient(135deg, #1a1f6e 0%, #2d1b69 40%, #1e3a8a 100%)' }}
-            >
-                {/* Decorative blobs */}
-                <div className="absolute -top-6 -left-6 w-32 h-32 rounded-full bg-blue-500/20 blur-2xl" />
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-purple-500/20 blur-2xl" />
-
-                <div className="relative z-10 space-y-4">
-                    <div className="flex items-center justify-center gap-2 text-amber-400">
-                        <Trophy className="w-6 h-6 fill-amber-400" />
-                        <h2 className="text-2xl font-black text-white tracking-tight">Leaderboard</h2>
+            <div className="relative overflow-hidden rounded-[2.5rem] p-10 text-center bg-primary shadow-2xl shadow-primary/20">
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-48 h-48 bg-black/10 rounded-full blur-3xl" />
+                
+                <div className="relative z-10 space-y-6">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-xl mb-2">
+                            <Trophy className="w-8 h-8 text-white fill-white/20" />
+                        </div>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Hall of Fame</h2>
+                        <p className="text-white/70 text-sm font-medium max-w-xs">
+                            Top developers pushing the boundaries of JavaScript and Web3.
+                        </p>
                     </div>
 
-                    {/* Stats Pills */}
-                    <div className="flex gap-3 justify-center">
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
-                            <span className="text-lg">🪙</span>
-                            <div className="text-left">
-                                <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider">Total Points</p>
-                                <p className="text-sm font-black text-white">{totalPoints.toLocaleString()}</p>
-                            </div>
+                    <div className="flex gap-4 justify-center">
+                        <div className="flex-1 max-w-[160px] flex flex-col items-center gap-1 px-4 py-4 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10">
+                            <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Global Points</p>
+                            <p className="text-xl font-extrabold text-white tracking-tight">{totalPoints.toLocaleString()}</p>
                         </div>
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
-                            <Users className="w-4 h-4 text-white/60" />
-                            <div className="text-left">
-                                <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider">Players</p>
-                                <p className="text-sm font-black text-white">{leaderboardData.length}</p>
-                            </div>
+                        <div className="flex-1 max-w-[160px] flex flex-col items-center gap-1 px-4 py-4 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10">
+                            <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Active Players</p>
+                            <p className="text-xl font-extrabold text-white tracking-tight">{leaderboardData.length}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Wallet Banner (if not connected) */}
+            {/* Wallet Integration Banner */}
             {!connectedAddress && (
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5"
+                    whileHover={{ scale: 1.01 }}
+                    className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 rounded-[2rem] border-2 border-dashed border-primary/30 bg-primary/5 group"
                 >
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                            <Wallet className="w-5 h-5 text-primary" />
+                    <div className="flex items-center gap-4 text-center sm:text-left">
+                        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                            <Wallet className="w-7 h-7 text-primary" />
                         </div>
-                        <div>
-                            <p className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Connect Your Wallet</p>
-                            <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Join the global rankings</p>
+                        <div className="space-y-0.5">
+                            <p className="text-lg font-extrabold text-foreground tracking-tight">Connect for On-Chain Proof</p>
+                            <p className="text-sm font-medium text-muted-foreground">Unlock achievements and claim your global rank.</p>
                         </div>
                     </div>
                     <button
                         onClick={onConnect}
-                        className="shrink-0 px-5 py-2.5 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all"
+                        className="w-full sm:w-auto px-10 py-4 btn-premium rounded-2xl text-sm font-bold shadow-xl flex items-center justify-center gap-2"
                     >
-                        Connect
+                        Connect Wallet
+                        <ArrowRight className="w-4 h-4" />
                     </button>
                 </motion.div>
             )}
 
             {/* Player List */}
-            <div className="space-y-3">
+            <div className="space-y-4">
                 <AnimatePresence>
                     {leaderboardData.length > 0 ? (
                         leaderboardData.map((player, idx) => {
@@ -100,7 +96,6 @@ export const LeaderboardTable = ({
                             const shortAddress = player.address ? `${player.address.slice(0, 6)}...${player.address.slice(-4)}` : 'Unknown';
                             const fallbackName = player.basename ? player.basename : shortAddress;
                             const displayName = player.displayName || player.username || fallbackName;
-                            // If display name is exactly shortAddress, we don't need to show initials as '0x'
                             const initials = displayName !== shortAddress ? displayName.slice(0, 2).toUpperCase() : '0x';
                             const isCurrentUser = connectedAddress && player.address?.toLowerCase() === connectedAddress.toLowerCase();
 
@@ -110,87 +105,90 @@ export const LeaderboardTable = ({
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    className={`relative flex items-center gap-4 p-4 rounded-2xl border transition-all ${isCurrentUser
-                                        ? 'border-primary/50 bg-primary/10 shadow-lg shadow-primary/10'
-                                        : isDarkMode
-                                            ? 'border-white/5 bg-white/5 hover:bg-white/10'
-                                            : 'border-black/5 bg-black/5 hover:bg-black/10'
-                                        }`}
+                                    className={`relative flex items-center gap-4 p-5 sm:p-6 rounded-[2rem] border transition-all duration-300 ${
+                                        isCurrentUser
+                                            ? 'border-primary/40 bg-primary/5 shadow-2xl shadow-primary/10 ring-2 ring-primary/20'
+                                            : 'glass-card hover:bg-white/[0.02] border-border/40'
+                                    }`}
                                 >
-                                    {/* Rank */}
-                                    <div className="w-8 shrink-0 text-center">
+                                    {/* Rank Marker */}
+                                    <div className="w-10 shrink-0 flex justify-center">
                                         {isTop3 ? (
-                                            <span className="text-xl">{RANK_TEXT[idx]}</span>
+                                            <span className="text-3xl drop-shadow-md">{RANK_TEXT[idx]}</span>
                                         ) : (
-                                            <span className={`text-sm font-black ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                            <span className="text-sm font-bold text-muted-foreground opacity-50 tracking-tighter">
                                                 #{idx + 1}
                                             </span>
                                         )}
                                     </div>
 
-                                    {/* Avatar */}
-                                    <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center font-black text-sm text-white overflow-hidden relative ${isTop3
-                                        ? `bg-gradient-to-br ${RANK_COLORS[idx]} shadow-lg`
-                                        : 'bg-gradient-to-br from-primary/60 to-primary'
-                                        }`}>
+                                    {/* Avatar/Profile Image */}
+                                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-[1.25rem] shrink-0 flex items-center justify-center font-extrabold text-white overflow-hidden relative shadow-lg ${
+                                        isTop3
+                                            ? `bg-gradient-to-br ${RANK_COLORS[idx]} ring-4 ring-white/10`
+                                            : 'bg-primary/20 text-primary border border-primary/20'
+                                    }`}>
                                         {player.pfp ? (
                                             <img src={player.pfp} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                            initials
+                                            <span className="text-lg">{initials}</span>
                                         )}
                                         {isCurrentUser && (
-                                            <div className="absolute inset-0 ring-2 ring-primary ring-offset-1 ring-offset-transparent rounded-2xl" />
+                                            <div className="absolute top-1 right-1 w-3 h-3 bg-primary rounded-full border-2 border-background" />
                                         )}
                                     </div>
 
-                                    {/* Name & Info */}
+                                    {/* Player Details */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <p className={`font-black text-base truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                                            <p className="text-lg font-extrabold truncate text-foreground tracking-tight">
                                                 {displayName}
                                             </p>
                                             {isCurrentUser && (
-                                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-primary text-white uppercase tracking-wider shrink-0">You</span>
+                                                <div className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[9px] font-bold uppercase tracking-widest shrink-0">
+                                                    You
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 mt-0.5">
+                                        <div className="flex items-center gap-3 mt-1">
                                             {displayName !== shortAddress && (
-                                                <span className={`text-[10px] font-bold font-mono opacity-50 truncate`}>
+                                                <span className="text-[10px] font-mono font-medium text-muted-foreground/60 truncate">
                                                     {shortAddress}
                                                 </span>
                                             )}
                                             {player.highestLevel > 1 && (
-                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${isDarkMode ? 'bg-white/10 text-white/70' : 'bg-black/10 text-slate-600'}`}>
-                                                    Lvl {player.highestLevel}
-                                                </span>
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground text-[10px] font-bold uppercase tracking-widest">
+                                                    Level {player.highestLevel}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Score */}
+                                    {/* Points Display */}
                                     <div className="text-right shrink-0">
-                                        <div className="flex items-center gap-1 justify-end">
-                                            <span className="text-lg">🪙</span>
-                                            <span className={`text-xl font-black tracking-tighter ${isTop3 ? 'text-amber-400' : isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                                        <div className="flex items-center gap-2 justify-end">
+                                            <div className="p-1 px-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-[10px] font-bold tracking-tighter uppercase">
+                                                PTS
+                                            </div>
+                                            <span className={`text-2xl font-black tracking-tighter ${
+                                                isTop3 ? 'text-amber-500' : 'text-foreground'
+                                            }`}>
                                                 {Number(player.totalPoints).toLocaleString()}
                                             </span>
                                         </div>
-                                        <p className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                            pts
-                                        </p>
                                     </div>
                                 </motion.div>
                             );
                         })
                     ) : (
-                        <div className="py-16 text-center space-y-3">
-                            <div className="text-5xl">🏆</div>
-                            <p className={`font-black text-sm tracking-widest uppercase ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                No players yet
-                            </p>
-                            <p className={`text-xs ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                                Complete a quiz to appear here!
-                            </p>
+                        <div className="py-24 text-center space-y-6">
+                            <div className="w-24 h-24 bg-muted rounded-[2rem] flex items-center justify-center mx-auto text-5xl">
+                                🏆
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-xl font-extrabold text-foreground tracking-tight">The Arena is Quiet</p>
+                                <p className="text-sm font-medium text-muted-foreground">Complete a challenge to be the first on the board.</p>
+                            </div>
                         </div>
                     )}
                 </AnimatePresence>
@@ -198,3 +196,4 @@ export const LeaderboardTable = ({
         </motion.div>
     );
 };
+
