@@ -913,14 +913,14 @@ export default function JSQuizApp() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
+            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-end sm:items-center sm:justify-center"
           >
             <motion.div 
               initial={{ y: "100%", opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="w-full max-w-5xl h-[92vh] sm:h-[85vh] rounded-3xl overflow-hidden shadow-2xl border border-border bg-card"
+              className="w-full h-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl sm:h-[88vh] sm:m-4 sm:rounded-3xl overflow-hidden shadow-2xl sm:border sm:border-border bg-card"
             >
               <AIAssistant isDarkMode={isDarkMode} onClose={() => setIsAiOpen(false)} />
             </motion.div>
