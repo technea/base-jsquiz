@@ -1,167 +1,344 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Send, Bot, User, Volume2, VolumeX, Loader2, Sparkles,
-  X, Mic, MicOff, Paperclip, FileText, Code2, Copy, Check,
-  ChevronDown, Brain, ArrowRight,
-} from "lucide-react";
 
-// ════════════════════════════════════════════════════════════════
-//  TYPES
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+//  SINGLETON: SpeechManager
+//  One instance, controlled voice queue, no double-speak.
+// ═══════════════════════════════════════════════════════════════════
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  file?: { name: string; type: string; preview?: string };
-  type?: "code_explanation" | "quiz" | "normal";
+class SpeechManager {
+  static #instance = null;
+
+  #isSpeaking = false;
+  #listeners = new Set();
+
+  constructor() {
+    if (SpeechManager.#instance) return SpeechManager.#instance;
+    SpeechManager.#instance = this;
+  }
+
+  static getInstance() {
+    if (!SpeechManager.#instance) new SpeechManager();
+    return SpeechManager.#instance;
+  }
+
+  get speaking() {
+    return this.#isSpeaking;
+  }
+
+  onSpeakingChange(fn) {
+    this.#listeners.add(fn);
+    return () => this.#listeners.delete(fn);
+  }
+
+  #emit(value) {
+    this.#isSpeaking = value;
+    this.#listeners.forEach((fn) => fn(value));
+  }
+
+  stop() {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    this.#emit(false);
+  }
+
+  #bestVoice(lang) {
+    const voices = window.speechSynthesis.getVoices();
+    if (lang === "en") {
+      return (
+        voices.find((v) => v.lang.startsWith("en") && /Google|Neural|Premium|Enhanced/.test(v.name)) ||
+        voices.find((v) => v.lang.startsWith("en-US")) ||
+        voices.find((v) => v.lang.startsWith("en"))
+      );
+    }
+    return voices.find((v) => v.lang.startsWith("ur")) || voices.find((v) => v.lang.startsWith("hi"));
+  }
+
+  #speak(text, lang) {
+    return new Promise((resolve) => {
+      const utt = new SpeechSynthesisUtterance(text);
+      const voice = this.#bestVoice(lang);
+      if (voice) utt.voice = voice;
+
+      if (lang === "en") {
+        utt.lang = "en-US";
+        utt.rate = 1.05;
+        utt.pitch = 1.0;
+      } else {
+        utt.lang = voice?.lang ?? "hi-IN";
+        utt.rate = 0.95;
+        utt.pitch = 1.0;
+      }
+
+      utt.onstart = () => this.#emit(true);
+      utt.onend = () => resolve();
+      utt.onerror = () => resolve();
+
+      window.speechSynthesis.speak(utt);
+    });
+  }
+
+  async say(rawText) {
+    if (!window.speechSynthesis) return;
+
+    this.stop();
+
+    const englishPart = rawText.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
+    const urduMatch = rawText.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
+    const urduPart = urduMatch ? urduMatch[1].trim() : "";
+
+    const clean = (t) =>
+      t.replace(/```[\s\S]*?```/g, " Code block. ")
+        .replace(/[*_`#]/g, "")
+        .replace(/\n+/g, " ")
+        .trim()
+        .slice(0, 500);
+
+    this.#emit(true);
+    try {
+      if (englishPart) await this.#speak(clean(englishPart), "en");
+      if (urduPart) await this.#speak(clean(urduPart), "ur");
+    } finally {
+      this.#emit(false);
+    }
+  }
 }
 
-interface AttachedFile {
-  name: string;
-  type: string;
-  preview?: string;
-  base64?: string;
-}
+// ═══════════════════════════════════════════════════════════════════
+//  CLASS: SyntaxHighlighter
+//  Stateless — all methods pure/static.
+// ═══════════════════════════════════════════════════════════════════
 
-interface QuizOption {
-  id: string;
-  text: string;
-  isCorrect: boolean;
-}
+class SyntaxHighlighter {
+  static #JS_LANGS = new Set(["js", "javascript", "ts", "typescript", "jsx", "tsx"]);
 
-interface QuizQuestion {
-  id: string;
-  question: string;
-  options: QuizOption[];
-  explanation: string;
-}
+  static #escape(raw) {
+    return raw
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
-interface AIAssistantProps {
-  isDarkMode: boolean;
-  onClose?: () => void;
-}
+  static highlight(raw, lang) {
+    let code = SyntaxHighlighter.#escape(raw);
 
-// ════════════════════════════════════════════════════════════════
-//  SYNTAX HIGHLIGHTER
-// ════════════════════════════════════════════════════════════════
+    if (!SyntaxHighlighter.#JS_LANGS.has(lang)) return code;
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function highlightCode(raw: string, lang: string): string {
-  let code = escapeHtml(raw);
-
-  const JS_LANGS = ["js", "javascript", "ts", "typescript", "jsx", "tsx"];
-
-  if (JS_LANGS.includes(lang)) {
-    // IMPORTANT: Comments must be highlighted FIRST.
-    // If keywords run first, words inside comments (e.g. "// return value")
-    // get wrapped in keyword spans, which breaks comment styling.
+    // Comments must run first — keywords inside comments must NOT be re-highlighted.
     code = code
-      .replace(/(\/\/[^\n]*)/g, '<span class="hljs-comment">$1</span>')
-      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="hljs-comment">$1</span>')
+      .replace(/(\/\/[^\n]*)/g, '<span class="hl-comment">$1</span>')
+      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="hl-comment">$1</span>')
       .replace(
         /(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;|`[^`]*`)/g,
-        '<span class="hljs-string">$1</span>'
+        '<span class="hl-string">$1</span>'
       )
       .replace(
         /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|async|await|try|catch|finally|throw|import|export|default|from|of|in|extends|super|null|undefined|true|false)\b/g,
-        '<span class="hljs-keyword">$1</span>'
+        '<span class="hl-keyword">$1</span>'
       )
-      .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="hljs-number">$1</span>')
+      .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="hl-number">$1</span>')
       .replace(
         /\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g,
-        '<span class="hljs-function">$1</span>'
+        '<span class="hl-fn">$1</span>'
       );
-    // NOTE: Operator regex intentionally removed — it incorrectly matches
-    // HTML entities like &amp; and &lt; that escapeHtml() already inserted.
-  }
 
-  return code;
+    return code;
+  }
 }
 
-// ════════════════════════════════════════════════════════════════
-//  CODE BLOCK
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+//  CLASS: QuizStateMachine
+//  Encapsulates quiz flow as a proper state machine.
+//  States: IDLE → ANSWERING → ANSWERED → COMPLETE
+// ═══════════════════════════════════════════════════════════════════
 
-function CodeBlock({
-  code,
-  lang,
-  showLineNumbers = true,
-}: {
-  code: string;
-  lang: string;
-  showLineNumbers?: boolean;
-}) {
+class QuizStateMachine {
+  static STATES = Object.freeze({
+    IDLE: "IDLE",
+    ANSWERING: "ANSWERING",
+    ANSWERED: "ANSWERED",
+    COMPLETE: "COMPLETE",
+  });
+
+  #state;
+  #questions;
+  #currentIndex;
+  #score;
+  #selectedOptionId;
+  #listeners;
+
+  constructor(questions) {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error("QuizStateMachine requires a non-empty questions array.");
+    }
+    this.#state = QuizStateMachine.STATES.ANSWERING;
+    this.#questions = questions;
+    this.#currentIndex = 0;
+    this.#score = 0;
+    this.#selectedOptionId = null;
+    this.#listeners = new Set();
+  }
+
+  // ── Observers ──────────────────────────────────────────────────
+
+  onChange(fn) {
+    this.#listeners.add(fn);
+    return () => this.#listeners.delete(fn);
+  }
+
+  #notify() {
+    this.#listeners.forEach((fn) => fn(this.snapshot()));
+  }
+
+  // ── Read-only snapshot (safe to spread into React state) ───────
+
+  snapshot() {
+    return Object.freeze({
+      state: this.#state,
+      question: this.#questions[this.#currentIndex],
+      currentIndex: this.#currentIndex,
+      totalQuestions: this.#questions.length,
+      score: this.#score,
+      selectedOptionId: this.#selectedOptionId,
+      isLastQuestion: this.#currentIndex === this.#questions.length - 1,
+    });
+  }
+
+  // ── Transitions ────────────────────────────────────────────────
+
+  answer(optionId) {
+    if (this.#state !== QuizStateMachine.STATES.ANSWERING) return;
+
+    const option = this.#questions[this.#currentIndex].options.find((o) => o.id === optionId);
+    if (!option) return;
+
+    this.#selectedOptionId = optionId;
+
+    if (option.isCorrect) this.#score += 1;
+
+    this.#state = this.#currentIndex === this.#questions.length - 1
+      ? QuizStateMachine.STATES.COMPLETE
+      : QuizStateMachine.STATES.ANSWERED;
+
+    this.#notify();
+  }
+
+  next() {
+    if (this.#state !== QuizStateMachine.STATES.ANSWERED) return;
+
+    this.#currentIndex += 1;
+    this.#selectedOptionId = null;
+    this.#state = QuizStateMachine.STATES.ANSWERING;
+
+    this.#notify();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CLASS: MessageParser
+//  Parses raw assistant text into typed parts for rendering.
+// ═══════════════════════════════════════════════════════════════════
+
+class MessageParser {
+  static parse(text) {
+    const parts = [];
+    const quizRegex = /\[\[QUIZ:START\]\]([\s\S]*?)\[\[QUIZ:END\]\]/g;
+    let lastIndex = 0;
+    let match;
+
+    // Pass 1 — extract quiz blocks
+    while ((match = quizRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: "text", content: text.slice(lastIndex, match.index) });
+      }
+      try {
+        const questions = JSON.parse(match[1]);
+        if (Array.isArray(questions) && questions.length > 0) {
+          parts.push({ type: "quiz", questions });
+        }
+      } catch {
+        parts.push({ type: "text", content: match[0] });
+      }
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Pass 2 — extract code fences from remaining text
+    const remaining = text.slice(lastIndex);
+    const codeRegex = /```(\w*)\n?([\s\S]*?)```/g;
+    let cursor = 0;
+
+    while ((match = codeRegex.exec(remaining)) !== null) {
+      if (match.index > cursor) {
+        parts.push({ type: "text", content: remaining.slice(cursor, match.index) });
+      }
+      parts.push({ type: "code", lang: match[1] || "javascript", content: match[2].trim() });
+      cursor = match.index + match[0].length;
+    }
+
+    if (cursor < remaining.length) {
+      parts.push({ type: "text", content: remaining.slice(cursor) });
+    }
+
+    return parts;
+  }
+
+  // Inline markdown: **bold** and `code`
+  static renderInline(text) {
+    return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((seg, i) => {
+      if (seg.startsWith("**") && seg.endsWith("**")) {
+        return <strong key={i}>{seg.slice(2, -2)}</strong>;
+      }
+      if (seg.startsWith("`") && seg.endsWith("`") && seg.length > 2) {
+        return <code key={i} className="inline-code">{seg.slice(1, -1)}</code>;
+      }
+      return <span key={i}>{seg}</span>;
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  COMPONENT: CodeBlock
+// ═══════════════════════════════════════════════════════════════════
+
+function CodeBlock({ code, lang }) {
   const [copied, setCopied] = useState(false);
   const lines = code.split("\n");
 
-  const handleCopy = () => {
+  function copy() {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  };
+  }
 
   return (
-    <div className="my-3 sm:my-4 rounded-xl sm:rounded-2xl overflow-hidden border border-border bg-[#0d1117] text-left shadow-xl">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 bg-[#161b22] border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-          </div>
-          <Code2 className="w-4 h-4 text-slate-500 ml-2" />
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            {lang || "code"}
-          </span>
+    <div className="code-block">
+      <div className="code-block__header">
+        <div className="code-block__dots">
+          <span />
+          <span />
+          <span />
         </div>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-white transition-all px-3 py-1.5 rounded-lg hover:bg-white/5 active:scale-95"
-        >
-          {copied ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5" />
-              Copy
-            </>
-          )}
+        <span className="code-block__lang">{lang || "code"}</span>
+        <button className="code-block__copy" onClick={copy}>
+          {copied ? "✓ Copied" : "Copy"}
         </button>
       </div>
 
-      {/* Code lines */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+      <div className="code-block__body">
+        <table>
           <tbody>
-            {lines.map((line, index) => (
-              <tr key={index} className="hover:bg-white/[0.02] transition-colors">
-                {showLineNumbers && (
-                  <td className="text-right text-slate-600 text-[10px] select-none px-2 sm:px-3 py-0.5 border-r border-white/5 w-8 sm:w-10 hidden xs:table-cell">
-                    {index + 1}
-                  </td>
-                )}
-                <td className="px-2 sm:px-4 py-0.5">
-                  <pre className="text-[11px] sm:text-[13px] leading-relaxed font-mono m-0">
+            {lines.map((line, i) => (
+              <tr key={i}>
+                <td className="code-block__lineno">{i + 1}</td>
+                <td className="code-block__line">
+                  <pre>
                     <code
                       dangerouslySetInnerHTML={{
-                        __html: line ? highlightCode(line, lang) : "<br/>",
+                        __html: line ? SyntaxHighlighter.highlight(line, lang) : "<br/>",
                       }}
                     />
                   </pre>
@@ -175,1109 +352,910 @@ function CodeBlock({
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  QUIZ COMPONENT
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+//  COMPONENT: QuizCard
+//  Driven entirely by QuizStateMachine — no local state for answers.
+// ═══════════════════════════════════════════════════════════════════
 
-function QuizComponent({
-  questions,
-  onComplete,
-}: {
-  questions: QuizQuestion[];
-  onComplete?: (score: number) => void;
-}) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [score, setScore] = useState(0);
-  const [answered, setAnswered] = useState(false);
+function QuizCard({ questions }) {
+  const machineRef = useRef(null);
 
-  const currentQuestion = questions[currentIndex];
+  // Build the machine once per question set
+  if (!machineRef.current) {
+    machineRef.current = new QuizStateMachine(questions);
+  }
 
-  const handleOptionSelect = (optionId: string, isCorrect: boolean) => {
-    if (answered) return;
+  const [snap, setSnap] = useState(() => machineRef.current.snapshot());
 
-    setSelectedOptionId(optionId);
-    setAnswered(true);
-    setShowExplanation(true);
+  useEffect(() => {
+    return machineRef.current.onChange(setSnap);
+  }, []);
 
-    // FIX: Use a local variable here so onComplete receives the updated score.
-    // Using the state setter callback alone would pass the stale value to onComplete.
-    const newScore = isCorrect ? score + 1 : score;
-    if (isCorrect) setScore(newScore);
+  const { ANSWERING, ANSWERED, COMPLETE } = QuizStateMachine.STATES;
 
-    // Trigger completion immediately if this is the last question
-    if (currentIndex === questions.length - 1) {
-      onComplete?.(newScore);
-    }
-  };
+  function optionClass(option) {
+    if (snap.state === ANSWERING) return "quiz__option";
 
-  const handleNext = () => {
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-      setSelectedOptionId(null);
-      setShowExplanation(false);
-      setAnswered(false);
-    }
-  };
-
-  const isLastQuestion = currentIndex === questions.length - 1;
+    if (option.isCorrect) return "quiz__option quiz__option--correct";
+    if (snap.selectedOptionId === option.id && !option.isCorrect) return "quiz__option quiz__option--wrong";
+    return "quiz__option quiz__option--dim";
+  }
 
   return (
-    <div className="my-4 sm:my-6 rounded-2xl sm:rounded-3xl border border-primary/20 bg-primary/5 p-4 sm:p-6 shadow-xl relative overflow-hidden">
-      {/* Decorative background icon */}
-      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-        <Brain className="w-24 h-24" />
+    <div className="quiz">
+      <div className="quiz__header">
+        <span className="quiz__label">Knowledge Check</span>
+        <span className="quiz__progress">
+          {snap.currentIndex + 1} / {snap.totalQuestions}
+        </span>
+        <span className="quiz__score">Score: {snap.score}</span>
       </div>
 
-      {/* Header */}
-      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 relative z-10">
-        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center">
-          <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] leading-none mb-1">
-            Knowledge Check
-          </p>
-          <p className="text-sm font-extrabold text-foreground">
-            Question {currentIndex + 1} of {questions.length}
-          </p>
-        </div>
-        <div className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold text-muted-foreground uppercase">
-          Score: {score}
-        </div>
-      </div>
+      <p className="quiz__question">{snap.question.question}</p>
 
-      {/* Question text */}
-      <p className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 leading-tight relative z-10">
-        {currentQuestion.question}
-      </p>
-
-      {/* Options */}
-      <div className="space-y-2 sm:space-y-2.5 mb-4 sm:mb-6 relative z-10">
-        {currentQuestion.options.map((option) => {
-          const isSelected = selectedOptionId === option.id;
-          const isWrongSelection = answered && isSelected && !option.isCorrect;
-          const isCorrectAnswer = answered && option.isCorrect;
-          const isDimmed = answered && !option.isCorrect && !isSelected;
-
-          return (
-            <motion.button
-              key={option.id}
-              whileHover={!answered ? { x: 4 } : {}}
-              whileTap={!answered ? { scale: 0.98 } : {}}
-              onClick={() => handleOptionSelect(option.id, option.isCorrect)}
-              disabled={answered}
-              className={[
-                "w-full text-left p-3 sm:p-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold transition-all border-2",
-                isCorrectAnswer
-                  ? "bg-success/5 border-success/30 text-success shadow-lg shadow-success/5"
-                  : "",
-                isWrongSelection
-                  ? "bg-error/5 border-error/30 text-error shadow-lg shadow-error/5"
-                  : "",
-                isDimmed ? "opacity-40" : "",
-                !answered ? "bg-background/40 border-border/60" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {option.text}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Explanation */}
-      <AnimatePresence>
-        {showExplanation && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-6 p-4 rounded-2xl bg-muted/50 border border-border text-xs leading-relaxed italic text-muted-foreground overflow-hidden"
+      <div className="quiz__options">
+        {snap.question.options.map((opt) => (
+          <button
+            key={opt.id}
+            className={optionClass(opt)}
+            disabled={snap.state !== ANSWERING}
+            onClick={() => machineRef.current.answer(opt.id)}
           >
-            <span className="font-bold text-foreground not-italic block mb-1 uppercase tracking-widest text-[9px]">
-              Deep Dive:
-            </span>
-            {currentQuestion.explanation}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {opt.text}
+          </button>
+        ))}
+      </div>
 
-      {/* Next / Finish button — only shown after answering, hidden on last question */}
-      {answered && !isLastQuestion && (
-        <button
-          onClick={handleNext}
-          className="w-full py-4 rounded-2xl btn-premium text-sm font-bold shadow-xl flex items-center justify-center gap-2 group transition-all"
-        >
-          Next Challenge
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+      {(snap.state === ANSWERED || snap.state === COMPLETE) && (
+        <div className="quiz__explanation">
+          <span className="quiz__explanation-label">Deep Dive</span>
+          {snap.question.explanation}
+        </div>
+      )}
+
+      {snap.state === ANSWERED && (
+        <button className="quiz__next" onClick={() => machineRef.current.next()}>
+          Next →
         </button>
       )}
 
-      {answered && isLastQuestion && (
-        <div className="w-full py-4 rounded-2xl bg-success/10 border border-success/20 text-sm font-bold text-success text-center">
-          Quiz Complete! Final Score: {score} / {questions.length}
+      {snap.state === COMPLETE && (
+        <div className="quiz__complete">
+          Quiz Complete — Final Score: {snap.score} / {snap.totalQuestions}
         </div>
       )}
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  MESSAGE PARSER
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+//  COMPONENT: MessageBubble
+// ═══════════════════════════════════════════════════════════════════
 
-type ParsedPart =
-  | { type: "text"; content: string }
-  | { type: "code"; content: string; lang: string }
-  | { type: "quiz"; questions: QuizQuestion[] };
+function MessageBubble({ message, isDarkMode }) {
+  const displayText = message.content.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
+  const parts = MessageParser.parse(displayText);
 
-function parseMessage(text: string): ParsedPart[] {
-  const parts: ParsedPart[] = [];
-
-  // ── Pass 1: Extract [[QUIZ:START]]...[[QUIZ:END]] blocks ──
-  const quizRegex = /\[\[QUIZ:START\]\]([\s\S]*?)\[\[QUIZ:END\]\]/g;
-  let lastIndex = 0;
-  let quizMatch: RegExpExecArray | null;
-
-  while ((quizMatch = quizRegex.exec(text)) !== null) {
-    if (quizMatch.index > lastIndex) {
-      parts.push({ type: "text", content: text.slice(lastIndex, quizMatch.index) });
-    }
-
-    try {
-      const questions = JSON.parse(quizMatch[1]);
-      if (Array.isArray(questions) && questions.length > 0) {
-        parts.push({ type: "quiz", questions });
-      }
-    } catch {
-      // Malformed JSON — render as plain text so nothing is silently lost
-      parts.push({ type: "text", content: quizMatch[0] });
-    }
-
-    lastIndex = quizMatch.index + quizMatch[0].length;
-  }
-
-  // ── Pass 2: Extract ```lang\ncode``` blocks from remaining text ──
-  const remaining = text.slice(lastIndex);
-  const codeRegex = /```(\w*)\n?([\s\S]*?)```/g;
-  let cursor = 0;
-  let codeMatch: RegExpExecArray | null;
-
-  while ((codeMatch = codeRegex.exec(remaining)) !== null) {
-    if (codeMatch.index > cursor) {
-      parts.push({ type: "text", content: remaining.slice(cursor, codeMatch.index) });
-    }
-    parts.push({
-      type: "code",
-      lang: codeMatch[1] || "javascript",
-      content: codeMatch[2].trim(),
-    });
-    cursor = codeMatch.index + codeMatch[0].length;
-  }
-
-  if (cursor < remaining.length) {
-    parts.push({ type: "text", content: remaining.slice(cursor) });
-  }
-
-  return parts;
-}
-
-// ════════════════════════════════════════════════════════════════
-//  INLINE RENDERER  (bold + inline code)
-// ════════════════════════════════════════════════════════════════
-
-function renderInline(text: string): React.ReactNode[] {
-  // Split on **bold** and `inline code` patterns
-  const segments = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-
-  return segments.map((seg, i) => {
-    if (seg.startsWith("**") && seg.endsWith("**")) {
-      return <strong key={i} className="font-bold">{seg.slice(2, -2)}</strong>;
-    }
-    if (seg.startsWith("`") && seg.endsWith("`") && seg.length > 2) {
-      return (
-        <code
-          key={i}
-          className="px-1.5 py-0.5 bg-slate-800 rounded-md text-violet-300 text-xs"
-        >
-          {seg.slice(1, -1)}
-        </code>
-      );
-    }
-    return <span key={i}>{seg}</span>;
-  });
-}
-
-// ════════════════════════════════════════════════════════════════
-//  MESSAGE CONTENT
-// ════════════════════════════════════════════════════════════════
-
-function MessageContent({ content, isDark }: { content: string; isDark: boolean }) {
-  // Strip the Urdu voice tag from display — it's only used by speak()
-  const displayContent = content.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
-  const parts = parseMessage(displayContent);
+  const isUser = message.role === "user";
 
   return (
-    <div>
-      {parts.map((part, i) => {
-        if (part.type === "code") {
-          return <CodeBlock key={i} code={part.content} lang={part.lang} />;
-        }
-        if (part.type === "quiz") {
-          return <QuizComponent key={i} questions={part.questions} />;
-        }
-        // Plain text — render with inline markdown support
-        return (
-          <p
-            key={i}
-            className={`leading-relaxed whitespace-pre-wrap text-[13px] sm:text-[14px] md:text-base font-medium ${i > 0 ? "mt-2 sm:mt-3" : ""
-              }`}
-          >
-            {renderInline(part.content)}
-          </p>
-        );
-      })}
+    <div className={`bubble-row ${isUser ? "bubble-row--user" : "bubble-row--assistant"}`}>
+      <div className={`bubble-avatar ${isUser ? "bubble-avatar--user" : "bubble-avatar--bot"}`}>
+        {isUser ? "U" : "AI"}
+      </div>
+
+      <div className={`bubble ${isUser ? "bubble--user" : isDarkMode ? "bubble--dark" : "bubble--light"}`}>
+        {message.file && (
+          <div className="bubble__attachment">
+            {message.file.preview
+              ? <img src={message.file.preview} alt="" className="bubble__file-preview" />
+              : <span className="bubble__file-icon">📄</span>
+            }
+            <div>
+              <p className="bubble__file-name">{message.file.name}</p>
+              <p className="bubble__file-meta">Document attached</p>
+            </div>
+          </div>
+        )}
+
+        {isUser ? (
+          <p className="bubble__text">{message.content}</p>
+        ) : (
+          <div className="bubble__content">
+            {parts.map((part, i) => {
+              if (part.type === "code") return <CodeBlock key={i} code={part.content} lang={part.lang} />;
+              if (part.type === "quiz") return <QuizCard key={i} questions={part.questions} />;
+              return (
+                <p key={i} className="bubble__text">
+                  {MessageParser.renderInline(part.content)}
+                </p>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  SPEECH SYNTHESIS HELPERS
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+//  COMPONENT: AIAssistant  (main)
+// ═══════════════════════════════════════════════════════════════════
 
-function cleanTextForSpeech(text: string): string {
-  return text
-    .replace(/```[\s\S]*?```/g, " Code block. ")
-    .replace(/[*_`#]/g, "")
-    .replace(/\n+/g, " ")
-    .trim()
-    .slice(0, 500);
-}
+export function AIAssistant({ isDarkMode = false, onClose }) {
+  const speech = SpeechManager.getInstance();
 
-function getBestVoice(
-  voices: SpeechSynthesisVoice[],
-  lang: "en" | "ur"
-): SpeechSynthesisVoice | undefined {
-  if (lang === "en") {
-    return (
-      voices.find((v) => v.lang.startsWith("en") && /Google|Neural|Premium|Enhanced/.test(v.name)) ||
-      voices.find((v) => v.lang.startsWith("en-US")) ||
-      voices.find((v) => v.lang.startsWith("en"))
-    );
-  }
-  // Urdu fallback: try Urdu first, then Hindi as a close fallback
-  return (
-    voices.find((v) => v.lang.startsWith("ur")) ||
-    voices.find((v) => v.lang.startsWith("hi"))
-  );
-}
-
-function playUtterance(
-  text: string,
-  lang: "en" | "ur",
-  onStart: () => void
-): Promise<void> {
-  return new Promise((resolve) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    const voice = getBestVoice(voices, lang);
-
-    if (voice) utterance.voice = voice;
-
-    if (lang === "en") {
-      utterance.lang = "en-US";
-      utterance.rate = 1.05;
-      utterance.pitch = 1.0;
-    } else {
-      utterance.lang = voice?.lang ?? "hi-IN";
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-    }
-
-    // Always resolve (even on error) so the async chain never hangs
-    utterance.onstart = onStart;
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-
-    window.speechSynthesis.speak(utterance);
-  });
-}
-
-// ════════════════════════════════════════════════════════════════
-//  MAIN COMPONENT
-// ════════════════════════════════════════════════════════════════
-
-export const AIAssistant = ({ isDarkMode, onClose }: AIAssistantProps) => {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState([
     {
-      id: "1",
+      id: "welcome",
       role: "assistant",
-      type: "normal",
-      content: `Hello! 👋 I am your **AI JavaScript Mentor** with advanced capabilities!
+      content: `Hello! 👋 I'm your **AI JavaScript Mentor**.
 
-I can help you with:
+I can help with:
+• **Code Explanation** — paste any JS/TS and I'll walk through it
+• **Quizzes** — try "Generate a quiz on closures"
+• **Voice** — English and Urdu support
+• **Files** — upload code files for analysis
 
-📝 **Code Explanation**: Just paste any JavaScript code and I'll explain it line by line with voice
-❓ **Quizzes**: Ask me to generate quizzes on any topic
-🔊 **Voice Support**: Both English and Urdu voice explanations
-📎 **File Analysis**: Upload code files for analysis
-
-Try these commands:
-• "Explain this code: [paste your code]"
-• "Generate a quiz about JavaScript closures"
-• "Create a 5-question quiz on React hooks"
-
-Let's start learning! 🚀`,
+Let's start! 🚀`,
     },
   ]);
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceOn, setVoiceOn] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [micAvailable, setMicAvailable] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const [preferredLang, setPreferredLang] = useState<"ur-PK" | "en-US">("en-US");
+  const [attachedFile, setAttachedFile] = useState(null);
   const [quizMode, setQuizMode] = useState(false);
+  const [lang, setLang] = useState("en-US");
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatAreaRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  // Keep a ref to the active SpeechRecognition instance for cleanup
-  const recognitionRef = useRef<any>(null);
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
-  // ── Scroll helpers ──────────────────────────────────────────
-
-  const scrollToBottom = useCallback((smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
-  }, []);
+  // ── Speech observer ────────────────────────────────────────────
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading, scrollToBottom]);
-
-  useEffect(() => {
-    const el = chatAreaRef.current;
-    if (!el) return;
-
-    const handleScroll = () => {
-      setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 150);
-    };
-
-    el.addEventListener("scroll", handleScroll);
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // ── Speech synthesis ────────────────────────────────────────
-
-  const stopSpeaking = useCallback(() => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-    } catch (e) {
-      console.error("Speech stop error:", e);
-    }
-    setIsSpeaking(false);
-  }, []);
-
-  const speak = useCallback(
-    (text: string) => {
-      if (!voiceEnabled || typeof window === "undefined" || !window.speechSynthesis) return;
-
-      stopSpeaking();
-
-      // Extract optional [[URDU_VOICE: ... ]] section
-      const englishRaw = text.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
-      const urduMatch = text.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
-      const urduRaw = urduMatch ? urduMatch[1].trim() : "";
-
-      const englishClean = cleanTextForSpeech(englishRaw);
-      const urduClean = cleanTextForSpeech(urduRaw);
-
-      const run = async () => {
-        setIsSpeaking(true);
-        try {
-          if (englishClean) await playUtterance(englishClean, "en", () => setIsSpeaking(true));
-          if (urduClean) await playUtterance(urduClean, "ur", () => setIsSpeaking(true));
-        } finally {
-          setIsSpeaking(false);
-        }
-      };
-
-      // Small delay so the browser has time to load voices on first call
-      setTimeout(run, 100);
-    },
-    [voiceEnabled, stopSpeaking]
-  );
-
-  // ── Mic / Speech Recognition ────────────────────────────────
-
-  useEffect(() => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    setMicAvailable(!!SR);
-
-    // Cleanup: stop speech on unmount
+    const unsubscribe = speech.onSpeakingChange(setIsSpeaking);
     return () => {
-      stopSpeaking();
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+      unsubscribe();
+      speech.stop();
+      recognitionRef.current?.stop();
     };
-  }, [stopSpeaking]);
+  }, []);
 
-  const toggleListening = () => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  // ── Mic detection ──────────────────────────────────────────────
 
-    if (!SR) {
-      alert("Your browser does not support voice input. Please use Chrome or Edge.");
-      return;
-    }
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setMicAvailable(!!SR);
+  }, []);
 
-    const isSecureContext =
-      ["localhost", "127.0.0.1"].includes(window.location.hostname) ||
-      window.location.protocol === "https:";
+  // ── Auto-scroll ────────────────────────────────────────────────
 
-    if (!isSecureContext) {
-      alert("⚠️ Microphone only works on HTTPS or Localhost.");
-      return;
-    }
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
-    if (isListening) {
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-      setIsListening(false);
-      return;
-    }
+  // ── Handlers ───────────────────────────────────────────────────
 
-    stopSpeaking();
-
-    const rec = new SR();
-    rec.continuous = false;
-    rec.interimResults = true;
-    rec.lang = preferredLang === "ur-PK" ? "ur-PK" : "en-US";
-
-    rec.onstart = () => setIsListening(true);
-
-    rec.onresult = (e: any) => {
-      let finalTranscript = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalTranscript += e.results[i][0].transcript;
-        }
-      }
-      if (finalTranscript) {
-        setInput((prev) => (prev ? `${prev} ${finalTranscript}` : finalTranscript));
-        inputRef.current?.focus();
-      }
-    };
-
-    rec.onerror = (e: any) => {
-      console.error("Speech recognition error:", e.error);
-
-      if (e.error === "not-allowed") {
-        alert("⚠️ Microphone access was blocked. Please allow it in your browser settings.");
-      } else if (e.error === "no-speech") {
-        // Silence — not an error worth alerting
-      } else if (e.error === "network") {
-        alert("⚠️ Network error during voice recognition.");
-      } else {
-        alert(`Voice recognition error: ${e.error}`);
-      }
-
-      setIsListening(false);
-    };
-
-    rec.onend = () => setIsListening(false);
-
-    try {
-      rec.start();
-      recognitionRef.current = rec;
-    } catch (err) {
-      console.error("Could not start recognition:", err);
-      setIsListening(false);
-    }
-  };
-
-  // ── File upload ─────────────────────────────────────────────
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      alert("File size must be under 10 MB.");
+      alert("File must be under 10 MB.");
       return;
     }
 
     const reader = new FileReader();
-
     reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
+      const dataUrl = ev.target.result;
       setAttachedFile({
         name: file.name,
         type: file.type,
         preview: file.type.startsWith("image/") ? dataUrl : undefined,
-        // Strip the "data:<mime>;base64," prefix — only the raw base64 is sent to the API
         base64: dataUrl.split(",")[1],
       });
     };
-
     reader.readAsDataURL(file);
-    // Reset so the same file can be selected again immediately
     e.target.value = "";
-  };
+  }
 
-  // ── Send message ────────────────────────────────────────────
+  function toggleListening() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert("Voice input needs Chrome or Edge."); return; }
 
-  const handleSend = async () => {
-    if (!input.trim() && !attachedFile) return;
-
-    // Unblock speech synthesis on iOS/Safari (requires a user-gesture call)
-    if (voiceEnabled && window.speechSynthesis) {
-      try {
-        const primer = new SpeechSynthesisUtterance("");
-        primer.volume = 0;
-        window.speechSynthesis.speak(primer);
-      } catch { /* ignore */ }
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
     }
 
-    const snap = attachedFile;
+    speech.stop();
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input.trim() || `[File: ${snap?.name}]`,
-      file: snap
-        ? { name: snap.name, type: snap.type, preview: snap.preview }
-        : undefined,
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = lang;
+
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => setIsListening(false);
+    rec.onerror = (e) => {
+      if (e.error !== "no-speech") alert(`Voice error: ${e.error}`);
+      setIsListening(false);
+    };
+    rec.onresult = (e) => {
+      let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      }
+      if (final) {
+        setInput((prev) => prev ? `${prev} ${final}` : final);
+        inputRef.current?.focus();
+      }
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    rec.start();
+    recognitionRef.current = rec;
+  }
+
+  async function handleSend() {
+    const text = input.trim();
+    if (!text && !attachedFile) return;
+
+    // Unblock iOS audio — must happen inside a user gesture
+    if (voiceOn && window.speechSynthesis) {
+      const primer = new SpeechSynthesisUtterance("");
+      primer.volume = 0;
+      window.speechSynthesis.speak(primer);
+    }
+
+    const fileSnap = attachedFile;
+
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: text || `[File: ${fileSnap?.name}]`,
+      file: fileSnap ? { name: fileSnap.name, type: fileSnap.type, preview: fileSnap.preview } : undefined,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAttachedFile(null);
     setIsLoading(true);
 
     try {
-      const body: Record<string, unknown> = {
-        message: userMsg.content,
-        // Send the full conversation history so the API has context
+      const payload = {
+        message: userMessage.content,
         history: messages.map((m) => ({ role: m.role, content: m.content })),
-        language: preferredLang,
+        language: lang,
         mode: quizMode ? "quiz" : "normal",
       };
 
-      if (snap?.base64) {
-        body.file = { name: snap.name, type: snap.type, base64: snap.base64 };
+      if (fileSnap?.base64) {
+        payload.file = { name: fileSnap.name, type: fileSnap.type, base64: fileSnap.base64 };
       }
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        throw new Error(`Server responded with status ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
 
       if (data.type === "quiz" && Array.isArray(data.questions)) {
-        const quizMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          type: "quiz",
-          content: `[[QUIZ:START]]${JSON.stringify(data.questions)}[[QUIZ:END]]`,
-        };
-        setMessages((prev) => [...prev, quizMsg]);
-      } else {
-        const reply: string =
-          data.message ||
-          (preferredLang === "ur-PK"
-            ? "Jawab nahi mila. Dobara try karein."
-            : "No response received. Please try again.");
-
         setMessages((prev) => [
           ...prev,
           {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            type: data.type ?? "normal",
-            content: reply,
+            type: "quiz",
+            content: `[[QUIZ:START]]${JSON.stringify(data.questions)}[[QUIZ:END]]`,
           },
         ]);
-
-        if (voiceEnabled) speak(reply);
+      } else {
+        const reply = data.message || "No response. Please try again.";
+        setMessages((prev) => [
+          ...prev,
+          { id: (Date.now() + 1).toString(), role: "assistant", content: reply },
+        ]);
+        if (voiceOn) speech.say(reply);
       }
     } catch (err) {
-      console.error("Chat API error:", err);
-      const errorMsg =
-        preferredLang === "ur-PK"
-          ? "⚠️ Internet check karein ya page refresh karein."
-          : "⚠️ Please check your internet connection or refresh the page.";
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          type: "normal",
-          content: errorMsg,
-        },
-      ]);
-
-      if (voiceEnabled) speak(errorMsg);
+      console.error(err);
+      const errMsg = "⚠️ Connection error. Please refresh and try again.";
+      setMessages((prev) => [...prev, { id: Date.now().toString(), role: "assistant", content: errMsg }]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
-  };
+  }
 
-  // ── Status label ─────────────────────────────────────────────
+  // ── Status text ────────────────────────────────────────────────
 
-  const statusText = isSpeaking
-    ? "🔊 Speaking..."
-    : isListening
-      ? preferredLang === "ur-PK"
-        ? "🎙️ Listening (Urdu)..."
-        : "🎙️ Listening (English)..."
-      : isLoading
-        ? "⏳ Thinking..."
-        : quizMode
-          ? "📝 Quiz Mode • Generate questions"
-          : `✅ Online • ${preferredLang === "ur-PK" ? "Urdu Voice" : "English Voice"}`;
+  const status = isSpeaking
+    ? "Speaking..."
+    : isListening ? "Listening..."
+      : isLoading ? "Thinking..."
+        : quizMode ? "Quiz Mode"
+          : "Online";
 
-  // ════════════════════════════════════════════════════════════
-  //  RENDER
-  // ════════════════════════════════════════════════════════════
+  // ── Render ─────────────────────────────────────────────────────
 
   return (
     <>
-      {/* Syntax highlighting styles */}
       <style>{`
-        .hljs-keyword  { color: #c792ea; font-weight: 600; }
-        .hljs-string   { color: #c3e88d; }
-        .hljs-number   { color: #f78c6c; }
-        .hljs-comment  { color: #546e7a; font-style: italic; }
-        .hljs-function { color: #82aaff; }
+        /* ── Reset ─────────────────────────────────────── */
+        .ai-assistant * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ── Root ──────────────────────────────────────── */
+        .ai-assistant {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          font-family: system-ui, -apple-system, sans-serif;
+          background: var(--ai-bg, #ffffff);
+          color: var(--ai-text, #111827);
+        }
+        .ai-assistant--dark {
+          --ai-bg:        #0b0e14;
+          --ai-text:      #e2e8f0;
+          --ai-border:    #1e293b;
+          --ai-surface:   #1e293b;
+          --ai-muted:     #94a3b8;
+          --ai-bubble-bg: #1e293b;
+        }
+        .ai-assistant:not(.ai-assistant--dark) {
+          --ai-bg:        #ffffff;
+          --ai-text:      #111827;
+          --ai-border:    #e5e7eb;
+          --ai-surface:   #f9fafb;
+          --ai-muted:     #6b7280;
+          --ai-bubble-bg: #f3f4f6;
+        }
+
+        /* ── Header ────────────────────────────────────── */
+        .ai-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 20px;
+          border-bottom: 1px solid var(--ai-border);
+          flex-shrink: 0;
+        }
+        .ai-header__identity { display: flex; align-items: center; gap: 12px; }
+        .ai-header__avatar {
+          width: 42px; height: 42px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          display: flex; align-items: center; justify-content: center;
+          color: white; font-weight: 700; font-size: 16px;
+        }
+        .ai-header__name { font-size: 16px; font-weight: 700; }
+        .ai-header__name em { color: #6366f1; font-style: italic; }
+        .ai-header__status { font-size: 11px; color: var(--ai-muted); margin-top: 2px; }
+        .ai-header__actions { display: flex; gap: 8px; align-items: center; }
+
+        /* ── Header buttons ────────────────────────────── */
+        .btn-icon {
+          display: flex; align-items: center; gap: 6px;
+          padding: 8px 12px;
+          border: 1px solid var(--ai-border);
+          border-radius: 10px;
+          background: transparent;
+          color: var(--ai-text);
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 600;
+          transition: background 0.15s, color 0.15s;
+        }
+        .btn-icon:hover { background: var(--ai-surface); }
+        .btn-icon--active { background: #6366f1; color: white; border-color: #6366f1; }
+        .btn-icon--close {
+          background: #6366f1; color: white; border-color: #6366f1;
+          border-radius: 10px; padding: 8px 12px;
+        }
+
+        /* ── Chat area ─────────────────────────────────── */
+        .ai-chat {
+          flex: 1;
+          overflow-y: auto;
+          padding: 20px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          scroll-behavior: smooth;
+        }
+
+        /* ── Bubbles ───────────────────────────────────── */
+        .bubble-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .bubble-row--user { flex-direction: row-reverse; }
+
+        .bubble-avatar {
+          width: 34px; height: 34px; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 800;
+          flex-shrink: 0;
+        }
+        .bubble-avatar--user { background: #374151; color: white; }
+        .bubble-avatar--bot  { background: #6366f1; color: white; }
+
+        .bubble {
+          max-width: 82%;
+          padding: 12px 16px;
+          border-radius: 18px;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+        .bubble--user  { background: #6366f1; color: white; border-bottom-right-radius: 4px; }
+        .bubble--light { background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px; border: 1px solid #e5e7eb; }
+        .bubble--dark  { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid #334155; }
+
+        .bubble__text { white-space: pre-wrap; }
+        .bubble__content { display: flex; flex-direction: column; gap: 8px; }
+
+        .bubble__attachment {
+          display: flex; align-items: center; gap: 10px;
+          background: rgba(0,0,0,0.1); border-radius: 10px;
+          padding: 8px 12px; margin-bottom: 10px;
+        }
+        .bubble__file-preview { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .bubble__file-icon    { font-size: 24px; }
+        .bubble__file-name    { font-size: 12px; font-weight: 600; }
+        .bubble__file-meta    { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* ── Inline code ───────────────────────────────── */
+        .inline-code {
+          padding: 2px 6px;
+          background: #1e1e2e;
+          color: #c792ea;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 12px;
+        }
+
+        /* ── Code block ────────────────────────────────── */
+        .code-block {
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid #30363d;
+          background: #0d1117;
+          margin: 8px 0;
+        }
+        .code-block__header {
+          display: flex; align-items: center; gap: 8px;
+          padding: 8px 14px;
+          background: #161b22;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .code-block__dots { display: flex; gap: 5px; }
+        .code-block__dots span {
+          width: 10px; height: 10px; border-radius: 50%;
+        }
+        .code-block__dots span:nth-child(1) { background: #f87171; }
+        .code-block__dots span:nth-child(2) { background: #fbbf24; }
+        .code-block__dots span:nth-child(3) { background: #34d399; }
+        .code-block__lang {
+          font-size: 10px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.1em; color: #64748b; margin-left: 4px; flex: 1;
+        }
+        .code-block__copy {
+          background: transparent; border: none; cursor: pointer;
+          font-size: 11px; font-weight: 700; color: #64748b;
+          padding: 4px 10px; border-radius: 6px; transition: all 0.15s;
+        }
+        .code-block__copy:hover { background: rgba(255,255,255,0.05); color: white; }
+        .code-block__body { overflow-x: auto; }
+        .code-block__body table { border-collapse: collapse; width: 100%; }
+        .code-block__lineno {
+          text-align: right; padding: 1px 10px 1px 12px;
+          color: #3d4f6a; font-size: 12px; font-family: monospace;
+          border-right: 1px solid rgba(255,255,255,0.05);
+          user-select: none; width: 40px;
+        }
+        .code-block__line { padding: 1px 14px; }
+        .code-block__line pre { margin: 0; }
+        .code-block__line code { font-family: monospace; font-size: 13px; line-height: 1.6; }
+
+        /* Syntax colors */
+        .hl-keyword { color: #c792ea; font-weight: 600; }
+        .hl-string  { color: #c3e88d; }
+        .hl-number  { color: #f78c6c; }
+        .hl-comment { color: #546e7a; font-style: italic; }
+        .hl-fn      { color: #82aaff; }
+
+        /* ── Quiz ──────────────────────────────────────── */
+        .quiz {
+          border: 1px solid rgba(99,102,241,0.25);
+          background: rgba(99,102,241,0.04);
+          border-radius: 16px;
+          padding: 20px;
+          margin: 4px 0;
+        }
+        .quiz__header {
+          display: flex; align-items: center; gap: 10px;
+          margin-bottom: 16px;
+        }
+        .quiz__label {
+          font-size: 10px; font-weight: 800; text-transform: uppercase;
+          letter-spacing: 0.15em; color: #6366f1;
+          background: rgba(99,102,241,0.1);
+          padding: 4px 10px; border-radius: 6px;
+        }
+        .quiz__progress { font-size: 13px; font-weight: 700; flex: 1; }
+        .quiz__score {
+          font-size: 11px; font-weight: 700;
+          background: rgba(255,255,255,0.08);
+          padding: 4px 10px; border-radius: 20px;
+        }
+        .quiz__question {
+          font-size: 15px; font-weight: 700; line-height: 1.5;
+          margin-bottom: 14px;
+        }
+        .quiz__options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+        .quiz__option {
+          width: 100%; text-align: left;
+          padding: 12px 16px;
+          border: 1.5px solid var(--ai-border);
+          border-radius: 12px;
+          background: transparent;
+          color: var(--ai-text);
+          font-size: 13px; font-weight: 600;
+          cursor: pointer;
+          transition: border-color 0.15s, background 0.15s, transform 0.1s, opacity 0.15s;
+        }
+        .quiz__option:hover:not(:disabled) {
+          border-color: #6366f1;
+          background: rgba(99,102,241,0.06);
+          transform: translateX(3px);
+        }
+        .quiz__option--correct {
+          border-color: #10b981 !important;
+          background: rgba(16,185,129,0.06) !important;
+          color: #10b981 !important;
+        }
+        .quiz__option--wrong {
+          border-color: #ef4444 !important;
+          background: rgba(239,68,68,0.06) !important;
+          color: #ef4444 !important;
+        }
+        .quiz__option--dim { opacity: 0.35; }
+        .quiz__option:disabled { cursor: default; }
+
+        .quiz__explanation {
+          padding: 12px 14px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid var(--ai-border);
+          border-radius: 12px;
+          font-size: 12px; line-height: 1.6;
+          font-style: italic;
+          margin-bottom: 12px;
+        }
+        .quiz__explanation-label {
+          display: block; font-size: 9px; font-weight: 800;
+          text-transform: uppercase; letter-spacing: 0.15em;
+          font-style: normal; margin-bottom: 4px;
+          color: #6366f1;
+        }
+        .quiz__next {
+          width: 100%; padding: 12px;
+          border: none; border-radius: 12px;
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: white; font-size: 13px; font-weight: 700;
+          cursor: pointer; transition: opacity 0.15s;
+        }
+        .quiz__next:hover { opacity: 0.9; }
+        .quiz__complete {
+          text-align: center; padding: 12px;
+          background: rgba(16,185,129,0.1);
+          border: 1px solid rgba(16,185,129,0.25);
+          border-radius: 12px;
+          color: #10b981; font-size: 13px; font-weight: 700;
+        }
+
+        /* ── Typing indicator ──────────────────────────── */
+        .typing-row { display: flex; align-items: center; gap: 10px; }
+        .typing-dots { display: flex; gap: 4px; padding: 14px 16px; background: var(--ai-bubble-bg); border-radius: 16px; border: 1px solid var(--ai-border); }
+        .typing-dot {
+          width: 8px; height: 8px; border-radius: 50%;
+          background: #6366f1;
+          animation: bounce 0.8s ease-in-out infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.16s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes bounce {
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50%       { transform: scale(1.5); opacity: 1; }
+        }
+
+        /* ── Input area ────────────────────────────────── */
+        .ai-input-area {
+          padding: 14px 16px;
+          border-top: 1px solid var(--ai-border);
+          background: var(--ai-surface);
+          flex-shrink: 0;
+        }
+
+        .ai-chips {
+          display: flex; gap: 8px; overflow-x: auto;
+          padding-bottom: 10px; scrollbar-width: none;
+        }
+        .ai-chips::-webkit-scrollbar { display: none; }
+        .ai-chip {
+          white-space: nowrap;
+          padding: 6px 12px;
+          font-size: 11px; font-weight: 700;
+          border: 1px solid var(--ai-border);
+          border-radius: 8px;
+          background: var(--ai-bg);
+          color: var(--ai-muted);
+          cursor: pointer;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .ai-chip:hover { color: #6366f1; border-color: rgba(99,102,241,0.4); }
+
+        .ai-file-preview {
+          display: flex; align-items: center; gap: 10px;
+          padding: 8px 12px; margin-bottom: 10px;
+          background: rgba(99,102,241,0.06);
+          border: 1px solid rgba(99,102,241,0.2);
+          border-radius: 12px; width: fit-content; max-width: 100%;
+        }
+        .ai-file-preview__icon { font-size: 20px; }
+        .ai-file-preview__name { font-size: 12px; font-weight: 600; }
+        .ai-file-preview__label { font-size: 10px; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .ai-file-preview__remove {
+          background: transparent; border: none; cursor: pointer;
+          color: var(--ai-muted); font-size: 16px; padding: 0 4px;
+          margin-left: 4px;
+        }
+        .ai-file-preview__remove:hover { color: #ef4444; }
+
+        .ai-input-row { display: flex; gap: 8px; align-items: center; }
+
+        .ai-input-box {
+          flex: 1; display: flex; align-items: center; gap: 4px;
+          border: 1px solid var(--ai-border);
+          border-radius: 24px;
+          background: var(--ai-bg);
+          padding: 6px 10px;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .ai-input-box:focus-within {
+          border-color: #6366f1;
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        }
+
+        .ai-input-btn {
+          width: 32px; height: 32px; border-radius: 8px;
+          border: none; background: transparent;
+          color: var(--ai-muted); cursor: pointer; font-size: 16px;
+          display: flex; align-items: center; justify-content: center;
+          transition: background 0.15s, color 0.15s;
+          flex-shrink: 0;
+        }
+        .ai-input-btn:hover { background: rgba(99,102,241,0.08); color: #6366f1; }
+        .ai-input-btn--listening {
+          background: #ef4444; color: white; animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+        .ai-input-field {
+          flex: 1; border: none; background: transparent;
+          outline: none; font-size: 14px; color: var(--ai-text);
+          padding: 6px 4px;
+        }
+        .ai-input-field::placeholder { color: var(--ai-muted); }
+
+        .ai-send {
+          width: 44px; height: 44px; border-radius: 14px;
+          border: none; cursor: pointer; font-size: 18px;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0; transition: opacity 0.15s, transform 0.1s;
+        }
+        .ai-send--active {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: white;
+        }
+        .ai-send--active:hover  { opacity: 0.9; transform: scale(1.05); }
+        .ai-send--active:active { transform: scale(0.95); }
+        .ai-send--disabled { background: var(--ai-surface); color: var(--ai-muted); cursor: not-allowed; }
+
+        .ai-footer {
+          display: flex; justify-content: center; gap: 16px;
+          margin-top: 10px;
+        }
+        .ai-footer-item {
+          font-size: 10px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.08em; color: var(--ai-muted); opacity: 0.5;
+        }
+
+        /* ── Lang toggle ───────────────────────────────── */
+        .lang-toggle {
+          display: flex; border: 1px solid var(--ai-border);
+          border-radius: 8px; overflow: hidden;
+        }
+        .lang-toggle__option {
+          padding: 6px 10px; font-size: 11px; font-weight: 700;
+          border: none; background: transparent; cursor: pointer;
+          color: var(--ai-muted); transition: background 0.15s, color 0.15s;
+        }
+        .lang-toggle__option--active { background: #6366f1; color: white; }
       `}</style>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 28 }}
-        className={`w-full h-full overflow-hidden flex flex-col relative z-50 ${isDarkMode
-          ? "bg-[#0b0e14] sm:bg-slate-950/40 sm:backdrop-blur-3xl"
-          : "bg-white sm:bg-white/95 sm:shadow-slate-200/60"
-          }`}
-      >
-        {/* ── Header ── */}
-        <div
-          className={`px-3 py-2.5 sm:px-5 sm:py-4 md:px-6 md:py-5 border-b flex items-center justify-between shrink-0 relative overflow-hidden ${isDarkMode ? "border-slate-800/50" : "border-slate-100"
-            }`}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
+      <div className={`ai-assistant${isDarkMode ? " ai-assistant--dark" : ""}`}>
 
-          <div className="flex items-center gap-2.5 sm:gap-4 relative z-10">
-            <div className="relative">
-              <motion.div
-                animate={{ y: [0, -3, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary/20 border border-white/10"
-              >
-                <Bot className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-              </motion.div>
-              <span className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 sm:border-4 border-background bg-success shadow-lg shadow-success/40" />
-            </div>
+        {/* ── Header ─────────────────────────────────────────── */}
+        <header className="ai-header">
+          <div className="ai-header__identity">
+            <div className="ai-header__avatar">AI</div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-sm sm:text-lg md:text-xl text-foreground tracking-tight leading-none">
-                  AI Mentor <span className="text-primary italic">Pro</span>
-                </h2>
-                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-primary animate-pulse" />
+              <div className="ai-header__name">
+                AI Mentor <em>Pro</em>
               </div>
-              <div className="flex items-center gap-2 mt-0.5 sm:mt-1.5">
-                <span
-                  className={`text-[9px] sm:text-[11px] font-bold tracking-wider sm:tracking-widest uppercase opacity-60 ${isDarkMode ? "text-slate-400" : "text-slate-500"
-                    }`}
-                >
-                  {statusText}
-                </span>
-              </div>
+              <div className="ai-header__status">{status}</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 relative z-10">
-            {/* Quiz mode toggle */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          <div className="ai-header__actions">
+            {/* Language toggle */}
+            <div className="lang-toggle">
+              <button
+                className={`lang-toggle__option${lang === "en-US" ? " lang-toggle__option--active" : ""}`}
+                onClick={() => setLang("en-US")}
+              >EN</button>
+              <button
+                className={`lang-toggle__option${lang === "ur-PK" ? " lang-toggle__option--active" : ""}`}
+                onClick={() => setLang("ur-PK")}
+              >UR</button>
+            </div>
+
+            {/* Quiz mode */}
+            <button
+              className={`btn-icon${quizMode ? " btn-icon--active" : ""}`}
               onClick={() => setQuizMode((v) => !v)}
-              className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${quizMode
-                ? "bg-amber-500 text-white shadow-amber-500/20"
-                : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                }`}
             >
-              <Brain className="w-4 h-4" />
-              {quizMode && (
-                <span className="text-[10px] font-bold uppercase tracking-widest hidden xs:inline">
-                  Quiz Mode
-                </span>
-              )}
-            </motion.button>
+              🧠 {quizMode ? "Quiz On" : "Quiz"}
+            </button>
 
-            {/* Voice toggle */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setVoiceEnabled((v) => !v);
-                if (isSpeaking) stopSpeaking();
-              }}
-              className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all ${voiceEnabled
-                ? "bg-primary/10 text-primary border border-primary/20"
-                : "bg-muted text-muted-foreground"
-                }`}
+            {/* Voice */}
+            <button
+              className={`btn-icon${voiceOn ? " btn-icon--active" : ""}`}
+              onClick={() => { setVoiceOn((v) => !v); if (!voiceOn === false) speech.stop(); }}
             >
-              {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </motion.button>
+              {voiceOn ? "🔊" : "🔇"}
+            </button>
 
-            {/* Close button */}
+            {/* Close */}
             {onClose && (
-              <motion.button
-                whileHover={{ scale: 1.05, rotate: 90 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onClose}
-                className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </motion.button>
+              <button className="btn-icon btn-icon--close" onClick={onClose}>✕</button>
             )}
           </div>
-        </div>
+        </header>
 
-        {/* ── Messages ── */}
-        <div
-          ref={chatAreaRef}
-          className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 space-y-4 sm:space-y-6 md:space-y-8 scroll-smooth no-scrollbar"
-        >
-          <AnimatePresence initial={false}>
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`flex gap-2 sm:gap-3 md:gap-4 max-w-[98%] sm:max-w-[90%] md:max-w-[85%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                    }`}
-                >
-                  {/* Avatar */}
-                  <div
-                    className={`w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-1 shadow-md sm:shadow-lg transition-transform hover:scale-110 ${msg.role === "user"
-                      ? "bg-slate-800 text-white"
-                      : msg.type === "quiz"
-                        ? "bg-amber-500 text-white shadow-amber-500/20"
-                        : "bg-primary text-white shadow-primary/20"
-                      }`}
-                  >
-                    {msg.role === "user" ? (
-                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                    ) : msg.type === "quiz" ? (
-                      <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                    ) : (
-                      <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                    )}
-                  </div>
+        {/* ── Chat area ───────────────────────────────────────── */}
+        <main className="ai-chat">
+          {messages.map((msg) => (
+            <MessageBubble key={msg.id} message={msg} isDarkMode={isDarkMode} />
+          ))}
 
-                  {/* Bubble */}
-                  <div
-                    className={`relative px-3.5 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 rounded-2xl sm:rounded-[1.75rem] shadow-sm tracking-tight ${msg.role === "user"
-                      ? "bg-primary text-white rounded-tr-sm"
-                      : isDarkMode
-                        ? "bg-slate-800/90 border border-slate-700/50 text-slate-100 rounded-tl-sm"
-                        : "bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-slate-100/50"
-                      }`}
-                  >
-                    {/* File attachment preview */}
-                    {msg.file && (
-                      <div className="mb-4 flex items-center gap-3 bg-black/10 rounded-2xl px-4 py-2 border border-white/5">
-                        {msg.file.preview ? (
-                          <img
-                            src={msg.file.preview}
-                            className="w-10 h-10 rounded-xl object-cover shadow-inner"
-                            alt=""
-                          />
-                        ) : (
-                          <FileText className="w-6 h-6 opacity-60" />
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-bold opacity-90 truncate max-w-[150px]">
-                            {msg.file.name}
-                          </p>
-                          <p className="text-[9px] font-medium opacity-50 uppercase tracking-widest">
-                            Document Attached
-                          </p>
-                        </div>
-                      </div>
-                    )}
+          {isLoading && (
+            <div className="typing-row">
+              <div className="bubble-avatar bubble-avatar--bot">AI</div>
+              <div className="typing-dots">
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+              </div>
+            </div>
+          )}
 
-                    {msg.role === "assistant" ? (
-                      <MessageContent content={msg.content} isDark={isDarkMode} />
-                    ) : (
-                      <p className="leading-relaxed text-[13px] sm:text-[14px] md:text-base font-semibold whitespace-pre-wrap">
-                        {msg.content}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          <div ref={bottomRef} />
+        </main>
 
-            {/* Typing indicator */}
-            {isLoading && (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start"
-              >
-                <div className="flex gap-2 sm:gap-4 max-w-[90%]">
-                  <div className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl sm:rounded-2xl bg-primary text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-                    <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                  </div>
-                  <div
-                    className={`px-4 py-3 sm:px-6 sm:py-4 rounded-2xl sm:rounded-[1.75rem] rounded-tl-md flex items-center gap-2 sm:gap-3 ${isDarkMode
-                      ? "bg-slate-800/80 border border-slate-700"
-                      : "bg-white border border-slate-200"
-                      }`}
-                  >
-                    {[0, 1, 2].map((i) => (
-                      <motion.span
-                        key={i}
-                        className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-primary/40"
-                        animate={{
-                          scale: [1, 1.5, 1],
-                          opacity: [0.4, 1, 0.4],
-                        }}
-                        transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* ── Input area ──────────────────────────────────────── */}
+        <footer className="ai-input-area">
 
-          <div ref={messagesEndRef} />
-
-          {/* Scroll-to-bottom button */}
-          <AnimatePresence>
-            {showScrollBtn && (
-              <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                onClick={() => scrollToBottom()}
-                className="sticky bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-foreground text-background px-5 py-2.5 rounded-full shadow-2xl transition-all active:scale-95 group z-50"
-              >
-                <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-                <span className="text-[11px] font-extrabold uppercase tracking-widest">
-                  New Messages
-                </span>
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* ── Input Area ── */}
-        <div
-          className={`px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 border-t shrink-0 ${isDarkMode
-            ? "border-slate-800 bg-slate-900/50"
-            : "border-slate-100 bg-slate-50"
-            }`}
-        >
           {/* Suggestion chips */}
-          <div className="flex gap-1.5 sm:gap-2 mb-3 sm:mb-4 overflow-x-auto pb-1 sm:pb-2 no-scrollbar">
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setInput("Can you explain how async/await works under the hood?")}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-bold rounded-lg sm:rounded-xl bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all whitespace-nowrap shadow-sm"
-            >
-              <Code2 className="w-3.5 h-3.5 inline mr-1.5" />
-              Explain Async/Await
-            </motion.button>
-
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setQuizMode(true);
-                setInput("Generate a hard quiz about JavaScript Prototypal Inheritance.");
-              }}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-bold rounded-lg sm:rounded-xl bg-background border border-border text-muted-foreground hover:text-amber-500 hover:border-amber-500/30 transition-all whitespace-nowrap shadow-sm"
-            >
-              <Brain className="w-3.5 h-3.5 inline mr-1.5" />
-              Prototypal Quiz
-            </motion.button>
-
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setInput("What are the best practices for React 18+ performance?")}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-bold rounded-lg sm:rounded-xl bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all whitespace-nowrap shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5 inline mr-1.5" />
-              Best Practices
-            </motion.button>
+          <div className="ai-chips">
+            <button className="ai-chip" onClick={() => setInput("Can you explain how async/await works in JavaScript?")}>
+              ⚡ Async/Await
+            </button>
+            <button className="ai-chip" onClick={() => { setQuizMode(true); setInput("Generate a hard quiz on JavaScript closures."); }}>
+              🧠 Closures Quiz
+            </button>
+            <button className="ai-chip" onClick={() => setInput("What are React 18 performance best practices?")}>
+              ⚛️ React Tips
+            </button>
           </div>
 
           {/* Attached file preview */}
-          <AnimatePresence>
-            {attachedFile && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-2xl px-4 py-3 mb-4 w-fit max-w-full"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
-                  {attachedFile.preview ? (
-                    <img
-                      src={attachedFile.preview}
-                      className="w-full h-full object-cover"
-                      alt=""
-                    />
-                  ) : (
-                    <FileText className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-                <div className="min-w-0 pr-4">
-                  <p className="text-xs font-bold text-foreground truncate max-w-[200px]">
-                    {attachedFile.name}
-                  </p>
-                  <p className="text-[10px] text-primary font-bold uppercase tracking-widest">
-                    Selected for analysis
-                  </p>
-                </div>
-                <button
-                  onClick={() => setAttachedFile(null)}
-                  className="p-1.5 rounded-full hover:bg-error/10 text-muted-foreground hover:text-error transition-all shrink-0"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {attachedFile && (
+            <div className="ai-file-preview">
+              <span className="ai-file-preview__icon">{attachedFile.preview ? "🖼" : "📄"}</span>
+              <div>
+                <p className="ai-file-preview__name">{attachedFile.name}</p>
+                <p className="ai-file-preview__label">Ready for analysis</p>
+              </div>
+              <button className="ai-file-preview__remove" onClick={() => setAttachedFile(null)}>×</button>
+            </div>
+          )}
 
           {/* Input bar */}
-          <div className="flex items-end gap-2 sm:gap-3">
-            <div
-              className={`flex-1 flex items-center gap-0.5 sm:gap-1 rounded-2xl sm:rounded-3xl border px-2 py-1 sm:px-3 sm:py-1.5 transition-all ${isDarkMode
-                ? "bg-slate-800/80 border-slate-700/50 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10"
-                : "bg-white border-slate-200 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 shadow-sm"
-                }`}
-            >
-              {/* File attach button */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all shrink-0"
-              >
-                <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
+          <div className="ai-input-row">
+            <div className="ai-input-box">
+              {/* File attach */}
+              <button className="ai-input-btn" onClick={() => fileInputRef.current?.click()}>📎</button>
 
-              {/* Text input */}
               <input
                 ref={inputRef}
+                className="ai-input-field"
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={
-                  isListening
-                    ? "Listening..."
-                    : quizMode
-                      ? "What should we quiz on?"
-                      : "Type your question..."
-                }
                 disabled={isLoading}
-                className="flex-1 py-2 sm:py-3 bg-transparent outline-none text-xs sm:text-sm font-medium placeholder:font-normal"
+                placeholder={isListening ? "Listening..." : quizMode ? "What topic to quiz on?" : "Type your question..."}
               />
 
-              {/* Mic button */}
+              {/* Mic */}
               {micAvailable && (
                 <button
+                  className={`ai-input-btn${isListening ? " ai-input-btn--listening" : ""}`}
                   onClick={toggleListening}
-                  className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shrink-0 ${isListening
-                    ? "bg-error text-white shadow-lg shadow-error/20 animate-pulse"
-                    : "text-muted-foreground hover:text-primary hover:bg-primary/5"
-                    }`}
                 >
-                  {isListening ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
+                  {isListening ? "🔴" : "🎙"}
                 </button>
               )}
             </div>
 
-            {/* Send button */}
-            <motion.button
-              whileHover={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 1.05 }}
-              whileTap={(!input.trim() && !attachedFile) || isLoading ? {} : { scale: 0.95 }}
+            {/* Send */}
+            <button
+              className={`ai-send${(!input.trim() && !attachedFile) || isLoading ? " ai-send--disabled" : " ai-send--active"}`}
               onClick={handleSend}
               disabled={(!input.trim() && !attachedFile) || isLoading}
-              className={`w-11 h-11 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl transition-all shrink-0 shadow-xl flex items-center justify-center ${(!input.trim() && !attachedFile) || isLoading
-                ? "bg-muted text-muted-foreground"
-                : "btn-premium text-white shadow-primary/25"
-                }`}
             >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />
-              )}
-            </motion.button>
+              {isLoading ? "⏳" : "➤"}
+            </button>
           </div>
 
-          {/* Footer status */}
-          <div className="hidden sm:flex justify-center gap-6 mt-4">
-            <div className="flex items-center gap-1.5 opacity-40 hover:opacity-100 transition-all cursor-default">
-              <Volume2
-                className={`w-3.5 h-3.5 ${voiceEnabled ? "text-primary" : "text-muted-foreground"}`}
-              />
-              <span className="text-[10px] font-bold uppercase tracking-widest">
-                {voiceEnabled ? "Audio Active" : "Audio Muted"}
-              </span>
-            </div>
-            <div className="w-px h-3 bg-border" />
-            <div className="flex items-center gap-1.5 opacity-40 cursor-default">
-              <span className="text-[10px] font-bold uppercase tracking-widest">
-                Powered by GPT-4o
-              </span>
-            </div>
+          <div className="ai-footer">
+            <span className="ai-footer-item">{voiceOn ? "Voice Active" : "Voice Muted"}</span>
+            <span className="ai-footer-item">·</span>
+            <span className="ai-footer-item">Powered by Claude</span>
           </div>
-        </div>
+        </footer>
 
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
-          className="hidden"
-          accept=".js,.ts,.jsx,.tsx,.json,.html,.css,.txt,.md,.py,.java,.cpp,.c,.h,.php,.rb,.go,.rs"
+          style={{ display: "none" }}
+          accept=".js,.ts,.jsx,.tsx,.json,.html,.css,.txt,.md,.py,.java,.cpp,.c"
           onChange={handleFileChange}
         />
-      </motion.div>
+      </div>
     </>
   );
-};
+}
 
 export default AIAssistant;
