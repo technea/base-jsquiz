@@ -489,15 +489,14 @@ export function AIAssistant({ isDarkMode = false, onClose }) {
     {
       id: "welcome",
       role: "assistant",
-      content: `Hello! 👋 I'm your **AI JavaScript Mentor**.
+      content: `Hey there! 👋 I'm your **Human-Centric AI Mentor**.
 
-I can help with:
-• **Code Explanation** — paste any JS/TS and I'll walk through it
-• **Quizzes** — try "Generate a quiz on closures"
-• **Voice** — English and Urdu support
-• **Files** — upload code files for analysis
+I specialize in explaining complex code at any level you need.
+• **Level 1** — Explain like I'm 5 (using stories/analogies)
+• **Level 10** — Technical deep dive for experts
+• **Any Language** — JS, Python, C++, and more...
 
-Let's start! 🚀`,
+Paste some code or try a command below! 🚀`,
     },
   ]);
 
@@ -1178,14 +1177,14 @@ Let's start! 🚀`,
 
           {/* Suggestion chips */}
           <div className="ai-chips">
-            <button className="ai-chip" onClick={() => setInput("Can you explain how async/await works in JavaScript?")}>
-              ⚡ Async/Await
+            <button className="ai-chip" onClick={() => setInput("Explain 'Promises' in JS at Level 1 (with an analogy)")}>
+              👶 Level 1 (Beginner)
             </button>
-            <button className="ai-chip" onClick={() => { setQuizMode(true); setInput("Generate a hard quiz on JavaScript closures."); }}>
-              🧠 Closures Quiz
+            <button className="ai-chip" onClick={() => setInput("Deep dive into 'Event Loop' at Level 10")}>
+              🧙 Level 10 (Master)
             </button>
-            <button className="ai-chip" onClick={() => setInput("What are React 18 performance best practices?")}>
-              ⚛️ React Tips
+            <button className="ai-chip" onClick={() => setInput("Analyze this code and find security leaks.")}>
+              🛡️ Security Check
             </button>
           </div>
 
