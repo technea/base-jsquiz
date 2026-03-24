@@ -801,10 +801,10 @@ Let's start! 🚀`,
 
         .bubble {
           max-width: 82%;
-          padding: 12px 16px;
-          border-radius: 18px;
-          font-size: 14px;
-          line-height: 1.6;
+          padding: 10px 14px;
+          border-radius: 16px;
+          font-size: 13px;
+          line-height: 1.5;
         }
         .bubble--user  { background: #6366f1; color: white; border-bottom-right-radius: 4px; }
         .bubble--light { background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px; border: 1px solid #e5e7eb; }
@@ -908,8 +908,9 @@ Let's start! 🚀`,
           padding: 4px 10px; border-radius: 20px;
         }
         .quiz__question {
-          font-size: 15px; font-weight: 700; line-height: 1.5;
-          margin-bottom: 14px;
+          font-size: 14px;
+          font-weight: 700; line-height: 1.5;
+          margin-bottom: 12px;
         }
         .quiz__options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
         .quiz__option {
@@ -1061,7 +1062,7 @@ Let's start! 🚀`,
 
         .ai-input-field {
           flex: 1; border: none; background: transparent;
-          outline: none; font-size: 14px; color: var(--ai-text);
+          outline: none; font-size: 13px; color: var(--ai-text);
           padding: 6px 4px;
         }
         .ai-input-field::placeholder { color: var(--ai-muted); }
