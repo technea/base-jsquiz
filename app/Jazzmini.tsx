@@ -18,7 +18,7 @@ import {
 } from 'firebase/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Code2, Sparkles, Bot } from 'lucide-react';
+import { Code2, Sparkles, Zap, Brain } from 'lucide-react';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -888,19 +888,20 @@ export default function JSQuizApp() {
           whileHover={{ scale: 1.1, y: -5 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsAiOpen(true)}
-          className="fixed z-50 bottom-8 right-8 w-18 h-18 sm:w-20 sm:h-20 rounded-[2rem] bg-gradient-to-br from-primary via-indigo-600 to-violet-700 text-white shadow-[0_20px_50px_rgba(37,99,235,0.4)] flex items-center justify-center border border-white/20 backdrop-blur-xl group overflow-hidden"
+          className="fixed z-[100] w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[40px] bg-gradient-to-br from-primary via-indigo-600 to-violet-700 text-white shadow-[0_15px_40px_rgba(37,99,235,0.4)] flex items-center justify-center border border-white/20 backdrop-blur-xl group overflow-hidden"
+          style={{ right: '24px', bottom: '24px', left: 'auto' }}
         >
           {/* Inner Glow Effect */}
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           
           <div className="relative z-10">
-            <Bot className="w-9 h-9 sm:w-11 sm:h-11 text-white group-hover:scale-110 transition-transform" />
+            <Zap className="w-8 h-8 sm:w-11 sm:h-11 text-white group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] transition-all" />
           </div>
 
-          <div className="absolute top-2 right-2 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse shadow-lg shadow-emerald-500/50" />
+          <div className="absolute top-2 right-2 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 rounded-full border-2 border-[#0f172a] animate-pulse shadow-[0_0_10px_#10b981]" />
 
-          {/* Expanded Label on Hover */}
-          <div className="absolute right-full mr-4 px-4 py-2 rounded-2xl bg-foreground text-background text-[11px] font-extrabold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap shadow-2xl">
+          {/* Expanded Label on Hover (Hidden on Mobile) */}
+          <div className="hidden sm:block absolute right-full mr-6 px-4 py-2 rounded-2xl bg-foreground text-background text-[11px] font-extrabold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap shadow-2xl">
             AI Mentor
           </div>
         </motion.button>
@@ -909,22 +910,23 @@ export default function JSQuizApp() {
       {/* ═══ AI ASSISTANT FULLSCREEN MODAL ═══ */}
       <AnimatePresence>
         {isAiOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-end sm:items-center sm:justify-center"
-          >
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[110] bg-black/20 backdrop-blur-[2px] pointer-events-none"
+            />
             <motion.div 
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
+              initial={{ y: "100%", opacity: 0, x: 50 }}
+              animate={{ y: 0, opacity: 1, x: 0 }}
+              exit={{ y: "100%", opacity: 0, x: 50 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="w-full h-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl sm:h-[88vh] sm:m-4 sm:rounded-3xl overflow-hidden shadow-2xl sm:border sm:border-border bg-card"
+              className="fixed bottom-0 right-0 z-[120] w-full h-[85vh] sm:w-[440px] sm:h-[700px] sm:m-6 sm:rounded-3xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border-t sm:border border-border bg-card pointer-events-auto"
             >
               <AIAssistant isDarkMode={isDarkMode} onClose={() => setIsAiOpen(false)} />
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

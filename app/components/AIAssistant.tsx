@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Zap } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────
 //  MODULE: speechManager
@@ -45,8 +46,8 @@ const speechManager = (() => {
       }
 
       utt.onstart = () => broadcast(true);
-      utt.onend = () => resolve();
-      utt.onerror = () => resolve();
+      utt.onend = () => resolve(undefined);
+      utt.onerror = () => resolve(undefined);
       window.speechSynthesis.speak(utt);
     });
 
@@ -92,46 +93,18 @@ const speechManager = (() => {
 })();
 
 // ─────────────────────────────────────────────────────────────────
-//  MODULE: highlighter
-//  Lightweight JS/TS syntax colorizer — stateless, pure.
-// ─────────────────────────────────────────────────────────────────
-
-const highlighter = (() => {
-  const JS_LANGS = new Set(["js", "javascript", "ts", "typescript", "jsx", "tsx"]);
-
-  const esc = (s) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-
-  return {
-    colorize(raw, lang) {
-      const code = esc(raw);
-      if (!JS_LANGS.has(lang)) return code;
-
-      return code
-        .replace(/(\/\/[^\n]*)/g, '<span class="hl-comment">$1</span>')
-        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="hl-comment">$1</span>')
-        .replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;|`[^`]*`)/g, '<span class="hl-string">$1</span>')
-        .replace(/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|async|await|try|catch|finally|throw|import|export|default|from|of|in|extends|super|null|undefined|true|false)\b/g, '<span class="hl-keyword">$1</span>')
-        .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="hl-number">$1</span>')
-        .replace(/\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g, '<span class="hl-fn">$1</span>');
-    },
-  };
-})();
-
-// ─────────────────────────────────────────────────────────────────
 //  MODULE: quizMachine
 //  Factory for quiz state — ANSWERING → ANSWERED → COMPLETE
 // ─────────────────────────────────────────────────────────────────
 
 const QUIZ_STATE = Object.freeze({ ANSWERING: "ANSWERING", ANSWERED: "ANSWERED", COMPLETE: "COMPLETE" });
 
-function createQuizMachine(questions: any[]) {
+function createQuizMachine(questions) {
   let status = QUIZ_STATE.ANSWERING;
   let idx = 0;
   let score = 0;
   let chosen = null;
-  const subs = new Set<(snapshot: any) => void>();
+  const subs = new Set();
 
   const snap = () =>
     Object.freeze({
@@ -147,15 +120,16 @@ function createQuizMachine(questions: any[]) {
   const notify = () => subs.forEach((fn) => fn(snap()));
 
   return {
-    subscribe: (fn: (snapshot: any) => void) => { subs.add(fn); return () => subs.delete(fn); },
+    subscribe: (fn) => { subs.add(fn); return () => subs.delete(fn); },
     snapshot: snap,
 
-    answer(optionId: any) {
+    answer(optionId: string) {
       if (status !== QUIZ_STATE.ANSWERING) return;
-      const opt = questions[idx].options.find((o: any) => o.id === optionId);
+      const q = questions[idx];
+      const opt = q.options.find((o: any) => o.id === optionId);
       if (!opt) return;
       chosen = optionId;
-      if (opt.isCorrect) score++;
+      if (q.isCorrect === optionId) score++;
       status = idx === questions.length - 1 ? QUIZ_STATE.COMPLETE : QUIZ_STATE.ANSWERED;
       notify();
     },
@@ -176,37 +150,50 @@ function createQuizMachine(questions: any[]) {
 // ─────────────────────────────────────────────────────────────────
 
 const parser = {
-  parse(text) {
+  parse(text: string) {
     const parts = [];
-    const quizRx = /\[\[QUIZ:START\]\]([\s\S]*?)\[\[QUIZ:END\]\]/g;
+    // Robust quiz extraction: handle spaces inside tags and remove any leftover bracket text
+    const quizRx = /\[\[\s*QUIZ\s*:\s*START\s*\]\]([\s\S]*?)\[\[\s*QUIZ\s*:\s*END\s*\]\]/gi;
     let lastIdx = 0;
     let m;
 
-    // Extract quiz blocks first
     while ((m = quizRx.exec(text)) !== null) {
-      if (m.index > lastIdx) parts.push({ type: "text", content: text.slice(lastIdx, m.index) });
+      if (m.index > lastIdx) {
+        const pre = text.slice(lastIdx, m.index).trim();
+        if (pre) parts.push({ type: "text", content: pre });
+      }
       try {
-        const qs = JSON.parse(m[1]);
+        const qs = JSON.parse(m[1].trim());
         if (Array.isArray(qs) && qs.length) parts.push({ type: "quiz", questions: qs });
-      } catch {
-        parts.push({ type: "text", content: m[0] });
+      } catch (e) {
+        // Hiding unclosed tags or malformed JSON
+        console.warn("[Parser] Quiz JSON failed", e);
       }
       lastIdx = m.index + m[0].length;
     }
 
-    // Then parse remaining text for code fences
-    const rest = text.slice(lastIdx);
+    // Clean up unclosed tags to prevent raw tag leakage
+    let rest = text.slice(lastIdx);
+    rest = rest.replace(/\[\[\s*QUIZ\s*:\s*START\s*\]\][\s\S]*$/gi, "").trim();
+    
+    if (!rest && parts.length > 0) return parts;
+
     const codeRx = /```(\w*)\n?([\s\S]*?)```/g;
     let cursor = 0;
+    let restParts = [];
 
     while ((m = codeRx.exec(rest)) !== null) {
-      if (m.index > cursor) parts.push({ type: "text", content: rest.slice(cursor, m.index) });
-      parts.push({ type: "code", lang: m[1] || "javascript", content: m[2].trim() });
+      if (m.index > cursor) restParts.push({ type: "text", content: rest.slice(cursor, m.index).trim() });
+      restParts.push({ type: "code", lang: m[1] || "javascript", content: m[2].trim() });
       cursor = m.index + m[0].length;
     }
 
-    if (cursor < rest.length) parts.push({ type: "text", content: rest.slice(cursor) });
-    return parts;
+    if (cursor < rest.length) {
+      const fin = rest.slice(cursor).trim();
+      if (fin) restParts.push({ type: "text", content: fin });
+    }
+
+    return [...parts, ...restParts];
   },
 
   inlineMarkdown(text) {
@@ -248,7 +235,7 @@ function CodeBlock({ code, lang }) {
               <tr key={i}>
                 <td className="cb__ln">{i + 1}</td>
                 <td className="cb__line">
-                  <pre><code dangerouslySetInnerHTML={{ __html: line ? highlighter.colorize(line, lang) : "<br/>" }} /></pre>
+                  <pre><code>{line || " "}</code></pre>
                 </td>
               </tr>
             ))}
@@ -264,8 +251,8 @@ function CodeBlock({ code, lang }) {
 //  Driven by quizMachine — zero local answer state.
 // ─────────────────────────────────────────────────────────────────
 
-function QuizCard({ questions }) {
-  const machineRef = useRef(null);
+function QuizCard({ questions }: { questions: any[] }) {
+  const machineRef = useRef<any>(null);
   if (!machineRef.current) machineRef.current = createQuizMachine(questions);
 
   const [snap, setSnap] = useState(() => machineRef.current.snapshot());
@@ -278,8 +265,9 @@ function QuizCard({ questions }) {
   const optClass = (opt: any) => {
     const base = "qz__opt";
     if (snap.status === ANSWERING) return base;
-    if (opt.isCorrect) return `${base} qz__opt--ok`;
-    if (snap.chosen === opt.id && !opt.isCorrect) return `${base} qz__opt--bad`;
+    const correctId = snap.question.isCorrect;
+    if (opt.id === correctId) return `${base} qz__opt--ok`;
+    if (snap.chosen === opt.id && opt.id !== correctId) return `${base} qz__opt--bad`;
     return `${base} qz__opt--dim`;
   };
 
@@ -304,9 +292,9 @@ function QuizCard({ questions }) {
             key={opt.id}
             className={optClass(opt)}
             disabled={snap.status !== ANSWERING}
-            onClick={() => machineRef.current?.answer(opt.id)}
+            onClick={() => machineRef.current.answer(opt.id)}
           >
-            <span className="qz__opt-dot" />
+            <span className="qz__opt-label">{opt.id.toUpperCase()}</span>
             {opt.text}
           </button>
         ))}
@@ -579,361 +567,189 @@ Paste code or pick a command below! 🚀`,
         .aia {
           display: flex; flex-direction: column;
           width: 100%; height: 100%; overflow: hidden;
-          font-family: 'Söhne', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+          font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
           background: var(--bg); color: var(--fg);
         }
         .aia--dark {
-          --bg:       #0c0f18;
-          --fg:       #dde3f0;
-          --border:   #1d2535;
-          --surf:     #141824;
-          --muted:    #6b7fa8;
-          --bub-bg:   #1d2535;
-          --bub-bd:   #273047;
-          --accent:   #0052FF;
-          --accent2:  #3B82F6;
+          --bg:       #0f172a;
+          --fg:       #f8fafc;
+          --border:   rgba(255,255,255,0.08);
+          --surf:     #1e293b;
+          --muted:    #94a3b8;
+          --bub-bg:   #1e293b;
+          --bub-bd:   #334155;
+          --accent:   #3b82f6;
+          --accent2:  #6366f1;
         }
         .aia:not(.aia--dark) {
-          --bg:       #fafbff;
+          --bg:       #ffffff;
           --fg:       #0f172a;
-          --border:   #e4e8f2;
-          --surf:     #f1f4fc;
-          --muted:    #7280a0;
-          --bub-bg:   #f1f4fc;
-          --bub-bd:   #e4e8f2;
-          --accent:   #0052FF;
-          --accent2:  #0041CC;
+          --border:   #e2e8f0;
+          --surf:     #f8fafc;
+          --muted:    #64748b;
+          --bub-bg:   #f1f5f9;
+          --bub-bd:   #e2e8f0;
+          --accent:   #2563eb;
+          --accent2:  #4f46e5;
         }
 
         /* ── Header ──────────────────────────────── */
         .aia__hd {
           display: flex; align-items: center; justify-content: space-between;
-          padding: 13px 18px;
+          padding: 16px 20px;
           border-bottom: 1px solid var(--border);
-          flex-shrink: 0;
-          background: var(--bg);
+          background: var(--bg); z-index: 10;
         }
-        .aia__id { display: flex; align-items: center; gap: 11px; }
+        .aia__id { display: flex; align-items: center; gap: 12px; }
         .aia__av {
-          width: 40px; height: 40px; border-radius: 12px;
+          width: 42px; height: 42px; border-radius: 14px;
           background: linear-gradient(135deg, var(--accent), var(--accent2));
           display: flex; align-items: center; justify-content: center;
-          color: #fff; font-weight: 800; font-size: 14px; letter-spacing: -0.5px;
+          color: #fff; font-weight: 800; font-size: 15px;
+          box-shadow: 0 4px 12px rgba(37,99,235,0.2);
         }
-        .aia__name { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+        .aia__name { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
         .aia__name em { color: var(--accent); font-style: normal; }
         .aia__st {
-          font-size: 11px; color: var(--muted); margin-top: 1px;
-          display: flex; align-items: center; gap: 5px;
+          font-size: 11px; color: var(--muted); margin-top: 2px;
+          display: flex; align-items: center; gap: 6px; font-weight: 600;
         }
         .aia__dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+          width: 8px; height: 8px; border-radius: 50%;
+          background: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.2);
         }
-        .aia__acts { display: flex; gap: 6px; align-items: center; }
 
-        /* ── Buttons ──────────────────────────────── */
+        /* ── Actions ─────────────────────────────── */
+        .aia__acts { display: flex; gap: 8px; align-items: center; }
         .btn {
-          display: flex; align-items: center; gap: 5px;
-          padding: 7px 11px; border-radius: 9px;
+          display: flex; align-items: center; gap: 6px;
+          padding: 8px 12px; border-radius: 10px;
           border: 1px solid var(--border);
-          background: transparent; color: var(--fg);
-          cursor: pointer; font-size: 11px; font-weight: 700;
-          transition: background 0.12s, color 0.12s, border-color 0.12s;
+          background: var(--bg); color: var(--fg);
+          cursor: pointer; font-size: 12px; font-weight: 700;
+          transition: all 0.2s;
         }
-        .btn:hover { background: var(--surf); }
+        .btn:hover { background: var(--surf); border-color: var(--muted); }
         .btn--on { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .btn--close { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .btn--close:hover { opacity: 0.9; }
+        .btn--close { background: #ef4444; color: #fff; border-color: #ef4444; }
 
-        /* ── Lang toggle ─────────────────────────── */
-        .ltog {
-          display: flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden;
-        }
+        .ltog { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .ltog__opt {
-          padding: 6px 10px; font-size: 11px; font-weight: 700;
+          padding: 8px 12px; font-size: 11px; font-weight: 800;
           border: none; background: transparent; color: var(--muted);
-          cursor: pointer; transition: background 0.12s, color 0.12s;
+          cursor: pointer; transition: all 0.2s;
         }
         .ltog__opt--on { background: var(--accent); color: #fff; }
 
-        /* ── Chat area ──────────────────────────── */
+        /* ── Chat ────────────────────────────────── */
         .aia__chat {
-          flex: 1; overflow-y: auto;
-          padding: 22px 16px; display: flex; flex-direction: column;
-          gap: 18px; scroll-behavior: smooth;
+          flex: 1; overflow-y: auto; padding: 24px 20px;
+          display: flex; flex-direction: column; gap: 20px;
         }
-        .aia__chat::-webkit-scrollbar { width: 4px; }
-        .aia__chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .aia__chat::-webkit-scrollbar { width: 5px; }
+        .aia__chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
-        /* ── Message rows ────────────────────────── */
-        .row { display: flex; align-items: flex-start; gap: 10px; }
+        .row { display: flex; gap: 12px; }
         .row--user { flex-direction: row-reverse; }
-
         .av {
-          width: 32px; height: 32px; border-radius: 9px;
+          width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
-          font-size: 10px; font-weight: 900; flex-shrink: 0;
+          font-size: 10px; font-weight: 900;
         }
-        .av--user { background: #374151; color: #fff; }
-        .av--bot  { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+        .av--user { background: #475569; color: #fff; }
+        .av--bot { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
 
         .bub {
-          max-width: 80%; padding: 10px 14px;
-          border-radius: 16px; font-size: 13px; line-height: 1.6;
+          max-width: 85%; padding: 12px 16px; border-radius: 18px;
+          font-size: 14px; line-height: 1.6;
         }
-        .bub--user  { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
-        .bub--light { background: var(--bub-bg); color: var(--fg); border-bottom-left-radius: 4px; border: 1px solid var(--bub-bd); }
-        .bub--dark  { background: var(--bub-bg); color: var(--fg); border-bottom-left-radius: 4px; border: 1px solid var(--bub-bd); }
+        .bub--user { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(37,99,235,0.15); }
+        .bub--light, .bub--dark { background: var(--bub-bg); color: var(--fg); border: 1px solid var(--bub-bd); border-bottom-left-radius: 4px; }
 
         .bub__text { white-space: pre-wrap; }
-        .bub__body { display: flex; flex-direction: column; gap: 8px; }
+        .ic { padding: 2px 6px; background: rgba(0,0,0,0.1); border-radius: 6px; font-family: 'Fira Code', monospace; font-size: 0.9em; color: var(--accent); }
 
-        .bub__file {
-          display: flex; align-items: center; gap: 9px;
-          background: rgba(0,0,0,0.08); border-radius: 9px;
-          padding: 7px 10px; margin-bottom: 8px;
-        }
-        .bub__img   { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; }
-        .bub__file-icon { font-size: 22px; }
-        .bub__fname { font-size: 12px; font-weight: 600; }
-        .bub__fmeta { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em; }
-
-        /* ── Inline code ────────────────────────── */
-        .ic {
-          padding: 2px 5px; background: #1a1e2e; color: #a78bfa;
-          border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 12px;
-        }
-
-        /* ── Code block ─────────────────────────── */
-        .cb { border-radius: 12px; overflow: hidden; border: 1px solid #21262d; background: #0d1117; margin: 6px 0; }
+        /* ── Code Blocks ────────────────────────── */
+        .cb { border-radius: 12px; overflow: hidden; margin: 12px 0; background: #011627; border: 1px solid rgba(255,255,255,0.1); }
         .cb__bar {
-          display: flex; align-items: center; gap: 8px;
-          padding: 8px 13px; background: #161b22;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+          background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .cb__dots { display: flex; gap: 5px; }
+        .cb__dots { display: flex; gap: 6px; flex: 1; }
         .cb__dots span { width: 10px; height: 10px; border-radius: 50%; }
-        .cb__dots span:nth-child(1) { background: #f87171; }
-        .cb__dots span:nth-child(2) { background: #fbbf24; }
-        .cb__dots span:nth-child(3) { background: #34d399; }
-        .cb__lang {
-          font-size: 10px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.1em; color: #4b5563; flex: 1;
-        }
-        .cb__copy {
-          background: transparent; border: none; cursor: pointer;
-          font-size: 11px; font-weight: 700; color: #4b5563;
-          padding: 3px 9px; border-radius: 5px; transition: all 0.12s;
-        }
-        .cb__copy:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
-        .cb__scroll { overflow-x: auto; }
-        .cb__scroll table { border-collapse: collapse; width: 100%; }
-        .cb__ln {
-          text-align: right; padding: 1px 10px;
-          color: #374151; font-size: 12px; font-family: monospace;
-          border-right: 1px solid rgba(255,255,255,0.04);
-          user-select: none; width: 40px;
-        }
-        .cb__line { padding: 1px 13px; }
-        .cb__line pre { margin: 0; }
-        .cb__line code { font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.65; }
-
-        .hl-keyword { color: #c792ea; font-weight: 600; }
-        .hl-string  { color: #c3e88d; }
-        .hl-number  { color: #f78c6c; }
-        .hl-comment { color: #4a5568; font-style: italic; }
-        .hl-fn      { color: #82aaff; }
-
+        .cb__dots span:nth-child(1) { background: #ff5f56; }
+        .cb__dots span:nth-child(2) { background: #ffbd2e; }
+        .cb__dots span:nth-child(3) { background: #27c93f; }
+        .cb__lang { font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.1em; }
+        .cb__copy { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+        .cb__scroll { overflow-x: auto; padding: 12px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.5; }
+        .cb__ln { color: rgba(255,255,255,0.2); text-align: right; padding-right: 12px; user-select: none; }
+        
         /* ── Quiz ───────────────────────────────── */
-        .qz {
-          border: 1px solid rgba(91,99,245,0.2);
-          background: rgba(91,99,245,0.03);
-          border-radius: 16px; padding: 0;
-          overflow: hidden;
-        }
-        .qz__prog-track { height: 3px; background: rgba(91,99,245,0.12); }
-        .qz__prog-fill  { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.4s ease; }
-
-        .qz__head {
-          display: flex; align-items: center; gap: 8px;
-          padding: 14px 16px 0;
-        }
-        .qz__badge {
-          font-size: 9px; font-weight: 900; text-transform: uppercase;
-          letter-spacing: 0.18em; color: var(--accent);
-          background: rgba(91,99,245,0.1);
-          padding: 3px 8px; border-radius: 5px;
-        }
-        .qz__counter { font-size: 12px; font-weight: 700; flex: 1; color: var(--muted); }
-        .qz__score   { font-size: 11px; font-weight: 700; color: var(--fg); }
-
-        .qz__q {
-          font-size: 14px; font-weight: 700; line-height: 1.5;
-          padding: 12px 16px 8px;
-        }
-        .qz__opts { display: flex; flex-direction: column; gap: 7px; padding: 0 16px; }
-
+        .qz { border-radius: 16px; background: var(--surf); border: 1px solid var(--border); overflow: hidden; margin-top: 10px; }
+        .qz__prog-track { height: 4px; background: rgba(0,0,0,0.05); }
+        .qz__prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.3s; }
+        .qz__head { padding: 16px 16px 8px; display: flex; align-items: center; justify-content: space-between; }
+        .qz__badge { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--accent); }
+        .qz__q { font-size: 16px; font-weight: 700; padding: 0 16px 16px; }
+        .qz__opts { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; }
         .qz__opt {
-          width: 100%; text-align: left;
-          padding: 11px 14px;
-          border: 1.5px solid var(--border);
-          border-radius: 11px;
-          background: transparent; color: var(--fg);
-          font-size: 13px; font-weight: 600;
-          cursor: pointer; display: flex; align-items: center; gap: 10px;
-          transition: border-color 0.15s, background 0.15s, transform 0.1s, opacity 0.15s;
+          width: 100%; text-align: left; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 14px;
+          background: var(--bg); cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s;
+          display: flex; align-items: center; gap: 14px;
         }
-        .qz__opt-dot {
-          width: 14px; height: 14px; border-radius: 50%;
-          border: 2px solid var(--border); flex-shrink: 0;
-          transition: border-color 0.15s, background 0.15s;
-        }
-        .qz__opt:hover:not(:disabled) { border-color: var(--accent); background: rgba(91,99,245,0.05); transform: translateX(3px); }
-        .qz__opt:hover:not(:disabled) .qz__opt-dot { border-color: var(--accent); }
-
-        .qz__opt--ok  { border-color: #10b981 !important; background: rgba(16,185,129,0.05) !important; color: #10b981 !important; }
-        .qz__opt--ok  .qz__opt-dot { border-color: #10b981; background: #10b981; }
-        .qz__opt--bad { border-color: #ef4444 !important; background: rgba(239,68,68,0.05) !important; color: #ef4444 !important; }
-        .qz__opt--bad .qz__opt-dot { border-color: #ef4444; background: #ef4444; }
-        .qz__opt--dim { opacity: 0.3; }
-        .qz__opt:disabled { cursor: default; }
-
-        .qz__explain {
-          margin: 10px 16px 0;
-          padding: 11px 13px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid var(--border);
-          border-radius: 11px;
-          font-size: 12px; line-height: 1.65; font-style: italic;
-        }
-        .qz__explain-tag {
-          display: block; font-size: 9px; font-weight: 900;
-          text-transform: uppercase; letter-spacing: 0.15em;
-          font-style: normal; margin-bottom: 4px; color: var(--accent);
-        }
-        .qz__next {
-          display: block; width: calc(100% - 32px); margin: 12px 16px;
-          padding: 11px; border: none; border-radius: 11px;
-          background: linear-gradient(135deg, var(--accent), var(--accent2));
-          color: #fff; font-size: 13px; font-weight: 700;
-          cursor: pointer; transition: opacity 0.12s;
-        }
-        .qz__next:hover { opacity: 0.88; }
-
-        .qz__done {
-          display: flex; align-items: center; gap: 12px;
-          margin: 12px 16px 16px;
-          padding: 12px 14px;
-          background: rgba(16,185,129,0.07);
-          border: 1px solid rgba(16,185,129,0.2);
-          border-radius: 11px;
-        }
-        .qz__done-icon   { font-size: 28px; }
-        .qz__done-title  { font-size: 13px; font-weight: 800; color: #10b981; }
-        .qz__done-sub    { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-        /* ── Typing dots ─────────────────────────── */
-        .typing {
-          display: flex; gap: 4px; padding: 14px 16px;
-          background: var(--bub-bg); border: 1px solid var(--bub-bd);
-          border-radius: 16px; border-bottom-left-radius: 4px;
-        }
-        .typing span {
-          width: 7px; height: 7px; border-radius: 50%;
-          background: var(--accent);
-          animation: bounce 0.8s ease-in-out infinite;
-        }
-        .typing span:nth-child(2) { animation-delay: 0.16s; }
-        .typing span:nth-child(3) { animation-delay: 0.32s; }
-        @keyframes bounce { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.5);opacity:1} }
-
-        /* ── Input area ─────────────────────────── */
-        .aia__ft {
-          padding: 12px 15px;
-          border-top: 1px solid var(--border);
-          background: var(--surf);
-          flex-shrink: 0;
-        }
-
-        /* Chips */
-        .chips {
-          display: flex; gap: 7px; overflow-x: auto;
-          padding-bottom: 10px; scrollbar-width: none;
-        }
-        .chips::-webkit-scrollbar { display: none; }
-        .chip {
-          white-space: nowrap; padding: 5px 11px;
-          font-size: 11px; font-weight: 700;
-          border: 1px solid var(--border);
-          border-radius: 7px; background: var(--bg); color: var(--muted);
-          cursor: pointer; transition: color 0.12s, border-color 0.12s;
-        }
-        .chip:hover { color: var(--accent); border-color: rgba(91,99,245,0.35); }
-
-        /* File preview */
-        .fprev {
-          display: flex; align-items: center; gap: 9px;
-          padding: 7px 11px; margin-bottom: 9px;
-          background: rgba(91,99,245,0.06);
-          border: 1px solid rgba(91,99,245,0.18);
-          border-radius: 11px; width: fit-content; max-width: 100%;
-        }
-        .fprev__name  { font-size: 12px; font-weight: 600; }
-        .fprev__tag   { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; }
-        .fprev__rm {
-          background: transparent; border: none; cursor: pointer;
-          color: var(--muted); font-size: 15px; padding: 0 3px; margin-left: 3px;
-        }
-        .fprev__rm:hover { color: #ef4444; }
-
-        /* Input row */
-        .irow { display: flex; gap: 7px; align-items: center; }
-        .ibox {
-          flex: 1; display: flex; align-items: center; gap: 3px;
-          border: 1.5px solid var(--border); border-radius: 24px;
-          background: var(--bg); padding: 5px 9px;
-          transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .ibox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,99,245,0.1); }
-
-        .ibtn {
-          width: 30px; height: 30px; border-radius: 7px;
-          border: none; background: transparent; color: var(--muted);
-          cursor: pointer; font-size: 15px;
+        .qz__opt:hover:not(:disabled) { border-color: var(--accent); background: rgba(37,99,235,0.04); }
+        .qz__opt-label {
+          width: 32px; height: 32px; border-radius: 10px; background: var(--surf);
           display: flex; align-items: center; justify-content: center;
-          transition: background 0.12s, color 0.12s; flex-shrink: 0;
+          font-size: 13px; font-weight: 900; color: var(--muted); border: 1px solid var(--border); flex-shrink: 0;
+          transition: all 0.2s;
         }
-        .ibtn:hover { background: rgba(91,99,245,0.08); color: var(--accent); }
-        .ibtn--rec { background: #ef4444; color: #fff; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.65} }
+        .qz__opt--ok { border-color: #10b981; background: rgba(16,185,129,0.06); color: #10b981; }
+        .qz__opt--ok .qz__opt-label { background: #10b981; color: #fff; border-color: #10b981; }
+        .qz__opt--bad { border-color: #ef4444; background: rgba(239,68,68,0.06); color: #ef4444; }
+        .qz__opt--bad .qz__opt-label { background: #ef4444; color: #fff; border-color: #ef4444; }
+        .qz__opt--dim { opacity: 0.45; filter: grayscale(1); }
+        
+        .qz__explain { padding: 16px; background: rgba(0,0,0,0.03); font-size: 14px; font-style: italic; border-top: 1px solid var(--border); color: var(--muted); line-height: 1.6; }
+        .qz__next { width: calc(100% - 32px); margin: 0 16px 16px; padding: 12px; border: none; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 800; cursor: pointer; }
 
-        .ifield {
-          flex: 1; border: none; background: transparent;
-          outline: none; font-size: 13px; color: var(--fg);
-          padding: 5px 4px;
+        /* ── Typing ──────────────────────────────── */
+        .typing { display: flex; gap: 4px; padding: 12px 16px; background: var(--surf); border-radius: 16px; width: fit-content; }
+        .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: bounce 1s infinite; }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.4); opacity: 1; } }
+
+        /* ── Footer / Input ──────────────────────── */
+        .aia__ft { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--bg); }
+        .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
+        .chips::-webkit-scrollbar { display: none; }
+        .chip { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surf); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+        .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+        .irow { display: flex; gap: 12px; align-items: flex-end; }
+        .ibox {
+          flex: 1; display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+          background: var(--surf); border: 1px solid var(--border); border-radius: 24px; transition: all 0.2s;
         }
-        .ifield::placeholder { color: var(--muted); }
+        .ibox:focus-within { border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+        
+        .ifield { flex: 1; border: none; background: transparent; outline: none; font-size: 15px; color: var(--fg); min-height: 24px; }
+        .ibtn { width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .ibtn:hover { background: rgba(0,0,0,0.05); color: var(--accent); }
+        .ibtn--rec { color: #ef4444; animation: pulse 1s infinite; }
 
         .send {
-          width: 42px; height: 42px; border-radius: 13px;
-          border: none; cursor: pointer; font-size: 17px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0; transition: opacity 0.12s, transform 0.1s;
+          width: 44px; height: 44px; border-radius: 50%; border: none;
+          background: var(--accent); color: #fff; cursor: pointer; font-size: 20px;
+          display: flex; align-items: center; justify-content: center; transition: all 0.2s;
         }
-        .send--on  { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
-        .send--on:hover  { opacity: 0.9; transform: scale(1.04); }
-        .send--on:active { transform: scale(0.95); }
-        .send--off { background: var(--surf); color: var(--muted); cursor: not-allowed; }
+        .send:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+        .send:disabled { background: var(--border); opacity: 0.5; cursor: not-allowed; }
 
-        .aia__cap {
-          display: flex; justify-content: center; gap: 14px; margin-top: 9px;
-        }
-        .cap-item {
-          font-size: 10px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.08em; color: var(--muted); opacity: 0.45;
-        }
+        .aia__cap { margin-top: 12px; text-align: center; font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; }
+
       `}</style>
 
       <div className={`aia${isDarkMode ? " aia--dark" : ""}`}>
@@ -941,7 +757,7 @@ Paste code or pick a command below! 🚀`,
         {/* ── Header ──────────────────────────────────────── */}
         <header className="aia__hd">
           <div className="aia__id">
-            <div className="aia__av">AI</div>
+            <div className="aia__av"><Zap className="w-5 h-5 fill-white" /></div>
             <div>
               <div className="aia__name">AI Mentor <em>Pro</em></div>
               <div className="aia__st">

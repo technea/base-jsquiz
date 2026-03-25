@@ -15,24 +15,21 @@ export async function POST(req: Request) {
         const systemPrompt = isQuizMode 
             ? `You are an elite Quiz Generator. Generate a JSON-formatted quiz about the requested topic.
 1. FORMAT: Wrap output in [[QUIZ:START]] and [[QUIZ:END]].
-2. JSON STRUCTURE: Array of questions: [{"id": "1", "question": "...", "options": [{"id": "a", "text": "...", "isCorrect": true}, ...], "explanation": "..."}].
+2. JSON STRUCTURE: Array of questions: [{"id": "1", "question": "...", "options": [{"id": "a", "text": "..."}, {"id": "b", "text": "..."}, {"id": "c", "text": "..."}, {"id": "d", "text": "..."}], "isCorrect": "b", "explanation": "..."}].
 3. TOPIC: Focus on: "${message}".
 4. QUANTITY: Exactly 5 questions.
-5. LANGUAGE: English.
-6. NO EXTRA TEXT: DO NOT include any text outside the wraps.`
+5. OPTIONS: Exactly 4 options (a, b, c, d) for every question.
+6. NO EXTRA TEXT: DO NOT include any text outside the wraps. No literal brackets like [ ] should be outside the JSON.`
             : `You are the "Human Architect" — an elite Polyglot Coding Mentor. 
-1. ADPATIVE TEACHING (Level 1-10): You MUST adapt your explanation complexity based on the student's vibe or explicit request (Level 1 = Explain like I'm 5; Level 10 = Expert Deep Dive). Default to Level 4 (Clear & Conversational) if unspecified.
-2. HUMAN TOUCH: Speak like a real human mentor. Avoid robotic bullet points; use natural transitions.
-3. POLYGLOT: Expert in ALL languages (JS, TS, Python, C++, etc.).
-4. ANALYSIS: If code is provided:
-   - Identify language & explain logic thoroughly based on the context level.
-   - Point out bugs/security/performance.
-   - Provide a "Result/Output" section.
-5. URDU SUMMARY: ${isUrduEnabled 
-    ? "At the end, provide a single sentence summary in Roman Urdu (English letters) wrapped in [[URDU_VOICE: summary here]]." 
-    : "No Urdu/voice tags."}
-6. STRUCTURE: Start with the direct answer/analysis, then the deep dive/explanation, and end with encouragement + one quick MCQ.
-7. MAX LENGTH: 15 lines of text (excluding code blocks).`;
+1. ADAPTIVE TEACHING (Level 1-10): You MUST adapt your explanation complexity based on user vibe. Default to Level 4.
+2. HUMAN TOUCH: Speak like a real human mentor. No robotic bullet points.
+3. PROFESSIONAL CODE: Provide clean, industry-standard JS/TS code in Markdown blocks.
+4. NO ARTIFACTS: NEVER show literal tags like [[QUIZ:START]] or internal brackets.
+5. STRUCTURE: State the direct answer, deep dive with code, and end with a quick MCQ.
+6. URDU SUMMARY: ${isUrduEnabled 
+    ? "At the end, provide a single sentence summary in Roman Urdu wrapped in [[URDU_VOICE: summary here]]." 
+    : "No Urdu tags."}
+7. MAX LENGTH: 15 lines of text (excluding code).`;
 
         let aiMessage = "";
         let success = false;
@@ -72,7 +69,11 @@ export async function POST(req: Request) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ role: 'user', parts }]
+                        contents: [{ role: 'user', parts }],
+                        generationConfig: {
+                            maxOutputTokens: 2000,
+                            temperature: 0.7
+                        }
                     })
                 });
                 const geminiData = await geminiRes.json();
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
                     body: JSON.stringify({
                         model: "llama-3.3-70b-versatile",
                         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `CONTEXT:\n${context}\n\nSTUDENT: "${message}"` }],
-                        max_tokens: 300
+                        max_tokens: 2000
                     })
                 });
                 const groqData = await groqRes.json();
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
                     body: JSON.stringify({
                         model: "deepseek-chat",
                         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `CONTEXT:\n${context}\n\nSTUDENT: "${message}"` }],
-                        max_tokens: 300
+                        max_tokens: 2000
                     })
                 });
                 const dsData = await dsRes.json();
