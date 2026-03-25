@@ -2,63 +2,36 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// ═══════════════════════════════════════════════════════════════════
-//  SINGLETON: SpeechManager
-//  One instance, controlled voice queue, no double-speak.
-// ═══════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  MODULE: speechManager
+//  Singleton voice queue — one instance, no double-speak.
+// ─────────────────────────────────────────────────────────────────
 
-class SpeechManager {
-  static #instance = null;
+const speechManager = (() => {
+  let active = false;
+  const subs = new Set();
 
-  #isSpeaking = false;
-  #listeners = new Set();
+  const broadcast = (val) => {
+    active = val;
+    subs.forEach((fn) => fn(val));
+  };
 
-  constructor() {
-    if (SpeechManager.#instance) return SpeechManager.#instance;
-    SpeechManager.#instance = this;
-  }
-
-  static getInstance() {
-    if (!SpeechManager.#instance) new SpeechManager();
-    return SpeechManager.#instance;
-  }
-
-  get speaking() {
-    return this.#isSpeaking;
-  }
-
-  onSpeakingChange(fn) {
-    this.#listeners.add(fn);
-    return () => this.#listeners.delete(fn);
-  }
-
-  #emit(value) {
-    this.#isSpeaking = value;
-    this.#listeners.forEach((fn) => fn(value));
-  }
-
-  stop() {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    this.#emit(false);
-  }
-
-  #bestVoice(lang) {
+  const pickVoice = (lang) => {
     const voices = window.speechSynthesis.getVoices();
     if (lang === "en") {
       return (
         voices.find((v) => v.lang.startsWith("en") && /Google|Neural|Premium|Enhanced/.test(v.name)) ||
-        voices.find((v) => v.lang.startsWith("en-US")) ||
+        voices.find((v) => v.lang === "en-US") ||
         voices.find((v) => v.lang.startsWith("en"))
       );
     }
     return voices.find((v) => v.lang.startsWith("ur")) || voices.find((v) => v.lang.startsWith("hi"));
-  }
+  };
 
-  #speak(text, lang) {
-    return new Promise((resolve) => {
+  const speakSegment = (text, lang) =>
+    new Promise((resolve) => {
       const utt = new SpeechSynthesisUtterance(text);
-      const voice = this.#bestVoice(lang);
+      const voice = pickVoice(lang);
       if (voice) utt.voice = voice;
 
       if (lang === "en") {
@@ -71,277 +44,211 @@ class SpeechManager {
         utt.pitch = 1.0;
       }
 
-      utt.onstart = () => this.#emit(true);
+      utt.onstart = () => broadcast(true);
       utt.onend = () => resolve();
       utt.onerror = () => resolve();
-
       window.speechSynthesis.speak(utt);
     });
-  }
 
-  async say(rawText) {
-    if (!window.speechSynthesis) return;
+  const sanitize = (raw) =>
+    raw
+      .replace(/```[\s\S]*?```/g, " Code block. ")
+      .replace(/[*_`#]/g, "")
+      .replace(/\n+/g, " ")
+      .trim()
+      .slice(0, 500);
 
-    this.stop();
+  return {
+    get speaking() { return active; },
 
-    const englishPart = rawText.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
-    const urduMatch  = rawText.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
-    const urduPart   = urduMatch ? urduMatch[1].trim() : "";
+    subscribe(fn) {
+      subs.add(fn);
+      return () => subs.delete(fn);
+    },
 
-    const clean = (t) =>
-      t.replace(/```[\s\S]*?```/g, " Code block. ")
-        .replace(/[*_`#]/g, "")
-        .replace(/\n+/g, " ")
-        .trim()
-        .slice(0, 500);
+    stop() {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      broadcast(false);
+    },
 
-    this.#emit(true);
-    try {
-      if (englishPart) await this.#speak(clean(englishPart), "en");
-      if (urduPart)   await this.#speak(clean(urduPart), "ur");
-    } finally {
-      this.#emit(false);
-    }
-  }
-}
+    async say(rawText) {
+      if (!window.speechSynthesis) return;
+      this.stop();
 
-// ═══════════════════════════════════════════════════════════════════
-//  CLASS: SyntaxHighlighter
-//  Stateless — all methods pure/static.
-// ═══════════════════════════════════════════════════════════════════
+      const englishPart = rawText.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
+      const urduMatch = rawText.match(/\[\[URDU_VOICE:\s*([\s\S]*?)\s*\]\]/);
+      const urduPart = urduMatch?.[1]?.trim() ?? "";
 
-class SyntaxHighlighter {
-  static #JS_LANGS = new Set(["js", "javascript", "ts", "typescript", "jsx", "tsx"]);
-
-  static #escape(raw) {
-    return raw
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  static highlight(raw, lang) {
-    let code = SyntaxHighlighter.#escape(raw);
-
-    if (!SyntaxHighlighter.#JS_LANGS.has(lang)) return code;
-
-    // Comments must run first — keywords inside comments must NOT be re-highlighted.
-    code = code
-      .replace(/(\/\/[^\n]*)/g, '<span class="hl-comment">$1</span>')
-      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="hl-comment">$1</span>')
-      .replace(
-        /(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;|`[^`]*`)/g,
-        '<span class="hl-string">$1</span>'
-      )
-      .replace(
-        /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|async|await|try|catch|finally|throw|import|export|default|from|of|in|extends|super|null|undefined|true|false)\b/g,
-        '<span class="hl-keyword">$1</span>'
-      )
-      .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="hl-number">$1</span>')
-      .replace(
-        /\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g,
-        '<span class="hl-fn">$1</span>'
-      );
-
-    return code;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  CLASS: QuizStateMachine
-//  Encapsulates quiz flow as a proper state machine.
-//  States: IDLE → ANSWERING → ANSWERED → COMPLETE
-// ═══════════════════════════════════════════════════════════════════
-
-class QuizStateMachine {
-  static STATES = Object.freeze({
-    IDLE:      "IDLE",
-    ANSWERING: "ANSWERING",
-    ANSWERED:  "ANSWERED",
-    COMPLETE:  "COMPLETE",
-  });
-
-  #state;
-  #questions;
-  #currentIndex;
-  #score;
-  #selectedOptionId;
-  #listeners;
-
-  constructor(questions) {
-    if (!Array.isArray(questions) || questions.length === 0) {
-      throw new Error("QuizStateMachine requires a non-empty questions array.");
-    }
-    this.#state          = QuizStateMachine.STATES.ANSWERING;
-    this.#questions      = questions;
-    this.#currentIndex   = 0;
-    this.#score          = 0;
-    this.#selectedOptionId = null;
-    this.#listeners      = new Set();
-  }
-
-  // ── Observers ──────────────────────────────────────────────────
-
-  onChange(fn) {
-    this.#listeners.add(fn);
-    return () => this.#listeners.delete(fn);
-  }
-
-  #notify() {
-    this.#listeners.forEach((fn) => fn(this.snapshot()));
-  }
-
-  // ── Read-only snapshot (safe to spread into React state) ───────
-
-  snapshot() {
-    return Object.freeze({
-      state:           this.#state,
-      question:        this.#questions[this.#currentIndex],
-      currentIndex:    this.#currentIndex,
-      totalQuestions:  this.#questions.length,
-      score:           this.#score,
-      selectedOptionId: this.#selectedOptionId,
-      isLastQuestion:  this.#currentIndex === this.#questions.length - 1,
-    });
-  }
-
-  // ── Transitions ────────────────────────────────────────────────
-
-  answer(optionId) {
-    if (this.#state !== QuizStateMachine.STATES.ANSWERING) return;
-
-    const option = this.#questions[this.#currentIndex].options.find((o) => o.id === optionId);
-    if (!option) return;
-
-    this.#selectedOptionId = optionId;
-
-    if (option.isCorrect) this.#score += 1;
-
-    this.#state = this.#currentIndex === this.#questions.length - 1
-      ? QuizStateMachine.STATES.COMPLETE
-      : QuizStateMachine.STATES.ANSWERED;
-
-    this.#notify();
-  }
-
-  next() {
-    if (this.#state !== QuizStateMachine.STATES.ANSWERED) return;
-
-    this.#currentIndex    += 1;
-    this.#selectedOptionId = null;
-    this.#state            = QuizStateMachine.STATES.ANSWERING;
-
-    this.#notify();
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  CLASS: MessageParser
-//  Parses raw assistant text into typed parts for rendering.
-// ═══════════════════════════════════════════════════════════════════
-
-class MessageParser {
-  static parse(text) {
-    const parts = [];
-    const quizRegex = /\[\[QUIZ:START\]\]([\s\S]*?)\[\[QUIZ:END\]\]/g;
-    let lastIndex = 0;
-    let match;
-
-    // Pass 1 — extract quiz blocks
-    while ((match = quizRegex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: "text", content: text.slice(lastIndex, match.index) });
-      }
+      broadcast(true);
       try {
-        const questions = JSON.parse(match[1]);
-        if (Array.isArray(questions) && questions.length > 0) {
-          parts.push({ type: "quiz", questions });
-        }
-      } catch {
-        parts.push({ type: "text", content: match[0] });
+        if (englishPart) await speakSegment(sanitize(englishPart), "en");
+        if (urduPart) await speakSegment(sanitize(urduPart), "ur");
+      } finally {
+        broadcast(false);
       }
-      lastIndex = match.index + match[0].length;
+    },
+  };
+})();
+
+// ─────────────────────────────────────────────────────────────────
+//  MODULE: highlighter
+//  Lightweight JS/TS syntax colorizer — stateless, pure.
+// ─────────────────────────────────────────────────────────────────
+
+const highlighter = (() => {
+  const JS_LANGS = new Set(["js", "javascript", "ts", "typescript", "jsx", "tsx"]);
+
+  const esc = (s) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+  return {
+    colorize(raw, lang) {
+      const code = esc(raw);
+      if (!JS_LANGS.has(lang)) return code;
+
+      return code
+        .replace(/(\/\/[^\n]*)/g, '<span class="hl-comment">$1</span>')
+        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="hl-comment">$1</span>')
+        .replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;|`[^`]*`)/g, '<span class="hl-string">$1</span>')
+        .replace(/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|async|await|try|catch|finally|throw|import|export|default|from|of|in|extends|super|null|undefined|true|false)\b/g, '<span class="hl-keyword">$1</span>')
+        .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="hl-number">$1</span>')
+        .replace(/\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g, '<span class="hl-fn">$1</span>');
+    },
+  };
+})();
+
+// ─────────────────────────────────────────────────────────────────
+//  MODULE: quizMachine
+//  Factory for quiz state — ANSWERING → ANSWERED → COMPLETE
+// ─────────────────────────────────────────────────────────────────
+
+const QUIZ_STATE = Object.freeze({ ANSWERING: "ANSWERING", ANSWERED: "ANSWERED", COMPLETE: "COMPLETE" });
+
+function createQuizMachine(questions: any[]) {
+  let status = QUIZ_STATE.ANSWERING;
+  let idx = 0;
+  let score = 0;
+  let chosen = null;
+  const subs = new Set<(snapshot: any) => void>();
+
+  const snap = () =>
+    Object.freeze({
+      status,
+      question: questions[idx],
+      idx,
+      total: questions.length,
+      score,
+      chosen,
+      isLast: idx === questions.length - 1,
+    });
+
+  const notify = () => subs.forEach((fn) => fn(snap()));
+
+  return {
+    subscribe: (fn: (snapshot: any) => void) => { subs.add(fn); return () => subs.delete(fn); },
+    snapshot: snap,
+
+    answer(optionId: any) {
+      if (status !== QUIZ_STATE.ANSWERING) return;
+      const opt = questions[idx].options.find((o: any) => o.id === optionId);
+      if (!opt) return;
+      chosen = optionId;
+      if (opt.isCorrect) score++;
+      status = idx === questions.length - 1 ? QUIZ_STATE.COMPLETE : QUIZ_STATE.ANSWERED;
+      notify();
+    },
+
+    next() {
+      if (status !== QUIZ_STATE.ANSWERED) return;
+      idx++;
+      chosen = null;
+      status = QUIZ_STATE.ANSWERING;
+      notify();
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  MODULE: parser
+//  Turns raw assistant text into typed render parts.
+// ─────────────────────────────────────────────────────────────────
+
+const parser = {
+  parse(text) {
+    const parts = [];
+    const quizRx = /\[\[QUIZ:START\]\]([\s\S]*?)\[\[QUIZ:END\]\]/g;
+    let lastIdx = 0;
+    let m;
+
+    // Extract quiz blocks first
+    while ((m = quizRx.exec(text)) !== null) {
+      if (m.index > lastIdx) parts.push({ type: "text", content: text.slice(lastIdx, m.index) });
+      try {
+        const qs = JSON.parse(m[1]);
+        if (Array.isArray(qs) && qs.length) parts.push({ type: "quiz", questions: qs });
+      } catch {
+        parts.push({ type: "text", content: m[0] });
+      }
+      lastIdx = m.index + m[0].length;
     }
 
-    // Pass 2 — extract code fences from remaining text
-    const remaining = text.slice(lastIndex);
-    const codeRegex = /```(\w*)\n?([\s\S]*?)```/g;
+    // Then parse remaining text for code fences
+    const rest = text.slice(lastIdx);
+    const codeRx = /```(\w*)\n?([\s\S]*?)```/g;
     let cursor = 0;
 
-    while ((match = codeRegex.exec(remaining)) !== null) {
-      if (match.index > cursor) {
-        parts.push({ type: "text", content: remaining.slice(cursor, match.index) });
-      }
-      parts.push({ type: "code", lang: match[1] || "javascript", content: match[2].trim() });
-      cursor = match.index + match[0].length;
+    while ((m = codeRx.exec(rest)) !== null) {
+      if (m.index > cursor) parts.push({ type: "text", content: rest.slice(cursor, m.index) });
+      parts.push({ type: "code", lang: m[1] || "javascript", content: m[2].trim() });
+      cursor = m.index + m[0].length;
     }
 
-    if (cursor < remaining.length) {
-      parts.push({ type: "text", content: remaining.slice(cursor) });
-    }
-
+    if (cursor < rest.length) parts.push({ type: "text", content: rest.slice(cursor) });
     return parts;
-  }
+  },
 
-  // Inline markdown: **bold** and `code`
-  static renderInline(text) {
+  inlineMarkdown(text) {
     return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((seg, i) => {
-      if (seg.startsWith("**") && seg.endsWith("**")) {
+      if (seg.startsWith("**") && seg.endsWith("**"))
         return <strong key={i}>{seg.slice(2, -2)}</strong>;
-      }
-      if (seg.startsWith("`") && seg.endsWith("`") && seg.length > 2) {
-        return <code key={i} className="inline-code">{seg.slice(1, -1)}</code>;
-      }
+      if (seg.startsWith("`") && seg.endsWith("`") && seg.length > 2)
+        return <code key={i} className="ic">{seg.slice(1, -1)}</code>;
       return <span key={i}>{seg}</span>;
     });
-  }
-}
+  },
+};
 
-// ═══════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
 //  COMPONENT: CodeBlock
-// ═══════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
 
 function CodeBlock({ code, lang }) {
   const [copied, setCopied] = useState(false);
-  const lines = code.split("\n");
 
-  function copy() {
+  const copy = useCallback(() => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }
+  }, [code]);
 
   return (
-    <div className="code-block">
-      <div className="code-block__header">
-        <div className="code-block__dots">
-          <span />
-          <span />
-          <span />
-        </div>
-        <span className="code-block__lang">{lang || "code"}</span>
-        <button className="code-block__copy" onClick={copy}>
-          {copied ? "✓ Copied" : "Copy"}
-        </button>
+    <div className="cb">
+      <div className="cb__bar">
+        <div className="cb__dots"><span /><span /><span /></div>
+        <span className="cb__lang">{lang || "code"}</span>
+        <button className="cb__copy" onClick={copy}>{copied ? "✓ Copied" : "Copy"}</button>
       </div>
-
-      <div className="code-block__body">
+      <div className="cb__scroll">
         <table>
           <tbody>
-            {lines.map((line, i) => (
+            {code.split("\n").map((line, i) => (
               <tr key={i}>
-                <td className="code-block__lineno">{i + 1}</td>
-                <td className="code-block__line">
-                  <pre>
-                    <code
-                      dangerouslySetInnerHTML={{
-                        __html: line ? SyntaxHighlighter.highlight(line, lang) : "<br/>",
-                      }}
-                    />
-                  </pre>
+                <td className="cb__ln">{i + 1}</td>
+                <td className="cb__line">
+                  <pre><code dangerouslySetInnerHTML={{ __html: line ? highlighter.colorize(line, lang) : "<br/>" }} /></pre>
                 </td>
               </tr>
             ))}
@@ -352,124 +259,120 @@ function CodeBlock({ code, lang }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
 //  COMPONENT: QuizCard
-//  Driven entirely by QuizStateMachine — no local state for answers.
-// ═══════════════════════════════════════════════════════════════════
+//  Driven by quizMachine — zero local answer state.
+// ─────────────────────────────────────────────────────────────────
 
 function QuizCard({ questions }) {
   const machineRef = useRef(null);
-
-  // Build the machine once per question set
-  if (!machineRef.current) {
-    machineRef.current = new QuizStateMachine(questions);
-  }
+  if (!machineRef.current) machineRef.current = createQuizMachine(questions);
 
   const [snap, setSnap] = useState(() => machineRef.current.snapshot());
 
-  useEffect(() => {
-    return machineRef.current.onChange(setSnap);
-  }, []);
+  useEffect(() => machineRef.current.subscribe(setSnap), []);
 
-  const { ANSWERING, ANSWERED, COMPLETE } = QuizStateMachine.STATES;
+  const { ANSWERING, ANSWERED, COMPLETE } = QUIZ_STATE;
+  const isAnswered = snap.status === ANSWERED || snap.status === COMPLETE;
 
-  function optionClass(option) {
-    if (snap.state === ANSWERING) return "quiz__option";
+  const optClass = (opt: any) => {
+    const base = "qz__opt";
+    if (snap.status === ANSWERING) return base;
+    if (opt.isCorrect) return `${base} qz__opt--ok`;
+    if (snap.chosen === opt.id && !opt.isCorrect) return `${base} qz__opt--bad`;
+    return `${base} qz__opt--dim`;
+  };
 
-    if (option.isCorrect)                                        return "quiz__option quiz__option--correct";
-    if (snap.selectedOptionId === option.id && !option.isCorrect) return "quiz__option quiz__option--wrong";
-    return "quiz__option quiz__option--dim";
-  }
+  const pct = Math.round(((snap.idx + (isAnswered ? 1 : 0)) / snap.total) * 100);
 
   return (
-    <div className="quiz">
-      <div className="quiz__header">
-        <span className="quiz__label">Knowledge Check</span>
-        <span className="quiz__progress">
-          {snap.currentIndex + 1} / {snap.totalQuestions}
-        </span>
-        <span className="quiz__score">Score: {snap.score}</span>
+    <div className="qz">
+      {/* Progress bar */}
+      <div className="qz__prog-track"><div className="qz__prog-fill" style={{ width: `${pct}%` }} /></div>
+
+      <div className="qz__head">
+        <span className="qz__badge">Knowledge Check</span>
+        <span className="qz__counter">{snap.idx + 1} / {snap.total}</span>
+        <span className="qz__score">🏆 {snap.score}</span>
       </div>
 
-      <p className="quiz__question">{snap.question.question}</p>
+      <p className="qz__q">{snap.question.question}</p>
 
-      <div className="quiz__options">
-        {snap.question.options.map((opt) => (
+      <div className="qz__opts">
+        {snap.question.options.map((opt: any) => (
           <button
             key={opt.id}
-            className={optionClass(opt)}
-            disabled={snap.state !== ANSWERING}
-            onClick={() => machineRef.current.answer(opt.id)}
+            className={optClass(opt)}
+            disabled={snap.status !== ANSWERING}
+            onClick={() => machineRef.current?.answer(opt.id)}
           >
+            <span className="qz__opt-dot" />
             {opt.text}
           </button>
         ))}
       </div>
 
-      {(snap.state === ANSWERED || snap.state === COMPLETE) && (
-        <div className="quiz__explanation">
-          <span className="quiz__explanation-label">Deep Dive</span>
+      {isAnswered && (
+        <div className="qz__explain">
+          <span className="qz__explain-tag">Explanation</span>
           {snap.question.explanation}
         </div>
       )}
 
-      {snap.state === ANSWERED && (
-        <button className="quiz__next" onClick={() => machineRef.current.next()}>
-          Next →
+      {snap.status === ANSWERED && (
+        <button className="qz__next" onClick={() => machineRef.current?.next()}>
+          Next Question →
         </button>
       )}
 
-      {snap.state === COMPLETE && (
-        <div className="quiz__complete">
-          Quiz Complete — Final Score: {snap.score} / {snap.totalQuestions}
+      {snap.status === COMPLETE && (
+        <div className="qz__done">
+          <span className="qz__done-icon">{snap.score === snap.total ? "🎉" : snap.score >= snap.total / 2 ? "👍" : "📚"}</span>
+          <div>
+            <p className="qz__done-title">Quiz Complete!</p>
+            <p className="qz__done-sub">Final Score: {snap.score} / {snap.total}</p>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  COMPONENT: MessageBubble
-// ═══════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  COMPONENT: Bubble
+// ─────────────────────────────────────────────────────────────────
 
-function MessageBubble({ message, isDarkMode }) {
+function Bubble({ message, isDarkMode }) {
   const displayText = message.content.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
-  const parts = MessageParser.parse(displayText);
-
+  const parts = parser.parse(displayText);
   const isUser = message.role === "user";
 
   return (
-    <div className={`bubble-row ${isUser ? "bubble-row--user" : "bubble-row--assistant"}`}>
-      <div className={`bubble-avatar ${isUser ? "bubble-avatar--user" : "bubble-avatar--bot"}`}>
-        {isUser ? "U" : "AI"}
-      </div>
+    <div className={`row ${isUser ? "row--user" : "row--bot"}`}>
+      <div className={`av ${isUser ? "av--user" : "av--bot"}`}>{isUser ? "U" : "AI"}</div>
 
-      <div className={`bubble ${isUser ? "bubble--user" : isDarkMode ? "bubble--dark" : "bubble--light"}`}>
+      <div className={`bub ${isUser ? "bub--user" : isDarkMode ? "bub--dark" : "bub--light"}`}>
         {message.file && (
-          <div className="bubble__attachment">
+          <div className="bub__file">
             {message.file.preview
-              ? <img src={message.file.preview} alt="" className="bubble__file-preview" />
-              : <span className="bubble__file-icon">📄</span>
+              ? <img src={message.file.preview} alt="" className="bub__img" />
+              : <span className="bub__file-icon">📄</span>
             }
             <div>
-              <p className="bubble__file-name">{message.file.name}</p>
-              <p className="bubble__file-meta">Document attached</p>
+              <p className="bub__fname">{message.file.name}</p>
+              <p className="bub__fmeta">Attached</p>
             </div>
           </div>
         )}
 
         {isUser ? (
-          <p className="bubble__text">{message.content}</p>
+          <p className="bub__text">{message.content}</p>
         ) : (
-          <div className="bubble__content">
+          <div className="bub__body">
             {parts.map((part, i) => {
               if (part.type === "code") return <CodeBlock key={i} code={part.content} lang={part.lang} />;
               if (part.type === "quiz") return <QuizCard key={i} questions={part.questions} />;
-              return (
-                <p key={i} className="bubble__text">
-                  {MessageParser.renderInline(part.content)}
-                </p>
-              );
+              return <p key={i} className="bub__text">{parser.inlineMarkdown(part.content)}</p>;
             })}
           </div>
         )}
@@ -478,166 +381,151 @@ function MessageBubble({ message, isDarkMode }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  COMPONENT: AIAssistant  (main)
-// ═══════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  COMPONENT: TypingDots
+// ─────────────────────────────────────────────────────────────────
+
+function TypingDots() {
+  return (
+    <div className="row row--bot">
+      <div className="av av--bot">AI</div>
+      <div className="typing"><span /><span /><span /></div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  COMPONENT: AIAssistant  ← main export
+// ─────────────────────────────────────────────────────────────────
 
 export function AIAssistant({ isDarkMode = false, onClose }) {
-  const speech = SpeechManager.getInstance();
+  const [messages, setMessages] = useState([{
+    id: "welcome",
+    role: "assistant",
+    content: `Hey there! 👋 I'm your **Human-Centric AI Mentor**.
 
-  const [messages, setMessages] = useState([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: `Hey there! 👋 I'm your **Human-Centric AI Mentor**.
+I break down complex code at any level you need.
+• **Level 1** — Explain like I'm 5 (analogies & stories)
+• **Level 10** — Expert technical deep dive
+• **Any Language** — JS, Python, C++, and more
 
-I specialize in explaining complex code at any level you need.
-• **Level 1** — Explain like I'm 5 (using stories/analogies)
-• **Level 10** — Technical deep dive for experts
-• **Any Language** — JS, Python, C++, and more...
+Paste code or pick a command below! 🚀`,
+  }]);
 
-Paste some code or try a command below! 🚀`,
-    },
-  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [speaking, setSpeaking] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [hasMic, setHasMic] = useState(false);
+  const [file, setFile] = useState(null);
+  const [quizMode, setQuizMode] = useState(false);
+  const [lang, setLang] = useState("en-US");
 
-  const [input, setInput]           = useState("");
-  const [isLoading, setIsLoading]   = useState(false);
-  const [voiceOn, setVoiceOn]       = useState(true);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [micAvailable, setMicAvailable] = useState(false);
-  const [attachedFile, setAttachedFile] = useState(null);
-  const [quizMode, setQuizMode]     = useState(false);
-  const [lang, setLang]             = useState("en-US");
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+  const fileRef = useRef(null);
+  const recRef = useRef(null);
 
-  const bottomRef     = useRef(null);
-  const inputRef      = useRef(null);
-  const fileInputRef  = useRef(null);
-  const recognitionRef = useRef(null);
-
-  // ── Speech observer ────────────────────────────────────────────
-
+  // Subscribe to speech state
   useEffect(() => {
-    const unsubscribe = speech.onSpeakingChange(setIsSpeaking);
-    return () => {
-      unsubscribe();
-      speech.stop();
-      recognitionRef.current?.stop();
-    };
+    const unsub = speechManager.subscribe(setSpeaking);
+    return () => { unsub(); speechManager.stop(); recRef.current?.stop(); };
   }, []);
 
-  // ── Mic detection ──────────────────────────────────────────────
-
+  // Detect mic support
   useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setMicAvailable(!!SR);
+    setHasMic(!!(window.SpeechRecognition || window.webkitSpeechRecognition));
   }, []);
 
-  // ── Auto-scroll ────────────────────────────────────────────────
-
+  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, loading]);
 
-  // ── Handlers ───────────────────────────────────────────────────
+  // ── File handler ─────────────────────────────────────────────
 
-  function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File must be under 10 MB.");
-      return;
-    }
+  function onFileChange(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { alert("Max file size: 10 MB"); return; }
 
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
-      setAttachedFile({
-        name:    file.name,
-        type:    file.type,
-        preview: file.type.startsWith("image/") ? dataUrl : undefined,
-        base64:  dataUrl.split(",")[1],
+      const url = ev.target.result;
+      setFile({
+        name: f.name,
+        type: f.type,
+        preview: f.type.startsWith("image/") ? url : undefined,
+        base64: url.split(",")[1],
       });
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(f);
     e.target.value = "";
   }
 
-  function toggleListening() {
+  // ── Voice input ──────────────────────────────────────────────
+
+  function toggleMic() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert("Voice input needs Chrome or Edge."); return; }
+    if (!SR) { alert("Voice input requires Chrome or Edge."); return; }
 
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
+    if (listening) { recRef.current?.stop(); setListening(false); return; }
 
-    speech.stop();
-
+    speechManager.stop();
     const rec = new SR();
-    rec.continuous      = false;
-    rec.interimResults  = true;
-    rec.lang            = lang;
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = lang;
 
-    rec.onstart   = () => setIsListening(true);
-    rec.onend     = () => setIsListening(false);
-    rec.onerror   = (e) => {
-      if (e.error !== "no-speech") alert(`Voice error: ${e.error}`);
-      setIsListening(false);
-    };
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
+    rec.onerror = (e) => { if (e.error !== "no-speech") alert(`Voice error: ${e.error}`); setListening(false); };
     rec.onresult = (e) => {
       let final = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = e.resultIndex; i < e.results.length; i++)
         if (e.results[i].isFinal) final += e.results[i][0].transcript;
-      }
-      if (final) {
-        setInput((prev) => prev ? `${prev} ${final}` : final);
-        inputRef.current?.focus();
-      }
+      if (final) { setInput((p) => p ? `${p} ${final}` : final); inputRef.current?.focus(); }
     };
 
     rec.start();
-    recognitionRef.current = rec;
+    recRef.current = rec;
   }
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text && !attachedFile) return;
+  // ── Send message ─────────────────────────────────────────────
 
-    // Unblock iOS audio — must happen inside a user gesture
+  async function send() {
+    const text = input.trim();
+    if (!text && !file) return;
+
+    // Unblock iOS audio inside user gesture
     if (voiceOn && window.speechSynthesis) {
       const primer = new SpeechSynthesisUtterance("");
       primer.volume = 0;
       window.speechSynthesis.speak(primer);
     }
 
-    const fileSnap = attachedFile;
-
-    const userMessage = {
-      id:      Date.now().toString(),
-      role:    "user",
-      content: text || `[File: ${fileSnap?.name}]`,
-      file:    fileSnap ? { name: fileSnap.name, type: fileSnap.type, preview: fileSnap.preview } : undefined,
+    const snap = file;
+    const userMsg = {
+      id: Date.now().toString(),
+      role: "user",
+      content: text || `[File: ${snap?.name}]`,
+      file: snap ? { name: snap.name, type: snap.type, preview: snap.preview } : undefined,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setAttachedFile(null);
-    setIsLoading(true);
+    setFile(null);
+    setLoading(true);
 
     try {
       const payload = {
-        message:  userMessage.content,
-        history:  messages.map((m) => ({ role: m.role, content: m.content })),
+        message: userMsg.content,
+        history: messages.map(({ role, content }) => ({ role, content })),
         language: lang,
-        mode:     quizMode ? "quiz" : "normal",
+        mode: quizMode ? "quiz" : "normal",
       };
-
-      if (fileSnap?.base64) {
-        payload.file = { name: fileSnap.name, type: fileSnap.type, base64: fileSnap.base64 };
-      }
+      if (snap?.base64) payload.file = { name: snap.name, type: snap.type, base64: snap.base64 };
 
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -650,608 +538,505 @@ Paste some code or try a command below! 🚀`,
       const data = await res.json();
 
       if (data.type === "quiz" && Array.isArray(data.questions)) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id:      (Date.now() + 1).toString(),
-            role:    "assistant",
-            type:    "quiz",
-            content: `[[QUIZ:START]]${JSON.stringify(data.questions)}[[QUIZ:END]]`,
-          },
-        ]);
+        setMessages((prev) => [...prev, {
+          id: String(Date.now() + 1),
+          role: "assistant",
+          content: `[[QUIZ:START]]${JSON.stringify(data.questions)}[[QUIZ:END]]`,
+        }]);
       } else {
         const reply = data.message || "No response. Please try again.";
-        setMessages((prev) => [
-          ...prev,
-          { id: (Date.now() + 1).toString(), role: "assistant", content: reply },
-        ]);
-        if (voiceOn) speech.say(reply);
+        setMessages((prev) => [...prev, { id: String(Date.now() + 1), role: "assistant", content: reply }]);
+        if (voiceOn) speechManager.say(reply);
       }
     } catch (err) {
       console.error(err);
-      const errMsg = "⚠️ Connection error. Please refresh and try again.";
-      setMessages((prev) => [...prev, { id: Date.now().toString(), role: "assistant", content: errMsg }]);
+      setMessages((prev) => [...prev, {
+        id: String(Date.now()),
+        role: "assistant",
+        content: "⚠️ Connection error. Please refresh and try again.",
+      }]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  function onKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   }
 
-  // ── Status text ────────────────────────────────────────────────
+  const canSend = (!!input.trim() || !!file) && !loading;
+  const status = speaking ? "Speaking…" : listening ? "Listening…" : loading ? "Thinking…" : quizMode ? "Quiz Mode" : "Online";
 
-  const status = isSpeaking
-    ? "Speaking..."
-    : isListening ? "Listening..."
-    : isLoading   ? "Thinking..."
-    : quizMode    ? "Quiz Mode"
-    : "Online";
-
-  // ── Render ─────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────
 
   return (
     <>
       <style>{`
-        /* ── Reset ─────────────────────────────────────── */
-        .ai-assistant * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* ── Reset ─────────────────────────────────── */
+        .aia * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* ── Root ──────────────────────────────────────── */
-        .ai-assistant {
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          font-family: system-ui, -apple-system, sans-serif;
-          background: var(--ai-bg, #ffffff);
-          color: var(--ai-text, #111827);
+        /* ── Root ──────────────────────────────────── */
+        .aia {
+          display: flex; flex-direction: column;
+          width: 100%; height: 100%; overflow: hidden;
+          font-family: 'Söhne', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+          background: var(--bg); color: var(--fg);
         }
-        .ai-assistant--dark {
-          --ai-bg:        #0b0e14;
-          --ai-text:      #e2e8f0;
-          --ai-border:    #1e293b;
-          --ai-surface:   #1e293b;
-          --ai-muted:     #94a3b8;
-          --ai-bubble-bg: #1e293b;
+        .aia--dark {
+          --bg:       #0c0f18;
+          --fg:       #dde3f0;
+          --border:   #1d2535;
+          --surf:     #141824;
+          --muted:    #6b7fa8;
+          --bub-bg:   #1d2535;
+          --bub-bd:   #273047;
+          --accent:   #0052FF;
+          --accent2:  #3B82F6;
         }
-        .ai-assistant:not(.ai-assistant--dark) {
-          --ai-bg:        #ffffff;
-          --ai-text:      #111827;
-          --ai-border:    #e5e7eb;
-          --ai-surface:   #f9fafb;
-          --ai-muted:     #6b7280;
-          --ai-bubble-bg: #f3f4f6;
+        .aia:not(.aia--dark) {
+          --bg:       #fafbff;
+          --fg:       #0f172a;
+          --border:   #e4e8f2;
+          --surf:     #f1f4fc;
+          --muted:    #7280a0;
+          --bub-bg:   #f1f4fc;
+          --bub-bd:   #e4e8f2;
+          --accent:   #0052FF;
+          --accent2:  #0041CC;
         }
 
-        /* ── Header ────────────────────────────────────── */
-        .ai-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 14px 20px;
-          border-bottom: 1px solid var(--ai-border);
+        /* ── Header ──────────────────────────────── */
+        .aia__hd {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 13px 18px;
+          border-bottom: 1px solid var(--border);
           flex-shrink: 0;
+          background: var(--bg);
         }
-        .ai-header__identity { display: flex; align-items: center; gap: 12px; }
-        .ai-header__avatar {
-          width: 42px; height: 42px;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        .aia__id { display: flex; align-items: center; gap: 11px; }
+        .aia__av {
+          width: 40px; height: 40px; border-radius: 12px;
+          background: linear-gradient(135deg, var(--accent), var(--accent2));
           display: flex; align-items: center; justify-content: center;
-          color: white; font-weight: 700; font-size: 16px;
+          color: #fff; font-weight: 800; font-size: 14px; letter-spacing: -0.5px;
         }
-        .ai-header__name { font-size: 16px; font-weight: 700; }
-        .ai-header__name em { color: #6366f1; font-style: italic; }
-        .ai-header__status { font-size: 11px; color: var(--ai-muted); margin-top: 2px; }
-        .ai-header__actions { display: flex; gap: 8px; align-items: center; }
+        .aia__name { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+        .aia__name em { color: var(--accent); font-style: normal; }
+        .aia__st {
+          font-size: 11px; color: var(--muted); margin-top: 1px;
+          display: flex; align-items: center; gap: 5px;
+        }
+        .aia__dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: #22c55e;
+          box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+        }
+        .aia__acts { display: flex; gap: 6px; align-items: center; }
 
-        /* ── Header buttons ────────────────────────────── */
-        .btn-icon {
-          display: flex; align-items: center; gap: 6px;
-          padding: 8px 12px;
-          border: 1px solid var(--ai-border);
-          border-radius: 10px;
-          background: transparent;
-          color: var(--ai-text);
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 600;
-          transition: background 0.15s, color 0.15s;
+        /* ── Buttons ──────────────────────────────── */
+        .btn {
+          display: flex; align-items: center; gap: 5px;
+          padding: 7px 11px; border-radius: 9px;
+          border: 1px solid var(--border);
+          background: transparent; color: var(--fg);
+          cursor: pointer; font-size: 11px; font-weight: 700;
+          transition: background 0.12s, color 0.12s, border-color 0.12s;
         }
-        .btn-icon:hover { background: var(--ai-surface); }
-        .btn-icon--active { background: #6366f1; color: white; border-color: #6366f1; }
-        .btn-icon--close {
-          background: #6366f1; color: white; border-color: #6366f1;
-          border-radius: 10px; padding: 8px 12px;
-        }
+        .btn:hover { background: var(--surf); }
+        .btn--on { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn--close { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn--close:hover { opacity: 0.9; }
 
-        /* ── Chat area ─────────────────────────────────── */
-        .ai-chat {
-          flex: 1;
-          overflow-y: auto;
-          padding: 20px 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          scroll-behavior: smooth;
+        /* ── Lang toggle ─────────────────────────── */
+        .ltog {
+          display: flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden;
         }
-
-        /* ── Bubbles ───────────────────────────────────── */
-        .bubble-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
+        .ltog__opt {
+          padding: 6px 10px; font-size: 11px; font-weight: 700;
+          border: none; background: transparent; color: var(--muted);
+          cursor: pointer; transition: background 0.12s, color 0.12s;
         }
-        .bubble-row--user { flex-direction: row-reverse; }
+        .ltog__opt--on { background: var(--accent); color: #fff; }
 
-        .bubble-avatar {
-          width: 34px; height: 34px; border-radius: 10px;
+        /* ── Chat area ──────────────────────────── */
+        .aia__chat {
+          flex: 1; overflow-y: auto;
+          padding: 22px 16px; display: flex; flex-direction: column;
+          gap: 18px; scroll-behavior: smooth;
+        }
+        .aia__chat::-webkit-scrollbar { width: 4px; }
+        .aia__chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* ── Message rows ────────────────────────── */
+        .row { display: flex; align-items: flex-start; gap: 10px; }
+        .row--user { flex-direction: row-reverse; }
+
+        .av {
+          width: 32px; height: 32px; border-radius: 9px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 11px; font-weight: 800;
-          flex-shrink: 0;
+          font-size: 10px; font-weight: 900; flex-shrink: 0;
         }
-        .bubble-avatar--user { background: #374151; color: white; }
-        .bubble-avatar--bot  { background: #6366f1; color: white; }
+        .av--user { background: #374151; color: #fff; }
+        .av--bot  { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
 
-        .bubble {
-          max-width: 82%;
-          padding: 10px 14px;
-          border-radius: 16px;
-          font-size: 13px;
-          line-height: 1.5;
+        .bub {
+          max-width: 80%; padding: 10px 14px;
+          border-radius: 16px; font-size: 13px; line-height: 1.6;
         }
-        .bubble--user  { background: #6366f1; color: white; border-bottom-right-radius: 4px; }
-        .bubble--light { background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px; border: 1px solid #e5e7eb; }
-        .bubble--dark  { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid #334155; }
+        .bub--user  { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+        .bub--light { background: var(--bub-bg); color: var(--fg); border-bottom-left-radius: 4px; border: 1px solid var(--bub-bd); }
+        .bub--dark  { background: var(--bub-bg); color: var(--fg); border-bottom-left-radius: 4px; border: 1px solid var(--bub-bd); }
 
-        .bubble__text { white-space: pre-wrap; }
-        .bubble__content { display: flex; flex-direction: column; gap: 8px; }
+        .bub__text { white-space: pre-wrap; }
+        .bub__body { display: flex; flex-direction: column; gap: 8px; }
 
-        .bubble__attachment {
-          display: flex; align-items: center; gap: 10px;
-          background: rgba(0,0,0,0.1); border-radius: 10px;
-          padding: 8px 12px; margin-bottom: 10px;
+        .bub__file {
+          display: flex; align-items: center; gap: 9px;
+          background: rgba(0,0,0,0.08); border-radius: 9px;
+          padding: 7px 10px; margin-bottom: 8px;
         }
-        .bubble__file-preview { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
-        .bubble__file-icon    { font-size: 24px; }
-        .bubble__file-name    { font-size: 12px; font-weight: 600; }
-        .bubble__file-meta    { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em; }
+        .bub__img   { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; }
+        .bub__file-icon { font-size: 22px; }
+        .bub__fname { font-size: 12px; font-weight: 600; }
+        .bub__fmeta { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em; }
 
-        /* ── Inline code ───────────────────────────────── */
-        .inline-code {
-          padding: 2px 6px;
-          background: #1e1e2e;
-          color: #c792ea;
-          border-radius: 4px;
-          font-family: monospace;
-          font-size: 12px;
+        /* ── Inline code ────────────────────────── */
+        .ic {
+          padding: 2px 5px; background: #1a1e2e; color: #a78bfa;
+          border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 12px;
         }
 
-        /* ── Code block ────────────────────────────────── */
-        .code-block {
-          border-radius: 12px;
-          overflow: hidden;
-          border: 1px solid #30363d;
-          background: #0d1117;
-          margin: 8px 0;
-        }
-        .code-block__header {
+        /* ── Code block ─────────────────────────── */
+        .cb { border-radius: 12px; overflow: hidden; border: 1px solid #21262d; background: #0d1117; margin: 6px 0; }
+        .cb__bar {
           display: flex; align-items: center; gap: 8px;
-          padding: 8px 14px;
-          background: #161b22;
+          padding: 8px 13px; background: #161b22;
           border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .code-block__dots { display: flex; gap: 5px; }
-        .code-block__dots span {
-          width: 10px; height: 10px; border-radius: 50%;
-        }
-        .code-block__dots span:nth-child(1) { background: #f87171; }
-        .code-block__dots span:nth-child(2) { background: #fbbf24; }
-        .code-block__dots span:nth-child(3) { background: #34d399; }
-        .code-block__lang {
+        .cb__dots { display: flex; gap: 5px; }
+        .cb__dots span { width: 10px; height: 10px; border-radius: 50%; }
+        .cb__dots span:nth-child(1) { background: #f87171; }
+        .cb__dots span:nth-child(2) { background: #fbbf24; }
+        .cb__dots span:nth-child(3) { background: #34d399; }
+        .cb__lang {
           font-size: 10px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.1em; color: #64748b; margin-left: 4px; flex: 1;
+          letter-spacing: 0.1em; color: #4b5563; flex: 1;
         }
-        .code-block__copy {
+        .cb__copy {
           background: transparent; border: none; cursor: pointer;
-          font-size: 11px; font-weight: 700; color: #64748b;
-          padding: 4px 10px; border-radius: 6px; transition: all 0.15s;
+          font-size: 11px; font-weight: 700; color: #4b5563;
+          padding: 3px 9px; border-radius: 5px; transition: all 0.12s;
         }
-        .code-block__copy:hover { background: rgba(255,255,255,0.05); color: white; }
-        .code-block__body { overflow-x: auto; }
-        .code-block__body table { border-collapse: collapse; width: 100%; }
-        .code-block__lineno {
-          text-align: right; padding: 1px 10px 1px 12px;
-          color: #3d4f6a; font-size: 12px; font-family: monospace;
-          border-right: 1px solid rgba(255,255,255,0.05);
+        .cb__copy:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+        .cb__scroll { overflow-x: auto; }
+        .cb__scroll table { border-collapse: collapse; width: 100%; }
+        .cb__ln {
+          text-align: right; padding: 1px 10px;
+          color: #374151; font-size: 12px; font-family: monospace;
+          border-right: 1px solid rgba(255,255,255,0.04);
           user-select: none; width: 40px;
         }
-        .code-block__line { padding: 1px 14px; }
-        .code-block__line pre { margin: 0; }
-        .code-block__line code { font-family: monospace; font-size: 13px; line-height: 1.6; }
+        .cb__line { padding: 1px 13px; }
+        .cb__line pre { margin: 0; }
+        .cb__line code { font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.65; }
 
-        /* Syntax colors */
         .hl-keyword { color: #c792ea; font-weight: 600; }
         .hl-string  { color: #c3e88d; }
         .hl-number  { color: #f78c6c; }
-        .hl-comment { color: #546e7a; font-style: italic; }
+        .hl-comment { color: #4a5568; font-style: italic; }
         .hl-fn      { color: #82aaff; }
 
-        /* ── Quiz ──────────────────────────────────────── */
-        .quiz {
-          border: 1px solid rgba(99,102,241,0.25);
-          background: rgba(99,102,241,0.04);
-          border-radius: 16px;
-          padding: 20px;
-          margin: 4px 0;
+        /* ── Quiz ───────────────────────────────── */
+        .qz {
+          border: 1px solid rgba(91,99,245,0.2);
+          background: rgba(91,99,245,0.03);
+          border-radius: 16px; padding: 0;
+          overflow: hidden;
         }
-        .quiz__header {
-          display: flex; align-items: center; gap: 10px;
-          margin-bottom: 16px;
+        .qz__prog-track { height: 3px; background: rgba(91,99,245,0.12); }
+        .qz__prog-fill  { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.4s ease; }
+
+        .qz__head {
+          display: flex; align-items: center; gap: 8px;
+          padding: 14px 16px 0;
         }
-        .quiz__label {
-          font-size: 10px; font-weight: 800; text-transform: uppercase;
-          letter-spacing: 0.15em; color: #6366f1;
-          background: rgba(99,102,241,0.1);
-          padding: 4px 10px; border-radius: 6px;
+        .qz__badge {
+          font-size: 9px; font-weight: 900; text-transform: uppercase;
+          letter-spacing: 0.18em; color: var(--accent);
+          background: rgba(91,99,245,0.1);
+          padding: 3px 8px; border-radius: 5px;
         }
-        .quiz__progress { font-size: 13px; font-weight: 700; flex: 1; }
-        .quiz__score {
-          font-size: 11px; font-weight: 700;
-          background: rgba(255,255,255,0.08);
-          padding: 4px 10px; border-radius: 20px;
+        .qz__counter { font-size: 12px; font-weight: 700; flex: 1; color: var(--muted); }
+        .qz__score   { font-size: 11px; font-weight: 700; color: var(--fg); }
+
+        .qz__q {
+          font-size: 14px; font-weight: 700; line-height: 1.5;
+          padding: 12px 16px 8px;
         }
-        .quiz__question {
-          font-size: 14px;
-          font-weight: 700; line-height: 1.5;
-          margin-bottom: 12px;
-        }
-        .quiz__options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-        .quiz__option {
+        .qz__opts { display: flex; flex-direction: column; gap: 7px; padding: 0 16px; }
+
+        .qz__opt {
           width: 100%; text-align: left;
-          padding: 12px 16px;
-          border: 1.5px solid var(--ai-border);
-          border-radius: 12px;
-          background: transparent;
-          color: var(--ai-text);
+          padding: 11px 14px;
+          border: 1.5px solid var(--border);
+          border-radius: 11px;
+          background: transparent; color: var(--fg);
           font-size: 13px; font-weight: 600;
-          cursor: pointer;
+          cursor: pointer; display: flex; align-items: center; gap: 10px;
           transition: border-color 0.15s, background 0.15s, transform 0.1s, opacity 0.15s;
         }
-        .quiz__option:hover:not(:disabled) {
-          border-color: #6366f1;
-          background: rgba(99,102,241,0.06);
-          transform: translateX(3px);
+        .qz__opt-dot {
+          width: 14px; height: 14px; border-radius: 50%;
+          border: 2px solid var(--border); flex-shrink: 0;
+          transition: border-color 0.15s, background 0.15s;
         }
-        .quiz__option--correct {
-          border-color: #10b981 !important;
-          background: rgba(16,185,129,0.06) !important;
-          color: #10b981 !important;
-        }
-        .quiz__option--wrong {
-          border-color: #ef4444 !important;
-          background: rgba(239,68,68,0.06) !important;
-          color: #ef4444 !important;
-        }
-        .quiz__option--dim { opacity: 0.35; }
-        .quiz__option:disabled { cursor: default; }
+        .qz__opt:hover:not(:disabled) { border-color: var(--accent); background: rgba(91,99,245,0.05); transform: translateX(3px); }
+        .qz__opt:hover:not(:disabled) .qz__opt-dot { border-color: var(--accent); }
 
-        .quiz__explanation {
-          padding: 12px 14px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid var(--ai-border);
-          border-radius: 12px;
-          font-size: 12px; line-height: 1.6;
-          font-style: italic;
-          margin-bottom: 12px;
+        .qz__opt--ok  { border-color: #10b981 !important; background: rgba(16,185,129,0.05) !important; color: #10b981 !important; }
+        .qz__opt--ok  .qz__opt-dot { border-color: #10b981; background: #10b981; }
+        .qz__opt--bad { border-color: #ef4444 !important; background: rgba(239,68,68,0.05) !important; color: #ef4444 !important; }
+        .qz__opt--bad .qz__opt-dot { border-color: #ef4444; background: #ef4444; }
+        .qz__opt--dim { opacity: 0.3; }
+        .qz__opt:disabled { cursor: default; }
+
+        .qz__explain {
+          margin: 10px 16px 0;
+          padding: 11px 13px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--border);
+          border-radius: 11px;
+          font-size: 12px; line-height: 1.65; font-style: italic;
         }
-        .quiz__explanation-label {
-          display: block; font-size: 9px; font-weight: 800;
+        .qz__explain-tag {
+          display: block; font-size: 9px; font-weight: 900;
           text-transform: uppercase; letter-spacing: 0.15em;
-          font-style: normal; margin-bottom: 4px;
-          color: #6366f1;
+          font-style: normal; margin-bottom: 4px; color: var(--accent);
         }
-        .quiz__next {
-          width: 100%; padding: 12px;
-          border: none; border-radius: 12px;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white; font-size: 13px; font-weight: 700;
-          cursor: pointer; transition: opacity 0.15s;
+        .qz__next {
+          display: block; width: calc(100% - 32px); margin: 12px 16px;
+          padding: 11px; border: none; border-radius: 11px;
+          background: linear-gradient(135deg, var(--accent), var(--accent2));
+          color: #fff; font-size: 13px; font-weight: 700;
+          cursor: pointer; transition: opacity 0.12s;
         }
-        .quiz__next:hover { opacity: 0.9; }
-        .quiz__complete {
-          text-align: center; padding: 12px;
-          background: rgba(16,185,129,0.1);
-          border: 1px solid rgba(16,185,129,0.25);
-          border-radius: 12px;
-          color: #10b981; font-size: 13px; font-weight: 700;
-        }
+        .qz__next:hover { opacity: 0.88; }
 
-        /* ── Typing indicator ──────────────────────────── */
-        .typing-row { display: flex; align-items: center; gap: 10px; }
-        .typing-dots { display: flex; gap: 4px; padding: 14px 16px; background: var(--ai-bubble-bg); border-radius: 16px; border: 1px solid var(--ai-border); }
-        .typing-dot {
-          width: 8px; height: 8px; border-radius: 50%;
-          background: #6366f1;
+        .qz__done {
+          display: flex; align-items: center; gap: 12px;
+          margin: 12px 16px 16px;
+          padding: 12px 14px;
+          background: rgba(16,185,129,0.07);
+          border: 1px solid rgba(16,185,129,0.2);
+          border-radius: 11px;
+        }
+        .qz__done-icon   { font-size: 28px; }
+        .qz__done-title  { font-size: 13px; font-weight: 800; color: #10b981; }
+        .qz__done-sub    { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+        /* ── Typing dots ─────────────────────────── */
+        .typing {
+          display: flex; gap: 4px; padding: 14px 16px;
+          background: var(--bub-bg); border: 1px solid var(--bub-bd);
+          border-radius: 16px; border-bottom-left-radius: 4px;
+        }
+        .typing span {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: var(--accent);
           animation: bounce 0.8s ease-in-out infinite;
         }
-        .typing-dot:nth-child(2) { animation-delay: 0.16s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.32s; }
-        @keyframes bounce {
-          0%, 100% { transform: scale(1); opacity: 0.4; }
-          50%       { transform: scale(1.5); opacity: 1; }
-        }
+        .typing span:nth-child(2) { animation-delay: 0.16s; }
+        .typing span:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes bounce { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.5);opacity:1} }
 
-        /* ── Input area ────────────────────────────────── */
-        .ai-input-area {
-          padding: 14px 16px;
-          border-top: 1px solid var(--ai-border);
-          background: var(--ai-surface);
+        /* ── Input area ─────────────────────────── */
+        .aia__ft {
+          padding: 12px 15px;
+          border-top: 1px solid var(--border);
+          background: var(--surf);
           flex-shrink: 0;
         }
 
-        .ai-chips {
-          display: flex; gap: 8px; overflow-x: auto;
+        /* Chips */
+        .chips {
+          display: flex; gap: 7px; overflow-x: auto;
           padding-bottom: 10px; scrollbar-width: none;
         }
-        .ai-chips::-webkit-scrollbar { display: none; }
-        .ai-chip {
-          white-space: nowrap;
-          padding: 6px 12px;
+        .chips::-webkit-scrollbar { display: none; }
+        .chip {
+          white-space: nowrap; padding: 5px 11px;
           font-size: 11px; font-weight: 700;
-          border: 1px solid var(--ai-border);
-          border-radius: 8px;
-          background: var(--ai-bg);
-          color: var(--ai-muted);
-          cursor: pointer;
-          transition: color 0.15s, border-color 0.15s;
+          border: 1px solid var(--border);
+          border-radius: 7px; background: var(--bg); color: var(--muted);
+          cursor: pointer; transition: color 0.12s, border-color 0.12s;
         }
-        .ai-chip:hover { color: #6366f1; border-color: rgba(99,102,241,0.4); }
+        .chip:hover { color: var(--accent); border-color: rgba(91,99,245,0.35); }
 
-        .ai-file-preview {
-          display: flex; align-items: center; gap: 10px;
-          padding: 8px 12px; margin-bottom: 10px;
-          background: rgba(99,102,241,0.06);
-          border: 1px solid rgba(99,102,241,0.2);
-          border-radius: 12px; width: fit-content; max-width: 100%;
+        /* File preview */
+        .fprev {
+          display: flex; align-items: center; gap: 9px;
+          padding: 7px 11px; margin-bottom: 9px;
+          background: rgba(91,99,245,0.06);
+          border: 1px solid rgba(91,99,245,0.18);
+          border-radius: 11px; width: fit-content; max-width: 100%;
         }
-        .ai-file-preview__icon { font-size: 20px; }
-        .ai-file-preview__name { font-size: 12px; font-weight: 600; }
-        .ai-file-preview__label { font-size: 10px; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .ai-file-preview__remove {
+        .fprev__name  { font-size: 12px; font-weight: 600; }
+        .fprev__tag   { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; }
+        .fprev__rm {
           background: transparent; border: none; cursor: pointer;
-          color: var(--ai-muted); font-size: 16px; padding: 0 4px;
-          margin-left: 4px;
+          color: var(--muted); font-size: 15px; padding: 0 3px; margin-left: 3px;
         }
-        .ai-file-preview__remove:hover { color: #ef4444; }
+        .fprev__rm:hover { color: #ef4444; }
 
-        .ai-input-row { display: flex; gap: 8px; align-items: center; }
-
-        .ai-input-box {
-          flex: 1; display: flex; align-items: center; gap: 4px;
-          border: 1px solid var(--ai-border);
-          border-radius: 24px;
-          background: var(--ai-bg);
-          padding: 6px 10px;
+        /* Input row */
+        .irow { display: flex; gap: 7px; align-items: center; }
+        .ibox {
+          flex: 1; display: flex; align-items: center; gap: 3px;
+          border: 1.5px solid var(--border); border-radius: 24px;
+          background: var(--bg); padding: 5px 9px;
           transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .ai-input-box:focus-within {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
-        }
+        .ibox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,99,245,0.1); }
 
-        .ai-input-btn {
-          width: 32px; height: 32px; border-radius: 8px;
-          border: none; background: transparent;
-          color: var(--ai-muted); cursor: pointer; font-size: 16px;
+        .ibtn {
+          width: 30px; height: 30px; border-radius: 7px;
+          border: none; background: transparent; color: var(--muted);
+          cursor: pointer; font-size: 15px;
           display: flex; align-items: center; justify-content: center;
-          transition: background 0.15s, color 0.15s;
-          flex-shrink: 0;
+          transition: background 0.12s, color 0.12s; flex-shrink: 0;
         }
-        .ai-input-btn:hover { background: rgba(99,102,241,0.08); color: #6366f1; }
-        .ai-input-btn--listening {
-          background: #ef4444; color: white; animation: pulse 1s infinite;
-        }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+        .ibtn:hover { background: rgba(91,99,245,0.08); color: var(--accent); }
+        .ibtn--rec { background: #ef4444; color: #fff; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.65} }
 
-        .ai-input-field {
+        .ifield {
           flex: 1; border: none; background: transparent;
-          outline: none; font-size: 13px; color: var(--ai-text);
-          padding: 6px 4px;
+          outline: none; font-size: 13px; color: var(--fg);
+          padding: 5px 4px;
         }
-        .ai-input-field::placeholder { color: var(--ai-muted); }
+        .ifield::placeholder { color: var(--muted); }
 
-        .ai-send {
-          width: 44px; height: 44px; border-radius: 14px;
-          border: none; cursor: pointer; font-size: 18px;
+        .send {
+          width: 42px; height: 42px; border-radius: 13px;
+          border: none; cursor: pointer; font-size: 17px;
           display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0; transition: opacity 0.15s, transform 0.1s;
+          flex-shrink: 0; transition: opacity 0.12s, transform 0.1s;
         }
-        .ai-send--active {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
-        }
-        .ai-send--active:hover  { opacity: 0.9; transform: scale(1.05); }
-        .ai-send--active:active { transform: scale(0.95); }
-        .ai-send--disabled { background: var(--ai-surface); color: var(--ai-muted); cursor: not-allowed; }
+        .send--on  { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+        .send--on:hover  { opacity: 0.9; transform: scale(1.04); }
+        .send--on:active { transform: scale(0.95); }
+        .send--off { background: var(--surf); color: var(--muted); cursor: not-allowed; }
 
-        .ai-footer {
-          display: flex; justify-content: center; gap: 16px;
-          margin-top: 10px;
+        .aia__cap {
+          display: flex; justify-content: center; gap: 14px; margin-top: 9px;
         }
-        .ai-footer-item {
+        .cap-item {
           font-size: 10px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.08em; color: var(--ai-muted); opacity: 0.5;
+          letter-spacing: 0.08em; color: var(--muted); opacity: 0.45;
         }
-
-        /* ── Lang toggle ───────────────────────────────── */
-        .lang-toggle {
-          display: flex; border: 1px solid var(--ai-border);
-          border-radius: 8px; overflow: hidden;
-        }
-        .lang-toggle__option {
-          padding: 6px 10px; font-size: 11px; font-weight: 700;
-          border: none; background: transparent; cursor: pointer;
-          color: var(--ai-muted); transition: background 0.15s, color 0.15s;
-        }
-        .lang-toggle__option--active { background: #6366f1; color: white; }
       `}</style>
 
-      <div className={`ai-assistant${isDarkMode ? " ai-assistant--dark" : ""}`}>
+      <div className={`aia${isDarkMode ? " aia--dark" : ""}`}>
 
-        {/* ── Header ─────────────────────────────────────────── */}
-        <header className="ai-header">
-          <div className="ai-header__identity">
-            <div className="ai-header__avatar">AI</div>
+        {/* ── Header ──────────────────────────────────────── */}
+        <header className="aia__hd">
+          <div className="aia__id">
+            <div className="aia__av">AI</div>
             <div>
-              <div className="ai-header__name">
-                AI Mentor <em>Pro</em>
+              <div className="aia__name">AI Mentor <em>Pro</em></div>
+              <div className="aia__st">
+                <span className="aia__dot" />
+                {status}
               </div>
-              <div className="ai-header__status">{status}</div>
             </div>
           </div>
 
-          <div className="ai-header__actions">
-            {/* Language toggle */}
-            <div className="lang-toggle">
-              <button
-                className={`lang-toggle__option${lang === "en-US" ? " lang-toggle__option--active" : ""}`}
-                onClick={() => setLang("en-US")}
-              >EN</button>
-              <button
-                className={`lang-toggle__option${lang === "ur-PK" ? " lang-toggle__option--active" : ""}`}
-                onClick={() => setLang("ur-PK")}
-              >UR</button>
+          <div className="aia__acts">
+            <div className="ltog">
+              <button className={`ltog__opt${lang === "en-US" ? " ltog__opt--on" : ""}`} onClick={() => setLang("en-US")}>EN</button>
+              <button className={`ltog__opt${lang === "ur-PK" ? " ltog__opt--on" : ""}`} onClick={() => setLang("ur-PK")}>UR</button>
             </div>
 
-            {/* Quiz mode */}
-            <button
-              className={`btn-icon${quizMode ? " btn-icon--active" : ""}`}
-              onClick={() => setQuizMode((v) => !v)}
-            >
+            <button className={`btn${quizMode ? " btn--on" : ""}`} onClick={() => setQuizMode((v) => !v)}>
               🧠 {quizMode ? "Quiz On" : "Quiz"}
             </button>
 
-            {/* Voice */}
             <button
-              className={`btn-icon${voiceOn ? " btn-icon--active" : ""}`}
-              onClick={() => { setVoiceOn((v) => !v); if (!voiceOn === false) speech.stop(); }}
+              className={`btn${voiceOn ? " btn--on" : ""}`}
+              onClick={() => { setVoiceOn((v) => !v); if (voiceOn) speechManager.stop(); }}
             >
               {voiceOn ? "🔊" : "🔇"}
             </button>
 
-            {/* Close */}
-            {onClose && (
-              <button className="btn-icon btn-icon--close" onClick={onClose}>✕</button>
-            )}
+            {onClose && <button className="btn btn--close" onClick={onClose}>✕</button>}
           </div>
         </header>
 
-        {/* ── Chat area ───────────────────────────────────────── */}
-        <main className="ai-chat">
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} isDarkMode={isDarkMode} />
-          ))}
-
-          {isLoading && (
-            <div className="typing-row">
-              <div className="bubble-avatar bubble-avatar--bot">AI</div>
-              <div className="typing-dots">
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-              </div>
-            </div>
-          )}
-
+        {/* ── Chat ────────────────────────────────────────── */}
+        <main className="aia__chat">
+          {messages.map((msg) => <Bubble key={msg.id} message={msg} isDarkMode={isDarkMode} />)}
+          {loading && <TypingDots />}
           <div ref={bottomRef} />
         </main>
 
-        {/* ── Input area ──────────────────────────────────────── */}
-        <footer className="ai-input-area">
-
-          {/* Suggestion chips */}
-          <div className="ai-chips">
-            <button className="ai-chip" onClick={() => setInput("Explain 'Promises' in JS at Level 1 (with an analogy)")}>
-              👶 Level 1 (Beginner)
-            </button>
-            <button className="ai-chip" onClick={() => setInput("Deep dive into 'Event Loop' at Level 10")}>
-              🧙 Level 10 (Master)
-            </button>
-            <button className="ai-chip" onClick={() => setInput("Analyze this code and find security leaks.")}>
-              🛡️ Security Check
-            </button>
+        {/* ── Footer / Input ───────────────────────────────── */}
+        <footer className="aia__ft">
+          <div className="chips">
+            <button className="chip" onClick={() => setInput("Explain 'Promises' at Level 1 using an analogy")}>👶 Beginner</button>
+            <button className="chip" onClick={() => setInput("Deep dive into Event Loop at Level 10")}>🧙 Expert</button>
+            <button className="chip" onClick={() => setInput("Analyze this code for security vulnerabilities")}>🛡️ Security</button>
+            <button className="chip" onClick={() => { setQuizMode(true); setInput("Quiz me on JavaScript fundamentals"); }}>🧠 Quiz Me</button>
           </div>
 
-          {/* Attached file preview */}
-          {attachedFile && (
-            <div className="ai-file-preview">
-              <span className="ai-file-preview__icon">{attachedFile.preview ? "🖼" : "📄"}</span>
+          {file && (
+            <div className="fprev">
+              <span>{file.preview ? "🖼" : "📄"}</span>
               <div>
-                <p className="ai-file-preview__name">{attachedFile.name}</p>
-                <p className="ai-file-preview__label">Ready for analysis</p>
+                <p className="fprev__name">{file.name}</p>
+                <p className="fprev__tag">Ready</p>
               </div>
-              <button className="ai-file-preview__remove" onClick={() => setAttachedFile(null)}>×</button>
+              <button className="fprev__rm" onClick={() => setFile(null)}>×</button>
             </div>
           )}
 
-          {/* Input bar */}
-          <div className="ai-input-row">
-            <div className="ai-input-box">
-              {/* File attach */}
-              <button className="ai-input-btn" onClick={() => fileInputRef.current?.click()}>📎</button>
-
+          <div className="irow">
+            <div className="ibox">
+              <button className="ibtn" onClick={() => fileRef.current?.click()}>📎</button>
               <input
                 ref={inputRef}
-                className="ai-input-field"
+                className="ifield"
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={isLoading}
-                placeholder={isListening ? "Listening..." : quizMode ? "What topic to quiz on?" : "Type your question..."}
+                onKeyDown={onKey}
+                disabled={loading}
+                placeholder={listening ? "Listening…" : quizMode ? "Which topic to quiz on?" : "Ask anything…"}
               />
-
-              {/* Mic */}
-              {micAvailable && (
-                <button
-                  className={`ai-input-btn${isListening ? " ai-input-btn--listening" : ""}`}
-                  onClick={toggleListening}
-                >
-                  {isListening ? "🔴" : "🎙"}
+              {hasMic && (
+                <button className={`ibtn${listening ? " ibtn--rec" : ""}`} onClick={toggleMic}>
+                  {listening ? "🔴" : "🎙"}
                 </button>
               )}
             </div>
 
-            {/* Send */}
-            <button
-              className={`ai-send${(!input.trim() && !attachedFile) || isLoading ? " ai-send--disabled" : " ai-send--active"}`}
-              onClick={handleSend}
-              disabled={(!input.trim() && !attachedFile) || isLoading}
-            >
-              {isLoading ? "⏳" : "➤"}
+            <button className={`send${canSend ? " send--on" : " send--off"}`} onClick={send} disabled={!canSend}>
+              {loading ? "⏳" : "➤"}
             </button>
           </div>
 
-          <div className="ai-footer">
-            <span className="ai-footer-item">{voiceOn ? "Voice Active" : "Voice Muted"}</span>
-            <span className="ai-footer-item">·</span>
-            <span className="ai-footer-item">Powered by Claude</span>
+          <div className="aia__cap">
+            <span className="cap-item">{voiceOn ? "Voice Active" : "Voice Muted"}</span>
+            <span className="cap-item">·</span>
+            <span className="cap-item">Powered by Claude</span>
           </div>
         </footer>
 
-        {/* Hidden file input */}
         <input
-          ref={fileInputRef}
+          ref={fileRef}
           type="file"
           style={{ display: "none" }}
           accept=".js,.ts,.jsx,.tsx,.json,.html,.css,.txt,.md,.py,.java,.cpp,.c"
-          onChange={handleFileChange}
+          onChange={onFileChange}
         />
       </div>
     </>
