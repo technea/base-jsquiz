@@ -10,14 +10,14 @@ import { Zap } from "lucide-react";
 
 const speechManager = (() => {
   let active = false;
-  const subs = new Set();
+  const subs = new Set<(v: boolean) => void>();
 
-  const broadcast = (val) => {
+  const broadcast = (val: boolean) => {
     active = val;
     subs.forEach((fn) => fn(val));
   };
 
-  const pickVoice = (lang) => {
+  const pickVoice = (lang: string) => {
     const voices = window.speechSynthesis.getVoices();
     if (lang === "en") {
       return (
@@ -29,7 +29,7 @@ const speechManager = (() => {
     return voices.find((v) => v.lang.startsWith("ur")) || voices.find((v) => v.lang.startsWith("hi"));
   };
 
-  const speakSegment = (text, lang) =>
+  const speakSegment = (text: string, lang: string) =>
     new Promise((resolve) => {
       const utt = new SpeechSynthesisUtterance(text);
       const voice = pickVoice(lang);
@@ -51,7 +51,7 @@ const speechManager = (() => {
       window.speechSynthesis.speak(utt);
     });
 
-  const sanitize = (raw) =>
+  const sanitize = (raw: string) =>
     raw
       .replace(/```[\s\S]*?```/g, " Code block. ")
       .replace(/[*_`#]/g, "")
@@ -62,7 +62,7 @@ const speechManager = (() => {
   return {
     get speaking() { return active; },
 
-    subscribe(fn) {
+    subscribe(fn: (v: boolean) => void) {
       subs.add(fn);
       return () => subs.delete(fn);
     },
@@ -73,7 +73,7 @@ const speechManager = (() => {
       broadcast(false);
     },
 
-    async say(rawText) {
+    async say(rawText: string) {
       if (!window.speechSynthesis) return;
       this.stop();
 
@@ -97,16 +97,46 @@ const speechManager = (() => {
 //  Factory for quiz state — ANSWERING → ANSWERED → COMPLETE
 // ─────────────────────────────────────────────────────────────────
 
+interface QuizOption {
+  id: string;
+  text: string;
+}
+
+interface QuizQuestion {
+  question: string;
+  options: QuizOption[];
+  isCorrect: string; // ID of the correct option
+  explanation: string;
+}
+
 const QUIZ_STATE = Object.freeze({ ANSWERING: "ANSWERING", ANSWERED: "ANSWERED", COMPLETE: "COMPLETE" });
+type QuizStatus = typeof QUIZ_STATE[keyof typeof QUIZ_STATE];
 
-function createQuizMachine(questions) {
-  let status = QUIZ_STATE.ANSWERING;
-  let idx = 0;
-  let score = 0;
-  let chosen = null;
-  const subs = new Set();
+interface QuizSnapshot {
+  status: QuizStatus;
+  question: QuizQuestion;
+  idx: number;
+  total: number;
+  score: number;
+  chosen: string | null;
+  isLast: boolean;
+}
 
-  const snap = () =>
+interface QuizMachine {
+  subscribe: (fn: (snap: QuizSnapshot) => void) => () => void;
+  snapshot: () => QuizSnapshot;
+  answer: (optionId: string) => void;
+  next: () => void;
+}
+
+function createQuizMachine(questions: QuizQuestion[]): QuizMachine {
+  let status: QuizStatus = QUIZ_STATE.ANSWERING;
+  let idx: number = 0;
+  let score: number = 0;
+  let chosen: string | null = null;
+  const subs = new Set<(snap: QuizSnapshot) => void>();
+
+  const snap = (): QuizSnapshot =>
     Object.freeze({
       status,
       question: questions[idx],
@@ -120,13 +150,13 @@ function createQuizMachine(questions) {
   const notify = () => subs.forEach((fn) => fn(snap()));
 
   return {
-    subscribe: (fn) => { subs.add(fn); return () => subs.delete(fn); },
+    subscribe: (fn: (snap: QuizSnapshot) => void) => { subs.add(fn); return () => subs.delete(fn); },
     snapshot: snap,
 
     answer(optionId: string) {
       if (status !== QUIZ_STATE.ANSWERING) return;
       const q = questions[idx];
-      const opt = q.options.find((o: any) => o.id === optionId);
+      const opt = q.options.find((o: QuizOption) => o.id === optionId);
       if (!opt) return;
       chosen = optionId;
       if (q.isCorrect === optionId) score++;
@@ -149,13 +179,31 @@ function createQuizMachine(questions) {
 //  Turns raw assistant text into typed render parts.
 // ─────────────────────────────────────────────────────────────────
 
+interface TextPart {
+  type: "text";
+  content: string;
+}
+
+interface CodePart {
+  type: "code";
+  lang: string;
+  content: string;
+}
+
+interface QuizPart {
+  type: "quiz";
+  questions: QuizQuestion[];
+}
+
+type ContentPart = TextPart | CodePart | QuizPart;
+
 const parser = {
-  parse(text: string) {
-    const parts = [];
+  parse(text: string): ContentPart[] {
+    const parts: ContentPart[] = [];
     // Robust quiz extraction: handle spaces inside tags and remove any leftover bracket text
     const quizRx = /\[\[\s*QUIZ\s*:\s*START\s*\]\]([\s\S]*?)\[\[\s*QUIZ\s*:\s*END\s*\]\]/gi;
     let lastIdx = 0;
-    let m;
+    let m: RegExpExecArray | null;
 
     while ((m = quizRx.exec(text)) !== null) {
       if (m.index > lastIdx) {
@@ -163,7 +211,7 @@ const parser = {
         if (pre) parts.push({ type: "text", content: pre });
       }
       try {
-        const qs = JSON.parse(m[1].trim());
+        const qs: QuizQuestion[] = JSON.parse(m[1].trim());
         if (Array.isArray(qs) && qs.length) parts.push({ type: "quiz", questions: qs });
       } catch (e) {
         // Hiding unclosed tags or malformed JSON
@@ -180,7 +228,7 @@ const parser = {
 
     const codeRx = /```(\w*)\n?([\s\S]*?)```/g;
     let cursor = 0;
-    let restParts = [];
+    const restParts: ContentPart[] = [];
 
     while ((m = codeRx.exec(rest)) !== null) {
       if (m.index > cursor) restParts.push({ type: "text", content: rest.slice(cursor, m.index).trim() });
@@ -195,9 +243,8 @@ const parser = {
 
     return [...parts, ...restParts];
   },
-
-  inlineMarkdown(text) {
-    return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((seg, i) => {
+  inlineMarkdown(text: string): React.ReactNode[] {
+    return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((seg: string, i: number) => {
       if (seg.startsWith("**") && seg.endsWith("**"))
         return <strong key={i}>{seg.slice(2, -2)}</strong>;
       if (seg.startsWith("`") && seg.endsWith("`") && seg.length > 2)
@@ -211,8 +258,8 @@ const parser = {
 //  COMPONENT: CodeBlock
 // ─────────────────────────────────────────────────────────────────
 
-function CodeBlock({ code, lang }) {
-  const [copied, setCopied] = useState(false);
+function CodeBlock({ code, lang }: { code: string; lang: string }) {
+  const [copied, setCopied] = useState<boolean>(false);
 
   const copy = useCallback(() => {
     navigator.clipboard.writeText(code).then(() => {
@@ -231,7 +278,7 @@ function CodeBlock({ code, lang }) {
       <div className="cb__scroll">
         <table>
           <tbody>
-            {code.split("\n").map((line, i) => (
+            {code.split("\n").map((line: string, i: number) => (
               <tr key={i}>
                 <td className="cb__ln">{i + 1}</td>
                 <td className="cb__line">
@@ -251,18 +298,18 @@ function CodeBlock({ code, lang }) {
 //  Driven by quizMachine — zero local answer state.
 // ─────────────────────────────────────────────────────────────────
 
-function QuizCard({ questions }: { questions: any[] }) {
-  const machineRef = useRef<any>(null);
+function QuizCard({ questions }: { questions: QuizQuestion[] }) {
+  const machineRef = useRef<QuizMachine | null>(null);
   if (!machineRef.current) machineRef.current = createQuizMachine(questions);
 
-  const [snap, setSnap] = useState(() => machineRef.current.snapshot());
+  const [snap, setSnap] = useState<QuizSnapshot>(() => machineRef.current!.snapshot());
 
-  useEffect(() => machineRef.current.subscribe(setSnap), []);
+  useEffect(() => machineRef.current!.subscribe(setSnap), []);
 
   const { ANSWERING, ANSWERED, COMPLETE } = QUIZ_STATE;
   const isAnswered = snap.status === ANSWERED || snap.status === COMPLETE;
 
-  const optClass = (opt: any) => {
+  const optClass = (opt: QuizOption): string => {
     const base = "qz__opt";
     if (snap.status === ANSWERING) return base;
     const correctId = snap.question.isCorrect;
@@ -287,12 +334,12 @@ function QuizCard({ questions }: { questions: any[] }) {
       <p className="qz__q">{snap.question.question}</p>
 
       <div className="qz__opts">
-        {snap.question.options.map((opt: any) => (
+        {snap.question.options.map((opt: QuizOption) => (
           <button
             key={opt.id}
             className={optClass(opt)}
             disabled={snap.status !== ANSWERING}
-            onClick={() => machineRef.current.answer(opt.id)}
+            onClick={() => machineRef.current!.answer(opt.id)}
           >
             <span className="qz__opt-label">{opt.id.toUpperCase()}</span>
             {opt.text}
@@ -307,8 +354,8 @@ function QuizCard({ questions }: { questions: any[] }) {
         </div>
       )}
 
-      {snap.status === ANSWERED && (
-        <button className="qz__next" onClick={() => machineRef.current?.next()}>
+      {snap.status === ANSWERED && !snap.isLast && (
+        <button className="qz__next" onClick={() => machineRef.current!.next()}>
           Next Question →
         </button>
       )}
@@ -330,7 +377,7 @@ function QuizCard({ questions }: { questions: any[] }) {
 //  COMPONENT: Bubble
 // ─────────────────────────────────────────────────────────────────
 
-function Bubble({ message, isDarkMode }) {
+function Bubble({ message, isDarkMode }: { message: Message; isDarkMode: boolean }) {
   const displayText = message.content.replace(/\[\[URDU_VOICE:[\s\S]*?\]\]/g, "").trim();
   const parts = parser.parse(displayText);
   const isUser = message.role === "user";
@@ -357,7 +404,7 @@ function Bubble({ message, isDarkMode }) {
           <p className="bub__text">{message.content}</p>
         ) : (
           <div className="bub__body">
-            {parts.map((part, i) => {
+            {parts.map((part: ContentPart, i: number) => {
               if (part.type === "code") return <CodeBlock key={i} code={part.content} lang={part.lang} />;
               if (part.type === "quiz") return <QuizCard key={i} questions={part.questions} />;
               return <p key={i} className="bub__text">{parser.inlineMarkdown(part.content)}</p>;
@@ -383,11 +430,37 @@ function TypingDots() {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  COMPONENT: AIAssistant  ← main export
+//  MAIN: AIAssistant  ← main export
 // ─────────────────────────────────────────────────────────────────
 
-export function AIAssistant({ isDarkMode = false, onClose }) {
-  const [messages, setMessages] = useState([{
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  file?: {
+    name: string;
+    type: string;
+    preview?: string;
+  };
+}
+
+interface ChatFile {
+  name: string;
+  type: string;
+  preview?: string;
+  base64: string;
+}
+
+interface ChatPayload {
+  message: string;
+  history: { role: string; content: string }[];
+  language: string;
+  mode: string;
+  file?: { name: string; type: string; base64: string };
+}
+
+export function AIAssistant({ isDarkMode = false, onClose }: { isDarkMode?: boolean; onClose?: () => void }) {
+  const [messages, setMessages] = useState<Message[]>([{
     id: "welcome",
     role: "assistant",
     content: `Hey there! 👋 I'm your **Human-Centric AI Mentor**.
@@ -400,20 +473,20 @@ I break down complex code at any level you need.
 Paste code or pick a command below! 🚀`,
   }]);
 
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [voiceOn, setVoiceOn] = useState(true);
-  const [speaking, setSpeaking] = useState(false);
-  const [listening, setListening] = useState(false);
-  const [hasMic, setHasMic] = useState(false);
-  const [file, setFile] = useState(null);
-  const [quizMode, setQuizMode] = useState(false);
-  const [lang, setLang] = useState("en-US");
+  const [input, setInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [voiceOn, setVoiceOn] = useState<boolean>(true);
+  const [speaking, setSpeaking] = useState<boolean>(false);
+  const [listening, setListening] = useState<boolean>(false);
+  const [hasMic, setHasMic] = useState<boolean>(false);
+  const [file, setFile] = useState<ChatFile | null>(null);
+  const [quizMode, setQuizMode] = useState<boolean>(false);
+  const [lang, setLang] = useState<string>("en-US");
 
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
-  const fileRef = useRef(null);
-  const recRef = useRef(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const recRef = useRef<any>(null);
 
   // Subscribe to speech state
   useEffect(() => {
@@ -423,7 +496,7 @@ Paste code or pick a command below! 🚀`,
 
   // Detect mic support
   useEffect(() => {
-    setHasMic(!!(window.SpeechRecognition || window.webkitSpeechRecognition));
+    setHasMic(!!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition));
   }, []);
 
   // Auto-scroll
@@ -433,14 +506,14 @@ Paste code or pick a command below! 🚀`,
 
   // ── File handler ─────────────────────────────────────────────
 
-  function onFileChange(e) {
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     if (f.size > 10 * 1024 * 1024) { alert("Max file size: 10 MB"); return; }
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target.result;
+    reader.onload = (ev: ProgressEvent<FileReader>) => {
+      const url = ev.target?.result as string;
       setFile({
         name: f.name,
         type: f.type,
@@ -455,7 +528,7 @@ Paste code or pick a command below! 🚀`,
   // ── Voice input ──────────────────────────────────────────────
 
   function toggleMic() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { alert("Voice input requires Chrome or Edge."); return; }
 
     if (listening) { recRef.current?.stop(); setListening(false); return; }
@@ -468,8 +541,8 @@ Paste code or pick a command below! 🚀`,
 
     rec.onstart = () => setListening(true);
     rec.onend = () => setListening(false);
-    rec.onerror = (e) => { if (e.error !== "no-speech") alert(`Voice error: ${e.error}`); setListening(false); };
-    rec.onresult = (e) => {
+    rec.onerror = (e: any) => { if (e.error !== "no-speech") alert(`Voice error: ${e.error}`); setListening(false); };
+    rec.onresult = (e: any) => {
       let final = "";
       for (let i = e.resultIndex; i < e.results.length; i++)
         if (e.results[i].isFinal) final += e.results[i][0].transcript;
@@ -494,7 +567,7 @@ Paste code or pick a command below! 🚀`,
     }
 
     const snap = file;
-    const userMsg = {
+    const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
       content: text || `[File: ${snap?.name}]`,
@@ -507,7 +580,7 @@ Paste code or pick a command below! 🚀`,
     setLoading(true);
 
     try {
-      const payload = {
+      const payload: ChatPayload = {
         message: userMsg.content,
         history: messages.map(({ role, content }) => ({ role, content })),
         language: lang,
@@ -548,7 +621,7 @@ Paste code or pick a command below! 🚀`,
     }
   }
 
-  function onKey(e) {
+  function onKey(e: React.KeyboardEvent<HTMLElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   }
 
