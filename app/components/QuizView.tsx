@@ -60,12 +60,12 @@ export const QuizView = ({
             {/* Session Header */}
             <div className="flex flex-col sm:flex-row justify-between items-center glass p-3 sm:p-4 rounded-[1.5rem] sm:rounded-[2rem] gap-3 sm:gap-4">
                 <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center text-lg font-extrabold shadow-lg shadow-primary/20">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary text-white rounded-xl flex items-center justify-center text-base sm:text-lg font-extrabold shadow-lg shadow-primary/20">
                         {currentQuestionIndex + 1}
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Challenge Progress</p>
-                        <p className="text-sm font-bold text-foreground opacity-80">Question {currentQuestionIndex + 1} of {totalQuestions}</p>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-primary">Challenge Progress</p>
+                        <p className="text-xs sm:text-sm font-bold text-foreground opacity-80">Question {currentQuestionIndex + 1} of {totalQuestions}</p>
                     </div>
                 </div>
 
@@ -102,7 +102,7 @@ export const QuizView = ({
                         <BookOpen className="w-32 h-32 sm:w-48 sm:h-48" />
                     </div>
 
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold leading-tight text-foreground tracking-tight mb-8 sm:mb-10 relative z-10">
+                    <h3 className="text-base sm:text-lg md:text-xl font-extrabold leading-tight text-foreground tracking-tight mb-6 sm:mb-8 relative z-10">
                         {currentQuestion.question}
                     </h3>
 
@@ -135,14 +135,14 @@ export const QuizView = ({
                                     className={`w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group relative overflow-hidden ${btnStyle}`}
                                 >
                                     <div className="flex items-center gap-4 sm:gap-6 w-full relative z-10">
-                                        <span className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl flex items-center justify-center text-xs font-extrabold border-2 transition-all ${
+                                        <span className={`w-7 h-7 sm:w-9 sm:h-9 shrink-0 rounded-lg sm:rounded-xl flex items-center justify-center text-[11px] sm:text-xs font-extrabold border-2 transition-all ${
                                             isSelected
                                                 ? 'bg-primary border-primary text-white shadow-lg'
                                                 : 'border-border/60 bg-white/5 text-muted-foreground group-hover:bg-primary/5 group-hover:border-primary/20'
                                             }`}>
                                             {String.fromCharCode(65 + idx)}
                                         </span>
-                                        <span className="flex-1 break-words text-sm sm:text-lg font-bold tracking-tight">
+                                        <span className="flex-1 break-words text-[13px] sm:text-base font-bold tracking-tight">
                                             {option}
                                         </span>
                                     </div>

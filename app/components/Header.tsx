@@ -45,7 +45,7 @@ export const Header = ({
             className="sticky top-0 z-[100] w-full glass bg-opacity-90 backdrop-blur-xl border-b border-white/5"
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                <div className="flex items-center justify-between h-14 sm:h-18">
+                <div className="flex items-center justify-between h-14 sm:h-16">
                     {/* Brand Section */}
                     <div 
                         onClick={() => {
@@ -58,7 +58,7 @@ export const Header = ({
                             <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground leading-none">
+                            <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground leading-none">
                                 Jazz<span className="text-primary">mini</span>
                             </h1>
                         </div>
@@ -73,7 +73,7 @@ export const Header = ({
                                     setActiveTab(item.id);
                                     setQuizState('start');
                                 }}
-                                className={`px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all relative ${activeTab === item.id
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all relative ${activeTab === item.id
                                     ? 'text-white'
                                     : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                                     }`}
@@ -101,16 +101,16 @@ export const Header = ({
                             </button>
                             
                             {connectedAddress ? (
-                                <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5">
+                                <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5">
                                     {farcasterUser?.pfp_url ? (
-                                        <img src={farcasterUser.pfp_url} alt="" className="w-5 h-5 rounded-full" />
+                                        <img src={farcasterUser.pfp_url} alt="" className="w-4 h-4 rounded-full" />
                                     ) : (
-                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary">
+                                        <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-[7px] font-bold text-primary">
                                             {(basename || connectedAddress).slice(0, 1).toUpperCase()}
                                         </div>
                                     )}
-                                    <span className="font-bold text-[11px] text-primary">
-                                        {(basename || connectedAddress).slice(0, 6)}...
+                                    <span className="font-bold text-[10px] text-primary">
+                                        {(basename || connectedAddress).slice(0, 5)}...
                                     </span>
                                 </div>
                             ) : (

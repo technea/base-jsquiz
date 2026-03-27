@@ -74,16 +74,16 @@ export const LearningHub = ({
                         </div>
                         
                         <div className="flex-1">
-                            <p className="text-[10px] font-extrabold text-primary uppercase tracking-[0.3em] mb-2 pl-0.5">Level {learningLevel} Curriculum</p>
-                            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-tight">
+                            <p className="text-[9px] font-extrabold text-primary uppercase tracking-[0.3em] mb-2 pl-0.5">Level {learningLevel} Curriculum</p>
+                            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight">
                                 {LEVEL_TOPICS[learningLevel - 1]}
                             </h2>
                         </div>
 
                         <div className="shrink-0 flex items-center gap-6 sm:pl-8 sm:border-l border-border">
                             <div className="text-center">
-                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Modules</p>
-                                <p className="text-4xl font-extrabold text-foreground">{LEARNING_CONTENT[learningLevel]?.length}</p>
+                                <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Modules</p>
+                                <p className="text-3xl font-extrabold text-foreground">{LEARNING_CONTENT[learningLevel]?.length}</p>
                             </div>
                         </div>
                     </div>
@@ -100,19 +100,19 @@ export const LearningHub = ({
                             className="glass-card overflow-hidden hover:border-primary/30 transition-all duration-300"
                         >
                             {/* Module Header */}
-                            <div className="px-8 py-5 border-b border-border flex items-center gap-4 bg-muted/30">
-                                <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-extrabold text-sm shadow-lg shadow-primary/20">
+                            <div className="px-6 py-4 border-b border-border flex items-center gap-4 bg-muted/30">
+                                <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-extrabold text-sm shadow-lg shadow-primary/20">
                                     {idx + 1}
                                 </div>
-                                <h4 className="font-extrabold text-lg tracking-tight text-foreground">{item.title}</h4>
+                                <h4 className="font-extrabold text-base tracking-tight text-foreground">{item.title}</h4>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-12">
                                 {/* Key Concept Details */}
                                 <div className="p-8 lg:col-span-7 space-y-5">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-1.5 h-6 bg-primary rounded-full" />
-                                        <h5 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">Core Concepts</h5>
+                                        <div className="w-1 h-5 bg-primary rounded-full" />
+                                        <h5 className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">Core Concepts</h5>
                                     </div>
                                     <div className="space-y-4">
                                         {item.points.map((p, pIdx) => {
@@ -122,10 +122,10 @@ export const LearningHub = ({
                                                     <div className="w-6 h-6 rounded-lg bg-primary/5 flex items-center justify-center text-primary mt-0.5 shrink-0 group-hover/p:bg-primary/10 transition-colors">
                                                         <span className="text-xs">▸</span>
                                                     </div>
-                                                    <p className="text-base leading-relaxed text-foreground/80 font-medium">
+                                                    <p className="text-sm leading-relaxed text-foreground/80 font-medium">
                                                         {parts.map((part, pi) =>
                                                             pi % 2 === 1
-                                                                ? <code key={pi} className="px-1.5 py-0.5 rounded-lg font-mono text-xs border bg-primary/10 text-primary border-primary/20 mx-1">{part}</code>
+                                                                ? <code key={pi} className="px-1 py-0.5 rounded-lg font-mono text-[10px] border bg-primary/10 text-primary border-primary/20 mx-1">{part}</code>
                                                                 : <span key={pi}>{part}</span>
                                                         )}
                                                     </p>

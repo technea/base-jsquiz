@@ -38,8 +38,8 @@ export const DailyArena = ({
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest">
                     Daily Ritual
                 </div>
-                <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight">Daily Arena</h2>
-                <p className={`text-base font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-xs mx-auto`}>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">Daily Arena</h2>
+                <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-xs mx-auto`}>
                     Maintain your streak and claim your status in the JavaScript community.
                 </p>
             </div>
@@ -64,8 +64,8 @@ export const DailyArena = ({
                     </div>
                     
                     <div className="space-y-1">
-                        <p className="text-7xl font-black text-amber-500 tabular-nums tracking-tighter">{dailyStreak}</p>
-                        <p className={`text-sm font-bold uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Current Day Streak</p>
+                        <p className="text-6xl font-black text-amber-500 tabular-nums tracking-tighter">{dailyStreak}</p>
+                        <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Current Day Streak</p>
                     </div>
 
                     {lastGmDate && (
@@ -175,8 +175,8 @@ export const DailyArena = ({
                         <CheckCircle className="w-10 h-10" />
                     </div>
                     <div className="space-y-1">
-                        <p className="text-2xl font-extrabold text-success tracking-tight">GM Complete!</p>
-                        <p className={`text-base font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Come back tomorrow for Day {dailyStreak + 1}</p>
+                        <p className="text-xl font-extrabold text-success tracking-tight">GM Complete!</p>
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Come back tomorrow for Day {dailyStreak + 1}</p>
                     </div>
                 </motion.div>
             )}

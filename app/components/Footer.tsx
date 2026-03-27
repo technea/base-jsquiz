@@ -34,19 +34,19 @@ export const Footer = ({ isDarkMode, activeTab, setActiveTab }: FooterProps) => 
                             </div>
                         </div>
                         
-                        <div className="flex flex-col gap-2">
-                            <p className="text-[13px] font-medium text-muted-foreground leading-relaxed">
-                                © {currentYear} Jazzmini Lab. <span className="hidden md:inline mx-2 opacity-50">|</span>
+                        <div className="flex flex-col gap-1.5">
+                            <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                                © {currentYear} Jazzmini Lab. <span className="hidden md:inline mx-1.5 opacity-50">|</span>
                                 <span className="opacity-70 whitespace-nowrap">
                                     Crafted with 
                                     <motion.span
                                         animate={{ scale: [1, 1.25, 1], color: ['#f43f5e', '#fb7185', '#f43f5e'] }}
                                         transition={{ duration: 1.5, repeat: Infinity }}
-                                        className="inline-block mx-1.5"
+                                        className="inline-block mx-1"
                                     >
-                                        <Heart className="w-4 h-4 fill-current" />
+                                        <Heart className="w-3.5 h-3.5 fill-current" />
                                     </motion.span>
-                                     for the <span className="font-bold text-foreground">Base Community</span>
+                                     for <span className="font-bold text-foreground">Base Community</span>
                                 </span>
                             </p>
                         </div>
@@ -73,12 +73,12 @@ export const Footer = ({ isDarkMode, activeTab, setActiveTab }: FooterProps) => 
                 </div>
 
                 {/* Subtle Legal/Technical Footer */}
-                <div className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-4 pt-8 border-t border-border/40">
-                    <a href="#" className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors">Whitepaper</a>
-                    <a href="#" className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors">Privacy Policy</a>
-                    <a href="#" className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors">Terms of Service</a>
-                    <a href="mailto:support@jazzmini.io" className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1.5">
-                        <Mail className="w-3 h-3" /> Technical Support
+                <div className="mt-10 flex flex-wrap justify-center gap-x-6 gap-y-3 pt-6 border-t border-border/40">
+                    <a href="#" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors">Whitepaper</a>
+                    <a href="#" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors">Privacy Policy</a>
+                    <a href="#" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors">Terms of Service</a>
+                    <a href="mailto:support@jazzmini.io" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1.5">
+                        <Mail className="w-2.5 h-2.5" /> Technical Support
                     </a>
                 </div>
             </div>

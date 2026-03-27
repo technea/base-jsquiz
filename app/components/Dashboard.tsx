@@ -49,11 +49,11 @@ export const Dashboard = ({
                     <div className="absolute inset-0 bg-white/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                 </motion.div>
                 
-                <div className="space-y-2">
-                    <h2 className={`text-4xl sm:text-5xl font-extrabold tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                <div className="space-y-1">
+                    <h2 className={`text-3xl sm:text-4xl font-extrabold tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                         Jazz<span className="text-primary italic">mini</span>
                     </h2>
-                    <p className={`text-base sm:text-lg font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-lg mx-auto leading-relaxed`}>
+                    <p className={`text-sm sm:text-base font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-md mx-auto leading-relaxed`}>
                         Level up your <span className="text-primary font-bold">JavaScript</span> skills with interactive challenges and web3 rewards.
                     </p>
                 </div>
@@ -62,9 +62,9 @@ export const Dashboard = ({
                     initial={{ opacity: 0, scale: 0.9 }} 
                     animate={{ opacity: 1, scale: 1 }} 
                     transition={{ delay: 0.4 }}
-                    className={`py-3 px-6 sm:px-8 max-w-xl mx-auto rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm`}
+                    className={`py-2 px-6 sm:px-8 max-w-lg mx-auto rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm`}
                 >
-                    <p className={`text-xs sm:text-base italic font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    <p className={`text-[11px] sm:text-sm italic font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                         "{JS_QUOTES[Math.floor(Math.random() * JS_QUOTES.length)]}"
                     </p>
                 </motion.div>
@@ -138,9 +138,9 @@ export const Dashboard = ({
                             </div>
                         </div>
 
-                        <div className="flex-1 space-y-2 mb-4">
-                            <h3 className="font-extrabold text-xl tracking-tight">AI Assistant</h3>
-                            <p className="text-xs sm:text-sm font-medium text-muted-foreground leading-relaxed">
+                        <div className="flex-1 space-y-1.5 mb-4">
+                            <h3 className="font-extrabold text-lg sm:text-xl tracking-tight">AI Assistant</h3>
+                            <p className="text-[11px] sm:text-sm font-medium text-muted-foreground leading-relaxed">
                                 Need help with a concept? Our AI assistant is ready to generate personalized quizzes and explain complex topics.
                             </p>
                         </div>
@@ -198,10 +198,10 @@ export const Dashboard = ({
                                         : 'bg-muted/30 text-muted-foreground/30 cursor-not-allowed border border-dashed border-border'
                                 }`}
                             >
-                                <span className={`text-xl sm:text-3xl font-black ${unlocked && !isCurrent ? 'text-primary' : ''}`}>
+                                <span className={`text-lg sm:text-2xl font-black ${unlocked && !isCurrent ? 'text-primary' : ''}`}>
                                     {unlocked ? level : '🔒'}
                                 </span>
-                                <span className="text-[9px] font-bold mt-1 uppercase tracking-widest opacity-60">Level</span>
+                                <span className="text-[8px] font-bold mt-0.5 uppercase tracking-widest opacity-60">Level</span>
                                 
                                 {unlocked && attemptsUsed > 0 && (
                                     <motion.div 

@@ -888,17 +888,16 @@ export default function JSQuizApp() {
           whileHover={{ scale: 1.1, y: -5 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsAiOpen(true)}
-          className="fixed z-[100] w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[40px] bg-gradient-to-br from-primary via-indigo-600 to-violet-700 text-white shadow-[0_15px_40px_rgba(37,99,235,0.4)] flex items-center justify-center border border-white/20 backdrop-blur-xl group overflow-hidden"
-          style={{ right: '24px', bottom: '24px', left: 'auto' }}
+          className="fixed z-[100] right-4 bottom-4 sm:right-10 sm:bottom-10 w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[40px] bg-gradient-to-br from-primary via-indigo-600 to-violet-700 text-white shadow-[0_15px_40px_rgba(37,99,235,0.4)] flex items-center justify-center border border-white/20 backdrop-blur-xl group overflow-hidden"
         >
           {/* Inner Glow Effect */}
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           
           <div className="relative z-10">
-            <Zap className="w-8 h-8 sm:w-11 sm:h-11 text-white group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] transition-all" />
+            <Zap className="w-7 h-7 sm:w-11 sm:h-11 text-white group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] transition-all" />
           </div>
 
-          <div className="absolute top-2 right-2 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 rounded-full border-2 border-[#0f172a] animate-pulse shadow-[0_0_10px_#10b981]" />
+          <div className="absolute top-2 right-2 w-2.5 h-2.5 sm:w-4 sm:h-4 bg-emerald-500 rounded-full border-2 border-[#0f172a] animate-pulse shadow-[0_0_10px_#10b981]" />
 
           {/* Expanded Label on Hover (Hidden on Mobile) */}
           <div className="hidden sm:block absolute right-full mr-6 px-4 py-2 rounded-2xl bg-foreground text-background text-[11px] font-extrabold uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap shadow-2xl">
@@ -915,14 +914,15 @@ export default function JSQuizApp() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[110] bg-black/20 backdrop-blur-[2px] pointer-events-none"
+              className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-[2px] pointer-events-auto"
+              onClick={() => setIsAiOpen(false)}
             />
             <motion.div 
-              initial={{ y: "100%", opacity: 0, x: 50 }}
-              animate={{ y: 0, opacity: 1, x: 0 }}
-              exit={{ y: "100%", opacity: 0, x: 50 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 right-0 z-[120] w-full h-[85vh] sm:w-[440px] sm:h-[700px] sm:m-6 sm:rounded-3xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border-t sm:border border-border bg-card pointer-events-auto"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 32, stiffness: 300 }}
+              className="fixed bottom-0 right-0 z-[120] w-full h-[92dvh] sm:w-[500px] sm:h-[80vh] sm:max-h-[800px] sm:m-6 sm:rounded-3xl overflow-hidden shadow-[0_30px_90px_-15px_rgba(0,0,0,0.6)] border-t sm:border border-border bg-card pointer-events-auto"
             >
               <AIAssistant isDarkMode={isDarkMode} onClose={() => setIsAiOpen(false)} />
             </motion.div>
