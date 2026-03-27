@@ -160,6 +160,10 @@ export default function JSQuizApp() {
   const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard'>('quiz');
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [learningLevel, setLearningLevel] = useState(1);
+  
+  const [dailyPaymentStatus, setDailyPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [dailyPaymentTx, setDailyPaymentTx] = useState<string | null>(null);
+  
   const quizStateRef = useRef(quizState);
 
   // ═══ GSAP global button enhancements ═══
@@ -371,6 +375,32 @@ export default function JSQuizApp() {
   }, [db]);
 
   // Logic Handlers
+  const sendEthPayment = useCallback(async (amountInWei: string) => {
+    try {
+      const amountHex = '0x' + BigInt(amountInWei).toString(16);
+      if (sdk?.wallet?.ethProvider?.request) {
+        const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
+        const tx = await sdk.wallet.ethProvider.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: accounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, chainId: '0x2105' }]
+        });
+        if (tx) return tx;
+      }
+    } catch (e) {
+      console.log("Farcaster SDK ETH tx failed. Falling back...");
+    }
+
+    const fallbackProvider = (window as any).ethereum || (window as any).MetaMask;
+    if (!fallbackProvider) throw new Error("Wallet not available");
+
+    const fallbackAccounts = await fallbackProvider.request({ method: 'eth_requestAccounts' });
+    const amountHex = '0x' + BigInt(amountInWei).toString(16);
+    return await fallbackProvider.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: fallbackAccounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, chainId: '0x2105' }]
+    });
+  }, []);
+
   const sendPayment = useCallback(async (amountInWei: number) => {
     const dataStr = '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
     try {
@@ -612,8 +642,22 @@ export default function JSQuizApp() {
     updateLeaderboard(paidLevels[1] || false);
   }, [updateLeaderboard, paidLevels]);
 
+  const handleDailyPayment = useCallback(async () => {
+    setDailyPaymentStatus('pending');
+    try {
+      const tx = await sendPayment(10000); // 0.01 USDC
+      if (tx) {
+        setDailyPaymentTx(tx);
+        setDailyPaymentStatus('success');
+        updateLeaderboard(paidLevels[1] || false);
+      }
+    } catch (e) {
+      setDailyPaymentStatus('error');
+    }
+  }, [sendPayment, updateLeaderboard, paidLevels]);
+
   const handleDailyAnswer = useCallback((opt: string) => {
-    if (dailyQuizAnswer === 'done') return;
+    if (dailyQuizAnswer === 'done' || dailyQuizAnswer === opt) return; // Prevent double trigger
     setDailyQuizAnswer(opt);
     const correct = opt === todayQuestion?.answer;
     setDailyQuizResult(correct ? 'correct' : 'wrong');
@@ -630,7 +674,7 @@ export default function JSQuizApp() {
       setDailyPoints(newDailyPoints);
       localStorage.setItem('dailyPoints', newDailyPoints.toString());
 
-      const basePoints = Object.values(levelScores).reduce((a, b) => a + b, 0);
+      const basePoints = Object.values(levelScores).reduce((a, b: any) => a + b, 0);
       const newTotal = basePoints + newDailyPoints;
 
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -638,10 +682,10 @@ export default function JSQuizApp() {
     } else {
       setDailyStreak(0);
       localStorage.setItem('dailyStreak', '0');
-      const currentTotal = Object.values(levelScores).reduce((a, b) => a + b, 0) + dailyPoints;
+      const currentTotal = Object.values(levelScores).reduce((a, b: any) => a + b, 0) + dailyPoints;
       updateLeaderboard(paidLevels[1] || false, currentTotal, 0);
     }
-  }, [dailyStreak, dailyPoints, todayQuestion, updateLeaderboard, paidLevels]);
+  }, [dailyStreak, dailyPoints, todayQuestion, updateLeaderboard, paidLevels, levelScores, dailyQuizAnswer]);
 
   const handleStreakRestore = useCallback(async () => {
     setStreakRecoveryStatus('pending');
@@ -730,6 +774,9 @@ export default function JSQuizApp() {
               dailyQuizResult={dailyQuizResult}
               onAnswer={handleDailyAnswer}
               onClose={() => setShowDailyQuiz(false)}
+              paymentStatus={dailyPaymentStatus}
+              onPayment={handleDailyPayment}
+              paymentTx={dailyPaymentTx}
             />
           );
         }

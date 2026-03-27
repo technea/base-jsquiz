@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, CheckCircle, XCircle, Zap, Flame, X, Sparkles } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Zap, Flame, X, Sparkles, Wallet } from 'lucide-react';
 import { DailyQuestion } from '../dailyQuizData';
 import { AnimatedAvatar } from './AnimatedAvatar';
 
@@ -13,6 +13,9 @@ interface DailyQuizProps {
     dailyQuizResult: 'correct' | 'wrong' | null;
     onAnswer: (opt: string) => void;
     onClose?: () => void;
+    paymentStatus?: 'idle' | 'pending' | 'success' | 'error';
+    onPayment?: () => void;
+    paymentTx?: string | null;
 }
 
 export const DailyQuiz = ({
@@ -21,16 +24,19 @@ export const DailyQuiz = ({
     dailyQuizAnswer,
     dailyQuizResult,
     onAnswer,
-    onClose
+    onClose,
+    paymentStatus = 'idle',
+    onPayment,
+    paymentTx
 }: DailyQuizProps) => {
     useEffect(() => {
-        if (dailyQuizAnswer && onClose) {
+        if (dailyQuizAnswer && onClose && paymentStatus === 'success') {
             const timer = setTimeout(() => {
                 onClose();
-            }, 5000);
+            }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [dailyQuizAnswer, onClose]);
+    }, [dailyQuizAnswer, onClose, paymentStatus]);
 
     if (!todayQuestion) return null;
 
@@ -182,38 +188,79 @@ export const DailyQuiz = ({
                                 : 'bg-primary/5 border-primary/20'
                         }`}
                     >
-                        <div className="flex gap-6 relative z-10">
-                            <div className={`w-14 h-14 rounded-2xl shrink-0 flex items-center justify-center ${
-                                dailyQuizResult === 'correct' ? 'bg-success/10' : 'bg-primary/10'
-                            }`}>
-                                {dailyQuizResult === 'correct'
-                                    ? <CheckCircle className="w-8 h-8 text-success" />
-                                    : <Sparkles className="w-8 h-8 text-primary" />
-                                }
-                            </div>
-                            <div className="space-y-3">
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary">Daily Insight</p>
-                                    <p className="text-base sm:text-xl font-medium leading-relaxed text-foreground opacity-90">
-                                        {todayQuestion.explanation}
-                                    </p>
-                                </div>
-                                <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest ${
-                                    dailyQuizResult === 'correct' ? 'text-success' : 'text-error'
+                        <div className="flex flex-col gap-6 relative z-10 w-full">
+                            <div className="flex gap-6">
+                                <div className={`w-14 h-14 rounded-2xl shrink-0 flex items-center justify-center ${
+                                    dailyQuizResult === 'correct' ? 'bg-success/10' : 'bg-primary/10'
                                 }`}>
-                                    {dailyQuizResult === 'correct' ? (
-                                        <>
-                                            <Flame className="w-4 h-4" />
-                                            Streak Extended! 🔥
-                                        </>
+                                    {dailyQuizResult === 'correct'
+                                        ? <CheckCircle className="w-8 h-8 text-success" />
+                                        : <Sparkles className="w-8 h-8 text-primary" />
+                                    }
+                                </div>
+                                <div className="space-y-3 flex-1">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary">Daily Insight</p>
+                                        <p className="text-base sm:text-xl font-medium leading-relaxed text-foreground opacity-90">
+                                            {todayQuestion.explanation}
+                                        </p>
+                                    </div>
+                                    <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest ${
+                                        dailyQuizResult === 'correct' ? 'text-success' : 'text-error'
+                                    }`}>
+                                        {dailyQuizResult === 'correct' ? (
+                                            <>
+                                                <Flame className="w-4 h-4" />
+                                                Streak Extended! 🔥
+                                            </>
+                                        ) : (
+                                            <>
+                                                <XCircle className="w-4 h-4" />
+                                                Streak Lost 💔
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Payment/Claim CTA */}
+                            {paymentStatus !== 'success' ? (
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={onPayment}
+                                    disabled={paymentStatus === 'pending'}
+                                    className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all ${
+                                        paymentStatus === 'pending'
+                                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                                            : 'bg-primary text-white shadow-xl shadow-primary/20 hover:shadow-primary/40'
+                                    }`}
+                                >
+                                    {paymentStatus === 'pending' ? (
+                                        <Zap className="w-4 h-4 animate-pulse" />
                                     ) : (
-                                        <>
-                                            <XCircle className="w-4 h-4" />
-                                            Streak Lost 💔
-                                        </>
+                                        <Wallet className="w-4 h-4" />
+                                    )}
+                                    {paymentStatus === 'pending' ? 'Broadcasting...' : 'Claim Achievement ($0.01 USDC)'}
+                                </motion.button>
+                            ) : (
+                                <div className="p-4 rounded-2xl bg-success/10 border border-success/30 flex flex-col items-center gap-2 text-center">
+                                    <div className="flex items-center gap-2 text-success font-bold text-sm">
+                                        <CheckCircle className="w-5 h-5" />
+                                        On-Chain Record Verified!
+                                    </div>
+                                    {paymentTx && (
+                                        <a 
+                                            href={`https://basescan.org/tx/${paymentTx}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] font-mono text-success/70 hover:underline flex items-center gap-1"
+                                        >
+                                            View Tx <Sparkles className="w-3 h-3" />
+                                        </a>
                                     )}
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
