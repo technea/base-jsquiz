@@ -144,12 +144,65 @@ export const WEEK_THEMES = [
   { week: 10, title: "Future & Advanced", emoji: "🚀", description: "What's next for Base" },
 ];
 
-// Get the current week's quiz (1-10, cycling)
+// ── Week System: Starts Monday, 7 days per week ──
+// Week 1 starts on this Monday. Each subsequent week is +7 days.
+// Change this to your desired start date (must be a Monday).
+export const WEEK_START_DATE = new Date('2025-03-31T00:00:00'); // Monday March 31, 2025
+
+// Get the current active week number (1-10)
 export function getCurrentWeek(): number {
-  const startDate = new Date('2024-01-01');
   const now = new Date();
-  const diffWeeks = Math.floor((now.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-  return (diffWeeks % 10) + 1;
+  const diffMs = now.getTime() - WEEK_START_DATE.getTime();
+  if (diffMs < 0) return 1; // Before start → Week 1
+  const weekIndex = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+  return Math.min(weekIndex + 1, 10); // Cap at 10
+}
+
+// Check if a specific week is currently "live" (its 7-day window)
+export function isWeekActive(week: number): boolean {
+  const now = new Date();
+  const weekStart = getWeekStartDate(week);
+  const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return now >= weekStart && now < weekEnd;
+}
+
+// Get the start date of a specific week
+export function getWeekStartDate(week: number): Date {
+  return new Date(WEEK_START_DATE.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
+}
+
+// Get the end date of a specific week
+export function getWeekEndDate(week: number): Date {
+  return new Date(WEEK_START_DATE.getTime() + week * 7 * 24 * 60 * 60 * 1000);
+}
+
+// Check if a week has been unlocked (all previous weeks must be completed)
+export function isWeekUnlocked(week: number, completedWeeks: Record<number, number>): boolean {
+  if (week === 1) return true; // Week 1 is always unlocked
+  // Check all previous weeks are completed (have a score)
+  for (let w = 1; w < week; w++) {
+    if (completedWeeks[w] === undefined) return false;
+  }
+  // Also check the week's time window has arrived
+  const now = new Date();
+  const weekStart = getWeekStartDate(week);
+  return now >= weekStart;
+}
+
+// Get days remaining in the current week
+export function getDaysRemaining(week: number): number {
+  const now = new Date();
+  const weekEnd = getWeekEndDate(week);
+  const diff = weekEnd.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+}
+
+// Format date for display
+export function formatWeekDates(week: number): string {
+  const start = getWeekStartDate(week);
+  const end = new Date(getWeekEndDate(week).getTime() - 1); // -1ms to show last day
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+  return `${start.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', opts)}`;
 }
 
 export function getQuizByWeek(week: number): BaseQuizQuestion[] {
