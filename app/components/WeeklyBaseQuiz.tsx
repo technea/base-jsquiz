@@ -8,9 +8,10 @@ import { BASE_QUIZ_DATA, WEEK_THEMES, getCurrentWeek, getQuizByWeek, isWeekUnloc
 interface WeeklyBaseQuizProps {
     isDarkMode: boolean;
     onPayment: (amount: number) => Promise<any>;
+    onScoreUpdate?: (week: number, score: number) => void;
 }
 
-export const WeeklyBaseQuiz = ({ isDarkMode, onPayment }: WeeklyBaseQuizProps) => {
+export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyBaseQuizProps) => {
     const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
     const [quizState, setQuizState] = useState<'select' | 'in_progress' | 'result'>('select');
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -121,9 +122,12 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment }: WeeklyBaseQuizProps) =
 
             if (selectedWeek) {
                 const best = Math.max(completedWeeks[selectedWeek] || 0, actualScore);
-                const updated = { ...completedWeeks, [selectedWeek]: best };
-                setCompletedWeeks(updated);
-                localStorage.setItem('baseQuizCompleted', JSON.stringify(updated));
+                if (best !== completedWeeks[selectedWeek]) {
+                    const updated = { ...completedWeeks, [selectedWeek]: best };
+                    setCompletedWeeks(updated);
+                    localStorage.setItem('baseQuizCompleted', JSON.stringify(updated));
+                    onScoreUpdate?.(selectedWeek, best);
+                }
             }
         } else {
             setCurrentIdx(i => i + 1);

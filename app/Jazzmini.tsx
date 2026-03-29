@@ -138,12 +138,12 @@ export default function JSQuizApp() {
 
   const [levelAttempts, setLevelAttempts] = useState<Record<number, number>>({});
   const [levelScores, setLevelScores] = useState<Record<number, number>>({});
+  const [baseQuizScores, setBaseQuizScores] = useState<Record<number, number>>({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paidLevels, setPaidLevels] = useState<Record<number, boolean>>({});
 
-  const [isAiOpen, setIsAiOpen] = useState(false);
   const [isBaseAiOpen, setIsBaseAiOpen] = useState(false);
 
   const [rewardStatus, setRewardStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -193,6 +193,8 @@ export default function JSQuizApp() {
       if (savedAttempts) setLevelAttempts(JSON.parse(savedAttempts));
       const savedScores = localStorage.getItem('quizScores');
       if (savedScores) setLevelScores(JSON.parse(savedScores));
+      const savedBaseScores = localStorage.getItem('baseQuizCompleted');
+      if (savedBaseScores) setBaseQuizScores(JSON.parse(savedBaseScores));
       const savedPaid = localStorage.getItem('quizPaidLevels');
       if (savedPaid) setPaidLevels(JSON.parse(savedPaid));
       const savedStats = localStorage.getItem('globalStats');
@@ -437,7 +439,11 @@ export default function JSQuizApp() {
     try {
       if (!db || !connectedAddress) return; // Only wallet-connected users on leaderboard
       const id = connectedAddress.toLowerCase();
-      const totalPoints = customTotal !== undefined ? customTotal : (Object.values(levelScores).reduce((a, b: any) => a + b, 0) + dailyPoints);
+      
+      const classicPoints = Object.values(levelScores).reduce((a, b: any) => a + b, 0);
+      const basePoints = Object.values(baseQuizScores).reduce((a, b: any) => a + b, 0);
+      const totalPoints = customTotal !== undefined ? customTotal : (classicPoints + basePoints + dailyPoints);
+      
       const currentStreak = customStreak !== undefined ? customStreak : dailyStreak;
 
       const payload = {
@@ -458,7 +464,7 @@ export default function JSQuizApp() {
     } catch (err) {
       console.error("RTDB Update Failed:", err);
     }
-  }, [db, connectedAddress, userId, basename, levelScores, globalStats, dailyStreak, dailyPoints, farcasterUser, paidLevels, currentLevel]);
+  }, [db, connectedAddress, userId, basename, levelScores, baseQuizScores, globalStats, dailyStreak, dailyPoints, farcasterUser, paidLevels, currentLevel]);
 
   // Auto-update leaderboard for current user
   useEffect(() => {
@@ -552,7 +558,7 @@ export default function JSQuizApp() {
           await set(userRef, newStats);
         }
 
-        const newTotalPoints = Object.values(newScores).reduce((a, b: any) => a + b, 0) + dailyPoints;
+        const newTotalPoints = Object.values(newScores).reduce((a, b: any) => a + b, 0) + Object.values(baseQuizScores).reduce((a, b: any) => a + b, 0) + dailyPoints;
         updateLeaderboard(paidLevels[1] || false, newTotalPoints);
       }
     } else {
@@ -851,7 +857,13 @@ export default function JSQuizApp() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                {baseSubTab === 'quiz' && <WeeklyBaseQuiz isDarkMode={isDarkMode} onPayment={sendPayment} />}
+                {baseSubTab === 'quiz' && <WeeklyBaseQuiz isDarkMode={isDarkMode} onPayment={sendPayment} onScoreUpdate={(week, score) => {
+                    const updated = { ...baseQuizScores, [week]: score };
+                    setBaseQuizScores(updated);
+                    const classicPoints = Object.values(levelScores).reduce((a, b: any) => a + b, 0);
+                    const basePoints = Object.values(updated).reduce((a, b: any) => a + b, 0);
+                    updateLeaderboard(false, classicPoints + basePoints + dailyPoints);
+                }} />}
                 {baseSubTab === 'learn' && <BaseLearning isDarkMode={isDarkMode} />}
                 {baseSubTab === 'ai' && (
                   <div className="max-w-3xl mx-auto">
