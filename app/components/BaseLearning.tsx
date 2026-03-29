@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ChevronRight, ChevronLeft, GraduationCap, Layers, CheckCircle, Clock, Star, BookMarked } from 'lucide-react';
+import { BookOpen, ChevronRight, ChevronLeft, GraduationCap, Layers, CheckCircle, Clock, Star, BookMarked, Lock, Calendar } from 'lucide-react';
 import { BASE_LESSONS, BaseLesson } from '../baseLearningData';
+import { getCurrentWeek, getWeekStartDate, formatWeekDates } from '../baseQuizData';
 
 interface BaseLearningProps {
     isDarkMode: boolean;
@@ -25,6 +26,8 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
     const totalModules = BASE_LESSONS.reduce((a, l) => a + l.modules.length, 0);
     const totalPoints = BASE_LESSONS.reduce((a, l) => a + l.modules.reduce((b, m) => b + m.points.length, 0), 0);
     const readCount = Object.keys(readLessons).length;
+
+    const currentWeek = getCurrentWeek();
 
     // Lesson Selection View
     if (!selectedLesson) {
@@ -64,31 +67,47 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {BASE_LESSONS.map((lesson, idx) => {
                         const isRead = readLessons[lesson.id];
+                        const isUnlocked = lesson.id <= currentWeek;
+                        const dateRange = formatWeekDates(lesson.id);
+
                         return (
                             <motion.button
                                 key={lesson.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.05 }}
-                                whileHover={{ y: -4, scale: 1.01 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setSelectedLesson(lesson)}
+                                whileHover={isUnlocked ? { y: -4, scale: 1.01 } : {}}
+                                whileTap={isUnlocked ? { scale: 0.98 } : {}}
+                                onClick={() => isUnlocked && setSelectedLesson(lesson)}
+                                disabled={!isUnlocked}
                                 className={`glass-card p-5 text-left relative overflow-hidden group transition-all duration-300 ${
-                                    isRead ? 'border-emerald-500/20' : 'hover:border-blue-500/20'
+                                    !isUnlocked
+                                        ? 'opacity-50 cursor-not-allowed grayscale-[30%]'
+                                        : isRead ? 'border-emerald-500/20' : 'hover:border-blue-500/20'
                                 }`}
                             >
+                                {/* Lock overlay */}
+                                {!isUnlocked && (
+                                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-2xl">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <Lock className="w-6 h-6 text-muted-foreground" />
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Unlocks on {getWeekStartDate(lesson.id).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Ambient glow */}
                                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                                 {/* Read badge */}
-                                {isRead && (
+                                {isRead && isUnlocked && (
                                     <div className="absolute top-3 right-3 z-20">
                                         <CheckCircle className="w-5 h-5 text-emerald-500" />
                                     </div>
                                 )}
 
                                 <div className="flex items-center gap-4 relative z-10">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform ${
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 transition-transform ${isUnlocked ? 'group-hover:scale-110' : ''} ${
                                         isRead
                                             ? 'bg-gradient-to-br from-emerald-500/20 to-green-600/20'
                                             : 'bg-gradient-to-br from-blue-500/20 to-indigo-600/20'
@@ -99,6 +118,9 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
                                         <div className="flex items-center gap-2 mb-0.5">
                                             <span className={`text-[9px] font-extrabold uppercase tracking-[0.2em] ${isRead ? 'text-emerald-500' : 'text-blue-500'}`}>
                                                 Week {lesson.id}
+                                            </span>
+                                            <span className="text-[8px] text-muted-foreground/80 font-medium ml-auto flex items-center gap-1">
+                                                <Calendar className="w-2.5 h-2.5" /> {dateRange}
                                             </span>
                                         </div>
                                         <h3 className="font-extrabold text-base tracking-tight text-foreground truncate">{lesson.title}</h3>
@@ -111,8 +133,12 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="shrink-0">
-                                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                                    <div className="shrink-0 flex flex-col items-center">
+                                        {isUnlocked ? (
+                                            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                                        ) : (
+                                            <Lock className="w-5 h-5 text-muted-foreground" />
+                                        )}
                                     </div>
                                 </div>
                             </motion.button>
