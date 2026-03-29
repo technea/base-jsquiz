@@ -5,8 +5,8 @@ import { Trophy, Github, Twitter, Heart, ShieldCheck, Mail, MessageSquare, Exter
 
 interface FooterProps {
     isDarkMode: boolean;
-    activeTab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard';
-    setActiveTab: (tab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard') => void;
+    activeTab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'base';
+    setActiveTab: (tab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'base') => void;
 }
 
 export const Footer = ({ isDarkMode, activeTab, setActiveTab }: FooterProps) => {

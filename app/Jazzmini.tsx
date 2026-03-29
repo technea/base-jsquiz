@@ -18,7 +18,7 @@ import {
 } from 'firebase/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Code2, Sparkles, Zap, Brain } from 'lucide-react';
+import { Code2, Sparkles, Zap, Brain, ChevronRight } from 'lucide-react';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -46,6 +46,8 @@ import { PaymentModal } from './components/PaymentModal';
 import { Footer } from './components/Footer';
 import { DailyGMIntro } from './components/DailyGMIntro';
 import { AIAssistant } from './components/AIAssistant';
+import { WeeklyBaseQuiz } from './components/WeeklyBaseQuiz';
+import { BaseLearning } from './components/BaseLearning';
 import { useGsapButtons } from './hooks/useGsapButtons';
 
 // --- Farcaster SDK ---
@@ -157,7 +159,8 @@ export default function JSQuizApp() {
   const [claimStatus, setClaimStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [todayQuestion, setTodayQuestion] = useState<DailyQuestion | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard'>('quiz');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'base'>('quiz');
+  const [baseSubTab, setBaseSubTab] = useState<'quiz' | 'learn' | 'ai'>('quiz');
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [learningLevel, setLearningLevel] = useState(1);
   
@@ -802,6 +805,101 @@ export default function JSQuizApp() {
             levelAttempts={levelAttempts}
             highestLevel={globalStats.highestLevel}
           />
+        );
+      case 'base':
+        return (
+          <div className="space-y-8">
+            {/* Base Section Sub-Navigation */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">
+                  🔵
+                </div>
+                <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">Base Chain</h2>
+              </div>
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border">
+                {[
+                  { id: 'quiz' as const, label: '🏆 Weekly Quiz', icon: '🏆' },
+                  { id: 'learn' as const, label: '📚 Learn Base', icon: '📚' },
+                  { id: 'ai' as const, label: '🤖 Ask AI', icon: '🤖' },
+                ].map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setBaseSubTab(sub.id)}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all relative ${
+                      baseSubTab === sub.id
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Base Sub-Content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={baseSubTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {baseSubTab === 'quiz' && <WeeklyBaseQuiz isDarkMode={isDarkMode} onPayment={sendPayment} />}
+                {baseSubTab === 'learn' && <BaseLearning isDarkMode={isDarkMode} />}
+                {baseSubTab === 'ai' && (
+                  <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="glass-card p-8 text-center space-y-6 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-3xl rounded-full -mr-32 -mt-32" />
+                      <div className="relative z-10">
+                        <div className="w-20 h-20 mx-auto rounded-[2rem] bg-gradient-to-br from-blue-500 via-indigo-600 to-violet-700 flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/30 border border-white/10 mb-4">
+                          <Zap className="w-10 h-10 text-white" />
+                        </div>
+                        <h3 className="text-xl font-extrabold tracking-tight text-foreground mb-2">Base AI Assistant</h3>
+                        <p className="text-sm text-muted-foreground font-medium max-w-md mx-auto mb-6">
+                          Ask any question about Base chain and get instant, detailed answers about the ecosystem, smart contracts, DeFi, NFTs, and more.
+                        </p>
+                        <button
+                          onClick={() => setIsAiOpen(true)}
+                          className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-600 to-violet-600 text-white font-bold text-sm shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all flex items-center gap-3 mx-auto group"
+                        >
+                          <Zap className="w-5 h-5 group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all" />
+                          Ask About Base Chain
+                          <Brain className="w-5 h-5 opacity-60" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Questions */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        { q: "What is Base chain?", emoji: "🔵" },
+                        { q: "How do gas fees work on Base?", emoji: "⛽" },
+                        { q: "How to deploy a smart contract on Base?", emoji: "📝" },
+                        { q: "What is the OP Stack?", emoji: "🏗️" },
+                        { q: "How to bridge ETH to Base?", emoji: "🌉" },
+                        { q: "What is USDC on Base?", emoji: "💵" },
+                      ].map((item, i) => (
+                        <motion.button
+                          key={i}
+                          whileHover={{ y: -2, scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setIsAiOpen(true)}
+                          className="glass-card p-4 text-left flex items-center gap-3 hover:border-blue-500/20 transition-all group"
+                        >
+                          <span className="text-xl">{item.emoji}</span>
+                          <span className="text-sm font-semibold text-foreground/80 group-hover:text-blue-500 transition-colors">{item.q}</span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         );
       case 'leaderboard':
         if (!connectedAddress) {

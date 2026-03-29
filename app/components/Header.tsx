@@ -8,8 +8,8 @@ import { AnimatePresence } from 'framer-motion';
 interface HeaderProps {
     isDarkMode: boolean;
     setIsDarkMode: (val: boolean) => void;
-    activeTab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard';
-    setActiveTab: (tab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard') => void;
+    activeTab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'base';
+    setActiveTab: (tab: 'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'base') => void;
     setQuizState: (state: 'start' | 'in_progress' | 'result') => void;
     connectedAddress: string | null;
     connectWallet: () => void;
@@ -34,6 +34,7 @@ export const Header = ({
         { id: 'quiz', label: 'Quiz' },
         { id: 'daily', label: 'Daily' },
         { id: 'learn', label: 'Learn' },
+        { id: 'base', label: '🔵 Base' },
         { id: 'dashboard', label: 'Dashboard' },
         { id: 'leaderboard', label: 'Rankings' },
     ] as const;
