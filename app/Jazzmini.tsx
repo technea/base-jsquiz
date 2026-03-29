@@ -48,6 +48,7 @@ import { DailyGMIntro } from './components/DailyGMIntro';
 import { AIAssistant } from './components/AIAssistant';
 import { WeeklyBaseQuiz } from './components/WeeklyBaseQuiz';
 import { BaseLearning } from './components/BaseLearning';
+import { BaseAIAssistant } from './components/BaseAIAssistant';
 import { useGsapButtons } from './hooks/useGsapButtons';
 
 // --- Farcaster SDK ---
@@ -141,6 +142,9 @@ export default function JSQuizApp() {
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paidLevels, setPaidLevels] = useState<Record<number, boolean>>({});
+
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [isBaseAiOpen, setIsBaseAiOpen] = useState(false);
 
   const [rewardStatus, setRewardStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [rewardTxHash, setRewardTxHash] = useState<string | null>(null);
@@ -850,51 +854,57 @@ export default function JSQuizApp() {
                 {baseSubTab === 'quiz' && <WeeklyBaseQuiz isDarkMode={isDarkMode} onPayment={sendPayment} />}
                 {baseSubTab === 'learn' && <BaseLearning isDarkMode={isDarkMode} />}
                 {baseSubTab === 'ai' && (
-                  <div className="max-w-2xl mx-auto space-y-6">
-                    <div className="glass-card p-8 text-center space-y-6 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-3xl rounded-full -mr-32 -mt-32" />
-                      <div className="relative z-10">
-                        <div className="w-20 h-20 mx-auto rounded-[2rem] bg-gradient-to-br from-blue-500 via-indigo-600 to-violet-700 flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/30 border border-white/10 mb-4">
-                          <Zap className="w-10 h-10 text-white" />
+                  <div className="max-w-3xl mx-auto">
+                    {isBaseAiOpen ? (
+                      <BaseAIAssistant isDarkMode={isDarkMode} onClose={() => setIsBaseAiOpen(false)} />
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="glass-card p-8 text-center space-y-6 relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-3xl rounded-full -mr-32 -mt-32" />
+                          <div className="relative z-10">
+                            <div className="w-20 h-20 mx-auto rounded-[2rem] bg-gradient-to-br from-blue-500 via-indigo-600 to-violet-700 flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/30 border border-white/10 mb-4">
+                              <Zap className="w-10 h-10 text-white" />
+                            </div>
+                            <h3 className="text-xl font-extrabold tracking-tight text-foreground mb-2">Base AI Assistant</h3>
+                            <p className="text-sm text-muted-foreground font-medium max-w-md mx-auto mb-6">
+                              Ask any question about Base chain and get instant, detailed answers about the ecosystem, smart contracts, DeFi, NFTs, and more.
+                            </p>
+                            <button
+                              onClick={() => setIsBaseAiOpen(true)}
+                              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-600 to-violet-600 text-white font-bold text-sm shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all flex items-center gap-3 mx-auto group"
+                            >
+                              <Zap className="w-5 h-5 group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all" />
+                              Ask About Base Chain
+                              <Brain className="w-5 h-5 opacity-60" />
+                            </button>
+                          </div>
                         </div>
-                        <h3 className="text-xl font-extrabold tracking-tight text-foreground mb-2">Base AI Assistant</h3>
-                        <p className="text-sm text-muted-foreground font-medium max-w-md mx-auto mb-6">
-                          Ask any question about Base chain and get instant, detailed answers about the ecosystem, smart contracts, DeFi, NFTs, and more.
-                        </p>
-                        <button
-                          onClick={() => setIsAiOpen(true)}
-                          className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-600 to-violet-600 text-white font-bold text-sm shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all flex items-center gap-3 mx-auto group"
-                        >
-                          <Zap className="w-5 h-5 group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all" />
-                          Ask About Base Chain
-                          <Brain className="w-5 h-5 opacity-60" />
-                        </button>
-                      </div>
-                    </div>
 
-                    {/* Quick Questions */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {[
-                        { q: "What is Base chain?", emoji: "🔵" },
-                        { q: "How do gas fees work on Base?", emoji: "⛽" },
-                        { q: "How to deploy a smart contract on Base?", emoji: "📝" },
-                        { q: "What is the OP Stack?", emoji: "🏗️" },
-                        { q: "How to bridge ETH to Base?", emoji: "🌉" },
-                        { q: "What is USDC on Base?", emoji: "💵" },
-                      ].map((item, i) => (
-                        <motion.button
-                          key={i}
-                          whileHover={{ y: -2, scale: 1.01 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setIsAiOpen(true)}
-                          className="glass-card p-4 text-left flex items-center gap-3 hover:border-blue-500/20 transition-all group"
-                        >
-                          <span className="text-xl">{item.emoji}</span>
-                          <span className="text-sm font-semibold text-foreground/80 group-hover:text-blue-500 transition-colors">{item.q}</span>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                        </motion.button>
-                      ))}
-                    </div>
+                        {/* Quick Questions */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {[
+                            { q: "What is Base chain?", emoji: "🔵" },
+                            { q: "How do gas fees work on Base?", emoji: "⛽" },
+                            { q: "How to deploy a smart contract on Base?", emoji: "📝" },
+                            { q: "What is the OP Stack?", emoji: "🏗️" },
+                            { q: "How to bridge ETH to Base?", emoji: "🌉" },
+                            { q: "What is USDC on Base?", emoji: "💵" },
+                          ].map((item, i) => (
+                            <motion.button
+                              key={i}
+                              whileHover={{ y: -2, scale: 1.01 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => setIsBaseAiOpen(true)}
+                              className="glass-card p-4 text-left flex items-center gap-3 hover:border-blue-500/20 transition-all group"
+                            >
+                              <span className="text-xl">{item.emoji}</span>
+                              <span className="text-sm font-semibold text-foreground/80 group-hover:text-blue-500 transition-colors">{item.q}</span>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </motion.div>
