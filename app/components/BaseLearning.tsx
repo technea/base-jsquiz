@@ -67,7 +67,7 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {BASE_LESSONS.map((lesson, idx) => {
                         const isRead = readLessons[lesson.id];
-                        const isUnlocked = lesson.id <= currentWeek;
+                        const isUnlocked = lesson.id === 1;
                         const dateRange = formatWeekDates(lesson.id);
 
                         return (
@@ -327,18 +327,16 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
                     <button
                         onClick={() => {
                             markAsRead(selectedLesson.id);
-                            if (selectedLesson.id < BASE_LESSONS.length) {
-                                setSelectedLesson(BASE_LESSONS[selectedLesson.id]);
-                            }
+                            setSelectedLesson(null);
                         }}
                         className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
                     >
                         <CheckCircle className="w-4 h-4" />
-                        Complete & Continue
+                        Complete Lesson
                     </button>
                 )}
 
-                {selectedLesson.id < BASE_LESSONS.length ? (
+                {selectedLesson.id < BASE_LESSONS.length && selectedLesson.id + 1 === 1 ? (
                     <button
                         onClick={() => setSelectedLesson(BASE_LESSONS[selectedLesson.id])}
                         className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-blue-500 text-white text-sm font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"

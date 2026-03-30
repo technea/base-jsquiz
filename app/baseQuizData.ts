@@ -178,15 +178,7 @@ export function getWeekEndDate(week: number): Date {
 
 // Check if a week has been unlocked (all previous weeks must be completed)
 export function isWeekUnlocked(week: number, completedWeeks: Record<number, number>): boolean {
-  if (week === 1) return true; // Week 1 is always unlocked
-  // Check all previous weeks are completed (have a score)
-  for (let w = 1; w < week; w++) {
-    if (completedWeeks[w] === undefined) return false;
-  }
-  // Also check the week's time window has arrived
-  const now = new Date();
-  const weekStart = getWeekStartDate(week);
-  return now >= weekStart;
+  return week === 1; // Only week 1 is open
 }
 
 // Get days remaining in the current week
