@@ -193,7 +193,7 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
     if (quizState === 'select') {
         return (
             <>
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-8">
                     {/* Header */}
                     <div className="text-center space-y-4">
                         <div className="w-20 h-20 mx-auto rounded-[2rem] bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/30 border border-white/10">
@@ -221,8 +221,8 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
                             return (
                                 <motion.button
                                     key={theme.week}
-                                    whileHover={unlocked ? { y: -4, scale: 1.01 } : {}}
-                                    whileTap={unlocked ? { scale: 0.98 } : {}}
+                                    whileHover={unlocked ? { y: -2 } : {}}
+                                    whileTap={unlocked ? { scale: 0.99 } : {}}
                                     onClick={() => unlocked && startQuiz(theme.week)}
                                     disabled={!unlocked}
                                     className={`glass-card p-5 text-left relative overflow-hidden group transition-all duration-300 ${
@@ -417,9 +417,10 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentIdx}
-                        initial={{ opacity: 0, x: 30 }}
+                        initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -30 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         className="glass-card p-6 sm:p-8 space-y-6"
                     >
                         <div className="flex items-start gap-3">
@@ -444,7 +445,7 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
                                 return (
                                     <motion.button
                                         key={oi}
-                                        whileHover={!showResult ? { scale: 1.01, x: 4 } : {}}
+                                        whileHover={!showResult ? { x: 2 } : {}}
                                         whileTap={!showResult ? { scale: 0.99 } : {}}
                                         onClick={() => handleAnswer(opt)}
                                         disabled={!!selectedOpt}
@@ -479,6 +480,7 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
                                     className="overflow-hidden"
                                 >
                                     <div className={`p-4 rounded-2xl border text-sm leading-relaxed font-medium ${isCorrect
