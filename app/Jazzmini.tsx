@@ -867,9 +867,6 @@ export default function JSQuizApp() {
                 {baseSubTab === 'learn' && <BaseLearning isDarkMode={isDarkMode} />}
                 {baseSubTab === 'ai' && (
                   <div className="max-w-3xl mx-auto">
-                    {isBaseAiOpen ? (
-                      <BaseAIAssistant isDarkMode={isDarkMode} onClose={() => setIsBaseAiOpen(false)} />
-                    ) : (
                       <div className="space-y-6">
                         <div className="glass-card p-8 text-center space-y-6 relative overflow-hidden">
                           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-3xl rounded-full -mr-32 -mt-32" />
@@ -916,7 +913,6 @@ export default function JSQuizApp() {
                           ))}
                         </div>
                       </div>
-                    )}
                   </div>
                 )}
               </motion.div>
@@ -1092,6 +1088,30 @@ export default function JSQuizApp() {
               className="fixed bottom-0 right-0 z-[120] w-full h-[92dvh] sm:w-[500px] sm:h-[80vh] sm:max-h-[800px] sm:m-6 sm:rounded-3xl overflow-hidden shadow-[0_30px_90px_-15px_rgba(0,0,0,0.6)] border-t sm:border border-border bg-card pointer-events-auto"
             >
               <AIAssistant isDarkMode={isDarkMode} onClose={() => setIsAiOpen(false)} />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ BASE AI EXPERT FULLSCREEN MODAL ═══ */}
+      <AnimatePresence>
+        {isBaseAiOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-[2px] pointer-events-auto"
+              onClick={() => setIsBaseAiOpen(false)}
+            />
+            <motion.div 
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 32, stiffness: 300 }}
+              className="fixed bottom-0 right-0 z-[120] w-full h-[92dvh] sm:w-[500px] sm:h-[80vh] sm:max-h-[800px] sm:m-6 sm:rounded-3xl overflow-hidden shadow-[0_30px_90px_-15px_rgba(0,0,0,0.6)] border-t sm:border border-border bg-card pointer-events-auto"
+            >
+              <BaseAIAssistant isDarkMode={isDarkMode} onClose={() => setIsBaseAiOpen(false)} />
             </motion.div>
           </>
         )}
