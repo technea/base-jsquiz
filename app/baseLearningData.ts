@@ -255,7 +255,7 @@ export const BASE_LESSONS: BaseLesson[] = [
           "**Approval scams**: malicious dApps request unlimited token approval, then drain your wallet later",
           "✅ Golden rule: If it sounds **too good to be true**, it's a scam. Real projects never DM you first"
         ],
-        code: '// 🚩 Red Flags Checklist:\n\n// 1. \"Connect wallet to claim airdrop\"\n//    → Almost always a drainer\n\n// 2. \"Send 1 ETH, receive 2 back\"\n//    → Classic scam, NEVER works\n\n// 3. \"DM from support/admin\"\n//    → No real project does this\n\n// 4. Token with 99% buy tax\n//    → Honeypot: buy but can\\'t sell\n\n// 5. Unverified contract on Basescan\n//    → Hidden malicious code\n\n// ✅ Always verify on basescan.org\n// ✅ Check community on Farcaster\n// ✅ Start with small test amounts'
+        code: `// 🚩 Red Flags Checklist:\n\n// 1. "Connect wallet to claim airdrop"\n//    → Almost always a drainer\n\n// 2. "Send 1 ETH, receive 2 back"\n//    → Classic scam, NEVER works\n\n// 3. "DM from support/admin"\n//    → No real project does this\n\n// 4. Token with 99% buy tax\n//    → Honeypot: buy but can't sell\n\n// 5. Unverified contract on Basescan\n//    → Hidden malicious code\n\n// ✅ Always verify on basescan.org\n// ✅ Check community on Farcaster\n// ✅ Start with small test amounts`
       }
     ]
   },
