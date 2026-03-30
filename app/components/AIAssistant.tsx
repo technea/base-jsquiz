@@ -1013,6 +1013,7 @@ Paste code or pick a command below! 🚀`,
             <button className="chip" onClick={() => setInput("Deep dive into Event Loop at Level 10")}>🧙 Expert</button>
             <button className="chip" onClick={() => setInput("Analyze this code for security vulnerabilities")}>🛡️ Security</button>
             <button className="chip" onClick={() => { setQuizMode(true); setInput("Quiz me on JavaScript fundamentals"); }}>🧠 Quiz Me</button>
+            <button className="chip" onClick={() => { setQuizMode(false); setInput("Give me a comprehensive overview of the Base Network, including L2 concepts, bridging, and its ecosystem."); }}>🔵 Base Info</button>
           </div>
 
           {file && (
