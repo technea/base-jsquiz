@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   title: "JAZZMINI | The Ultimate JS Blueprint",
   description: "Prepare for your JavaScript interview and master JS through 10 immersive levels of technical challenges and Web3 rewards.",
   other: {
+    'base:app_id': '694bd919c63ad876c9081188',
     'fc:miniapp': JSON.stringify({
       version: '1',
       imageUrl: 'https://base-jsquiz.vercel.app/og-pro.png',
