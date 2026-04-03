@@ -22,6 +22,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Code2, Sparkles, Zap, Brain, ChevronRight } from 'lucide-react';
+import { Attribution } from 'ox/erc8021';
+
+// Get your Builder Code from base.dev > Settings > Builder Codes
+const DATA_SUFFIX = Attribution.toDataSuffix({
+  codes: ["bc_92dq8ffn"],
+});
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -429,7 +435,7 @@ export default function JSQuizApp() {
         const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
         const tx = await sdk.wallet.ethProvider.request({
           method: 'eth_sendTransaction',
-          params: [{ from: accounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, chainId: '0x2105' }]
+          params: [{ from: accounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, data: DATA_SUFFIX, chainId: '0x2105' }]
         });
         if (tx) return tx;
       }
@@ -444,7 +450,7 @@ export default function JSQuizApp() {
     const amountHex = '0x' + BigInt(amountInWei).toString(16);
     return await fallbackProvider.request({
       method: 'eth_sendTransaction',
-      params: [{ from: fallbackAccounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, chainId: '0x2105' }]
+      params: [{ from: fallbackAccounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, data: DATA_SUFFIX, chainId: '0x2105' }]
     });
   }, []);
 
@@ -455,7 +461,7 @@ export default function JSQuizApp() {
         const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
         const tx = await sdk.wallet.ethProvider.request({
           method: 'eth_sendTransaction',
-          params: [{ from: accounts[0], to: USDC_BASE, data: dataStr, chainId: '0x2105' }]
+          params: [{ from: accounts[0], to: USDC_BASE, data: dataStr + DATA_SUFFIX.slice(2), chainId: '0x2105' }]
         });
         if (tx) return tx;
       }
@@ -469,7 +475,7 @@ export default function JSQuizApp() {
     const fallbackAccounts = await fallbackProvider.request({ method: 'eth_requestAccounts' });
     return await fallbackProvider.request({
       method: 'eth_sendTransaction',
-      params: [{ from: fallbackAccounts[0], to: USDC_BASE, data: dataStr, chainId: '0x2105' }]
+      params: [{ from: fallbackAccounts[0], to: USDC_BASE, data: dataStr + DATA_SUFFIX.slice(2), chainId: '0x2105' }]
     });
   }, []);
 
