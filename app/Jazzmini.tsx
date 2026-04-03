@@ -12,7 +12,10 @@ import {
   ref,
   set,
   onValue,
+  remove,
+  onDisconnect,
   Database,
+  serverTimestamp,
   limitToFirst,
   query as dbQuery
 } from 'firebase/database';
@@ -118,6 +121,7 @@ export default function JSQuizApp() {
   const [userId, setUserId] = useState<string | null>(null);
   const [globalStats, setGlobalStats] = useState<GlobalStats>({ maxScore: 0, highestLevel: 1 });
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [onlineCount, setOnlineCount] = useState(0);
   const [authReady, setAuthReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [themeLoaded, setThemeLoaded] = useState(false);
@@ -382,6 +386,40 @@ export default function JSQuizApp() {
 
     return () => unsubscribe();
   }, [db]);
+
+  // Online Presence Tracking
+  useEffect(() => {
+    if (!db || !userId) return;
+    const presenceId = (connectedAddress || userId).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const presenceRef = ref(db, `presence/${presenceId}`);
+    const connectedRef = ref(db, '.info/connected');
+
+    const unsubscribeConn = onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        // Write presence when connected
+        set(presenceRef, { online: true, lastSeen: Date.now() });
+        // Auto-remove when disconnected
+        onDisconnect(presenceRef).remove();
+      }
+    });
+
+    // Count online users
+    const allPresenceRef = ref(db, 'presence');
+    const unsubscribePresence = onValue(allPresenceRef, (snap) => {
+      if (snap.exists()) {
+        setOnlineCount(Object.keys(snap.val()).length);
+      } else {
+        setOnlineCount(0);
+      }
+    });
+
+    return () => {
+      unsubscribeConn();
+      unsubscribePresence();
+      // Clean up presence on component unmount
+      remove(presenceRef).catch(() => {});
+    };
+  }, [db, userId, connectedAddress]);
 
   // Logic Handlers
   const sendEthPayment = useCallback(async (amountInWei: string) => {
@@ -952,6 +990,7 @@ export default function JSQuizApp() {
             isDarkMode={isDarkMode}
             leaderboardData={leaderboard}
             connectedAddress={connectedAddress}
+            onlineCount={onlineCount}
             onConnect={connectWallet}
           />
         );

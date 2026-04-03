@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Users, Wallet, ArrowRight } from 'lucide-react';
+import { Trophy, Wallet, ArrowRight, Copy, Check, Wifi } from 'lucide-react';
 
 interface LeaderboardTableProps {
     isDarkMode: boolean;
     leaderboardData: any[];
     connectedAddress: string | null;
+    onlineCount?: number;
     onConnect: () => void;
 }
 
@@ -22,9 +24,18 @@ export const LeaderboardTable = ({
     isDarkMode,
     leaderboardData,
     connectedAddress,
+    onlineCount = 0,
     onConnect
 }: LeaderboardTableProps) => {
+    const [copiedId, setCopiedId] = useState<string | null>(null);
     const totalPoints = leaderboardData.reduce((a, p) => a + (Number(p.totalPoints) || 0), 0);
+
+    const handleCopy = (text: string, id: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        });
+    };
 
     return (
         <motion.div
@@ -55,9 +66,18 @@ export const LeaderboardTable = ({
                             <p className="text-lg font-extrabold text-white tracking-tight">{totalPoints.toLocaleString()}</p>
                         </div>
                         <div className="flex-1 max-w-[140px] flex flex-col items-center gap-1 px-3 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
-                            <p className="text-[9px] text-white/50 font-bold uppercase tracking-widest">Active Players</p>
+                            <p className="text-[9px] text-white/50 font-bold uppercase tracking-widest">Total Players</p>
                             <p className="text-lg font-extrabold text-white tracking-tight">{leaderboardData.length}</p>
                         </div>
+                        {onlineCount > 0 && (
+                            <div className="flex-1 max-w-[140px] flex flex-col items-center gap-1 px-3 py-3 rounded-2xl bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30">
+                                <div className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    <p className="text-[9px] text-emerald-300/80 font-bold uppercase tracking-widest">Online Now</p>
+                                </div>
+                                <p className="text-lg font-extrabold text-emerald-300 tracking-tight">{onlineCount}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -150,7 +170,7 @@ export const LeaderboardTable = ({
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-3 mt-1">
+                                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                                             {displayName !== shortAddress && (
                                                 <span className="text-[10px] font-mono font-medium text-muted-foreground/60 truncate">
                                                     {shortAddress}
@@ -161,6 +181,37 @@ export const LeaderboardTable = ({
                                                     Level {player.highestLevel}
                                                 </div>
                                             )}
+                                            {/* Copy Buttons */}
+                                            <div className="flex items-center gap-1 ml-auto">
+                                                {player.basename && player.basename !== player.address?.slice(0, 8) && (
+                                                    <motion.button
+                                                        whileTap={{ scale: 0.9 }}
+                                                        onClick={() => handleCopy(player.basename, `basename-${idx}`)}
+                                                        title={`Copy basename: ${player.basename}`}
+                                                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-[9px] font-bold transition-all"
+                                                    >
+                                                        {copiedId === `basename-${idx}` ? (
+                                                            <><Check className="w-2.5 h-2.5" /> Copied!</>
+                                                        ) : (
+                                                            <><Copy className="w-2.5 h-2.5" /> Name</>
+                                                        )}
+                                                    </motion.button>
+                                                )}
+                                                {player.address && (
+                                                    <motion.button
+                                                        whileTap={{ scale: 0.9 }}
+                                                        onClick={() => handleCopy(player.address, `addr-${idx}`)}
+                                                        title={`Copy address: ${player.address}`}
+                                                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-muted-foreground text-[9px] font-bold transition-all"
+                                                    >
+                                                        {copiedId === `addr-${idx}` ? (
+                                                            <><Check className="w-2.5 h-2.5 text-emerald-400" /> Copied!</>
+                                                        ) : (
+                                                            <><Copy className="w-2.5 h-2.5" /> Addr</>
+                                                        )}
+                                                    </motion.button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
