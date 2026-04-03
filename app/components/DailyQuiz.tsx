@@ -243,15 +243,17 @@ export const DailyQuiz = ({
                                     ) : (
                                         <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     )}
-                                    {paymentStatus === 'pending' ? 'Broadcasting...' : 'Claim Achievement ($0.01 USDC)'}
+                                    {paymentStatus === 'pending' ? 'Broadcasting...' : (
+                                        dailyQuizResult === 'correct' ? 'Claim Achievement ($0.01 USDC)' : 'Restore Streak ($0.03 USDC)'
+                                    )}
                                 </motion.button>
                             ) : (
                                 <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-success/10 border border-success/30 flex flex-col items-center gap-1.5 sm:gap-2 text-center">
                                     <div className="flex items-center gap-2 text-success font-bold text-xs sm:text-sm">
                                         <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                                        On-Chain Record Verified!
+                                        {dailyQuizResult === 'correct' ? 'On-Chain Record Verified!' : 'Streak Restored! 🔥'}
                                     </div>
-                                    {paymentTx && (
+                                    {paymentTx && dailyQuizResult === 'correct' && (
                                         <a
                                             href={`https://basescan.org/tx/${paymentTx}`}
                                             target="_blank"

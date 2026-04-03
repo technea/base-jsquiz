@@ -737,6 +737,7 @@ export default function JSQuizApp() {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       updateLeaderboard(paidLevels[1] || false, newTotal, newStreak);
     } else {
+      localStorage.setItem('savedBrokenStreak', dailyStreak.toString());
       setDailyStreak(0);
       localStorage.setItem('dailyStreak', '0');
       const currentTotal = Object.values(levelScores).reduce((a, b: any) => a + b, 0) + dailyPoints;
@@ -747,17 +748,28 @@ export default function JSQuizApp() {
   const handleStreakRestore = useCallback(async () => {
     setStreakRecoveryStatus('pending');
     try {
-      const tx = await sendPayment(30000); // 0.03 USDC (Updated to 0.03 as requested)
+      const tx = await sendPayment(30000); // 0.03 USDC
       if (tx) {
         setStreakRecoveryStatus('success');
         setStreakMissed(false);
         const today = getTodayDateKey();
         localStorage.setItem('lastGmDate', today);
+        
+        const savedBroken = localStorage.getItem('savedBrokenStreak');
+        if (savedBroken) {
+          const restoredStreak = parseInt(savedBroken, 10);
+          setDailyStreak(restoredStreak);
+          localStorage.setItem('dailyStreak', restoredStreak.toString());
+          localStorage.removeItem('savedBrokenStreak');
+          
+          const currentTotal = Object.values(levelScores).reduce((a, b: any) => a + b, 0) + dailyPoints + Object.values(baseQuizScores).reduce((a, b: any) => a + b, 0);
+          updateLeaderboard(paidLevels[1] || false, currentTotal, restoredStreak);
+        }
       }
     } catch (e) {
       setStreakRecoveryStatus('error');
     }
-  }, [sendPayment]);
+  }, [sendPayment, dailyPoints, levelScores, baseQuizScores, updateLeaderboard, paidLevels]);
 
   const handleResetStreak = useCallback(() => {
     setDailyStreak(0);
@@ -831,9 +843,9 @@ export default function JSQuizApp() {
               dailyQuizResult={dailyQuizResult}
               onAnswer={handleDailyAnswer}
               onClose={() => setShowDailyQuiz(false)}
-              paymentStatus={dailyPaymentStatus}
-              onPayment={handleDailyPayment}
-              paymentTx={dailyPaymentTx}
+              paymentStatus={dailyQuizResult === 'correct' ? dailyPaymentStatus : streakRecoveryStatus}
+              onPayment={dailyQuizResult === 'correct' ? handleDailyPayment : handleStreakRestore}
+              paymentTx={dailyQuizResult === 'correct' ? dailyPaymentTx : null}
             />
           );
         }
