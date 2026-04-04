@@ -22,7 +22,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Code2, Sparkles, Zap, Brain, ChevronRight } from 'lucide-react';
-import { useAccount, useSendTransaction, useConnect, useDisconnect } from 'wagmi';
+import { useAccount, useSendTransaction, useWriteContract, useConnect, useDisconnect } from 'wagmi';
 import { parseEther, parseUnits } from 'viem';
 import { DATA_SUFFIX } from './config';
 
@@ -181,6 +181,7 @@ export default function JSQuizApp() {
   // Wagmi hooks
   const { address: wagmiAddress, isConnected } = useAccount();
   const { sendTransactionAsync } = useSendTransaction();
+  const { writeContractAsync } = useWriteContract();
 
   // Sync connected address with wagmi
   useEffect(() => {
@@ -440,7 +441,7 @@ export default function JSQuizApp() {
       const hash = await sendTransactionAsync({
         to: QUIZ_CONTRACT_ADDRESS as `0x${string}`,
         value: BigInt(amountInWei),
-        data: DATA_SUFFIX as `0x${string}`,
+        dataSuffix: DATA_SUFFIX as `0x${string}`,
       });
       return hash;
     } catch (e: any) {
@@ -451,20 +452,31 @@ export default function JSQuizApp() {
 
   const sendPayment = useCallback(async (amountInWei: number) => {
     try {
-      // Manual data encoding for ERC20 transfer if using sendTransaction
-      // a9059cbb is transfer(address,uint256)
-      const dataStr = '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
-      
-      const hash = await sendTransactionAsync({
-        to: USDC_BASE as `0x${string}`,
-        data: (dataStr + DATA_SUFFIX.slice(2)) as `0x${string}`,
+      const hash = await writeContractAsync({
+        address: USDC_BASE as `0x${string}`,
+        abi: [
+          {
+            name: 'transfer',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'to', type: 'address' },
+              { name: 'amount', type: 'uint256' },
+            ],
+            outputs: [{ name: '', type: 'bool' }],
+          },
+        ],
+        functionName: 'transfer',
+        args: [QUIZ_CONTRACT_ADDRESS as `0x${string}`, BigInt(amountInWei)],
+        // Explicitly set the builder code attribution in the hook call
+        dataSuffix: DATA_SUFFIX as `0x${string}`,
       });
       return hash;
     } catch (e: any) {
       console.error("USDC Payment failed:", e);
       throw e;
     }
-  }, [sendTransactionAsync]);
+  }, [writeContractAsync]);
 
   const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
     try {
