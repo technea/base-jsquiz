@@ -24,6 +24,7 @@ import confetti from 'canvas-confetti';
 import { Code2, Sparkles, Zap, Brain, ChevronRight } from 'lucide-react';
 import { useAccount, useSendTransaction, useConnect, useDisconnect } from 'wagmi';
 import { parseEther, parseUnits } from 'viem';
+import { DATA_SUFFIX } from './config';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -439,6 +440,7 @@ export default function JSQuizApp() {
       const hash = await sendTransactionAsync({
         to: QUIZ_CONTRACT_ADDRESS as `0x${string}`,
         value: BigInt(amountInWei),
+        data: DATA_SUFFIX as `0x${string}`,
       });
       return hash;
     } catch (e: any) {
@@ -451,11 +453,11 @@ export default function JSQuizApp() {
     try {
       // Manual data encoding for ERC20 transfer if using sendTransaction
       // a9059cbb is transfer(address,uint256)
-      const dataStr = ('0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0')) as `0x${string}`;
+      const dataStr = '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
       
       const hash = await sendTransactionAsync({
         to: USDC_BASE as `0x${string}`,
-        data: dataStr,
+        data: (dataStr + DATA_SUFFIX.slice(2)) as `0x${string}`,
       });
       return hash;
     } catch (e: any) {

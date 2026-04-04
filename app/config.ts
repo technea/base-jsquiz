@@ -4,7 +4,7 @@ import { injected } from "wagmi/connectors";
 import { Attribution } from "ox/erc8021";
 
 // Get your Builder Code from base.dev > Settings > Builder Codes
-const DATA_SUFFIX = Attribution.toDataSuffix({
+export const DATA_SUFFIX = Attribution.toDataSuffix({
   codes: ["bc_92dq8ffn"],
 });
 
