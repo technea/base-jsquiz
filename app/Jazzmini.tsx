@@ -22,12 +22,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Code2, Sparkles, Zap, Brain, ChevronRight } from 'lucide-react';
-import { Attribution } from 'ox/erc8021';
-
-// Get your Builder Code from base.dev > Settings > Builder Codes
-const DATA_SUFFIX = Attribution.toDataSuffix({
-  codes: ["bc_92dq8ffn"],
-});
+import { useAccount, useSendTransaction, useConnect, useDisconnect } from 'wagmi';
+import { parseEther, parseUnits } from 'viem';
 
 // Project imports
 import { QUIZ_DATA } from './quizData';
@@ -181,6 +177,16 @@ export default function JSQuizApp() {
   const [dailyPaymentStatus, setDailyPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [dailyPaymentTx, setDailyPaymentTx] = useState<string | null>(null);
   
+  // Wagmi hooks
+  const { address: wagmiAddress, isConnected } = useAccount();
+  const { sendTransactionAsync } = useSendTransaction();
+
+  // Sync connected address with wagmi
+  useEffect(() => {
+    if (wagmiAddress) setConnectedAddress(wagmiAddress);
+    else if (!isConnected) setConnectedAddress(null);
+  }, [wagmiAddress, isConnected]);
+
   const quizStateRef = useRef(quizState);
 
   // ═══ GSAP global button enhancements ═══
@@ -430,54 +436,33 @@ export default function JSQuizApp() {
   // Logic Handlers
   const sendEthPayment = useCallback(async (amountInWei: string) => {
     try {
-      const amountHex = '0x' + BigInt(amountInWei).toString(16);
-      if (sdk?.wallet?.ethProvider?.request) {
-        const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
-        const tx = await sdk.wallet.ethProvider.request({
-          method: 'eth_sendTransaction',
-          params: [{ from: accounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, data: DATA_SUFFIX, chainId: '0x2105' }]
-        });
-        if (tx) return tx;
-      }
-    } catch (e) {
-      console.log("Farcaster SDK ETH tx failed. Falling back...");
+      const hash = await sendTransactionAsync({
+        to: QUIZ_CONTRACT_ADDRESS as `0x${string}`,
+        value: BigInt(amountInWei),
+      });
+      return hash;
+    } catch (e: any) {
+      console.error("ETH Payment failed:", e);
+      throw e;
     }
-
-    const fallbackProvider = (window as any).ethereum || (window as any).MetaMask;
-    if (!fallbackProvider) throw new Error("Wallet not available");
-
-    const fallbackAccounts = await fallbackProvider.request({ method: 'eth_requestAccounts' });
-    const amountHex = '0x' + BigInt(amountInWei).toString(16);
-    return await fallbackProvider.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: fallbackAccounts[0], to: QUIZ_CONTRACT_ADDRESS, value: amountHex, data: DATA_SUFFIX, chainId: '0x2105' }]
-    });
-  }, []);
+  }, [sendTransactionAsync]);
 
   const sendPayment = useCallback(async (amountInWei: number) => {
-    const dataStr = '0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
     try {
-      if (sdk?.wallet?.ethProvider?.request) {
-        const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
-        const tx = await sdk.wallet.ethProvider.request({
-          method: 'eth_sendTransaction',
-          params: [{ from: accounts[0], to: USDC_BASE, data: dataStr + DATA_SUFFIX.slice(2), chainId: '0x2105' }]
-        });
-        if (tx) return tx;
-      }
-    } catch (e) {
-      console.log("Farcaster SDK tx failed or skipped. Falling back to native wallet...");
+      // Manual data encoding for ERC20 transfer if using sendTransaction
+      // a9059cbb is transfer(address,uint256)
+      const dataStr = ('0xa9059cbb' + QUIZ_CONTRACT_ADDRESS.slice(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0')) as `0x${string}`;
+      
+      const hash = await sendTransactionAsync({
+        to: USDC_BASE as `0x${string}`,
+        data: dataStr,
+      });
+      return hash;
+    } catch (e: any) {
+      console.error("USDC Payment failed:", e);
+      throw e;
     }
-
-    const fallbackProvider = (window as any).ethereum || (window as any).MetaMask;
-    if (!fallbackProvider) throw new Error("Wallet not available");
-
-    const fallbackAccounts = await fallbackProvider.request({ method: 'eth_requestAccounts' });
-    return await fallbackProvider.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: fallbackAccounts[0], to: USDC_BASE, data: dataStr + DATA_SUFFIX.slice(2), chainId: '0x2105' }]
-    });
-  }, []);
+  }, [sendTransactionAsync]);
 
   const updateLeaderboard = useCallback(async (isPaid: boolean = false, customTotal?: number, customStreak?: number) => {
     try {
