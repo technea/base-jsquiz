@@ -438,11 +438,13 @@ export default function JSQuizApp() {
   // Logic Handlers
   const sendEthPayment = useCallback(async (amountInWei: string) => {
     try {
+      console.log("ETH Payment: Triggering with DATA_SUFFIX:", DATA_SUFFIX);
       const hash = await sendTransactionAsync({
         to: QUIZ_CONTRACT_ADDRESS as `0x${string}`,
         value: BigInt(amountInWei),
         dataSuffix: DATA_SUFFIX as `0x${string}`,
       });
+      console.log("ETH Payment Success: Hash =", hash);
       return hash;
     } catch (e: any) {
       console.error("ETH Payment failed:", e);
@@ -452,6 +454,7 @@ export default function JSQuizApp() {
 
   const sendPayment = useCallback(async (amountInWei: number) => {
     try {
+      console.log("USDC Payment: Triggering with DATA_SUFFIX:", DATA_SUFFIX);
       const hash = await writeContractAsync({
         address: USDC_BASE as `0x${string}`,
         abi: [
@@ -471,6 +474,7 @@ export default function JSQuizApp() {
         // Explicitly set the builder code attribution in the hook call
         dataSuffix: DATA_SUFFIX as `0x${string}`,
       });
+      console.log("USDC Payment Success: Hash =", hash);
       return hash;
     } catch (e: any) {
       console.error("USDC Payment failed:", e);
@@ -842,9 +846,11 @@ export default function JSQuizApp() {
               dailyQuizResult={dailyQuizResult}
               onAnswer={handleDailyAnswer}
               onClose={() => setShowDailyQuiz(false)}
-              paymentStatus={dailyQuizResult === 'correct' ? dailyPaymentStatus : streakRecoveryStatus}
-              onPayment={dailyQuizResult === 'correct' ? handleDailyPayment : handleStreakRestore}
-              paymentTx={dailyQuizResult === 'correct' ? dailyPaymentTx : null}
+              paymentStatus={dailyPaymentStatus}
+              onPayment={handleDailyPayment}
+              paymentTx={dailyPaymentTx}
+              restoreStatus={streakRecoveryStatus}
+              onRestore={handleStreakRestore}
             />
           );
         }

@@ -16,6 +16,8 @@ interface DailyQuizProps {
     paymentStatus?: 'idle' | 'pending' | 'success' | 'error';
     onPayment?: () => void;
     paymentTx?: string | null;
+    restoreStatus?: 'idle' | 'pending' | 'success' | 'error';
+    onRestore?: () => void;
 }
 
 export const DailyQuiz = ({
@@ -27,7 +29,9 @@ export const DailyQuiz = ({
     onClose,
     paymentStatus = 'idle',
     onPayment,
-    paymentTx
+    paymentTx,
+    restoreStatus = 'idle',
+    onRestore
 }: DailyQuizProps) => {
     useEffect(() => {
         if (dailyQuizAnswer && onClose && paymentStatus === 'success') {
@@ -226,45 +230,79 @@ export const DailyQuiz = ({
                             </div>
 
                             {/* Payment/Claim CTA */}
-                            {paymentStatus !== 'success' ? (
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={onPayment}
-                                    disabled={paymentStatus === 'pending'}
-                                    className={`w-full py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] flex items-center justify-center gap-2 sm:gap-3 transition-all ${
-                                        paymentStatus === 'pending'
-                                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                                            : 'bg-primary text-white shadow-xl shadow-primary/20 hover:shadow-primary/40'
-                                    }`}
-                                >
-                                    {paymentStatus === 'pending' ? (
-                                        <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
-                                    ) : (
-                                        <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                    )}
-                                    {paymentStatus === 'pending' ? 'Broadcasting...' : (
-                                        dailyQuizResult === 'correct' ? 'Claim Achievement ($0.01 USDC)' : 'Restore Streak ($0.03 USDC)'
-                                    )}
-                                </motion.button>
-                            ) : (
-                                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-success/10 border border-success/30 flex flex-col items-center gap-1.5 sm:gap-2 text-center">
-                                    <div className="flex items-center gap-2 text-success font-bold text-xs sm:text-sm">
-                                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                                        {dailyQuizResult === 'correct' ? 'On-Chain Record Verified!' : 'Streak Restored! 🔥'}
+                            <div className="flex flex-col gap-3 w-full">
+                                {/* Option 1: Daily Achievement / Interaction ($0.01) */}
+                                {paymentStatus !== 'success' ? (
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={onPayment}
+                                        disabled={paymentStatus === 'pending'}
+                                        className={`w-full py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] flex items-center justify-center gap-2 sm:gap-3 transition-all ${
+                                            paymentStatus === 'pending'
+                                                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                                                : 'bg-primary text-white shadow-xl shadow-primary/20 hover:shadow-primary/40'
+                                        }`}
+                                    >
+                                        {paymentStatus === 'pending' ? (
+                                            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
+                                        ) : (
+                                            <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        )}
+                                        {paymentStatus === 'pending' ? 'Broadcasting...' : (
+                                            dailyQuizResult === 'correct' ? 'Claim Achievement ($0.01 USDC)' : 'Post Daily Interaction ($0.01 USDC)'
+                                        )}
+                                    </motion.button>
+                                ) : (
+                                    <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-success/10 border border-success/30 flex flex-col items-center gap-1.5 sm:gap-2 text-center w-full">
+                                        <div className="flex items-center gap-2 text-success font-bold text-xs sm:text-sm">
+                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            Record Verified!
+                                        </div>
+                                        {paymentTx && (
+                                            <a
+                                                href={`https://basescan.org/tx/${paymentTx}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[9px] sm:text-[10px] font-mono text-success/70 hover:underline flex items-center gap-1"
+                                            >
+                                                View Tx <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                            </a>
+                                        )}
                                     </div>
-                                    {paymentTx && dailyQuizResult === 'correct' && (
-                                        <a
-                                            href={`https://basescan.org/tx/${paymentTx}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-[9px] sm:text-[10px] font-mono text-success/70 hover:underline flex items-center gap-1"
+                                )}
+
+                                {/* Option 2: Restore Streak ($0.03) - Only if failed and not restored yet */}
+                                {dailyQuizResult === 'wrong' && (
+                                    restoreStatus !== 'success' ? (
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={onRestore}
+                                            disabled={restoreStatus === 'pending'}
+                                            className={`w-full py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] flex items-center justify-center gap-2 sm:gap-3 transition-all ${
+                                                restoreStatus === 'pending'
+                                                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                                                    : 'bg-foreground text-background shadow-xl'
+                                            }`}
                                         >
-                                            View Tx <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                        </a>
-                                    )}
-                                </div>
-                            )}
+                                            {restoreStatus === 'pending' ? (
+                                                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
+                                            ) : (
+                                                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500" />
+                                            )}
+                                            {restoreStatus === 'pending' ? 'Broadcasting...' : 'Restore Streak ($0.03 USDC)'}
+                                        </motion.button>
+                                    ) : (
+                                        <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-orange-500/10 border border-orange-500/30 flex flex-col items-center gap-1.5 sm:gap-2 text-center w-full">
+                                            <div className="flex items-center gap-2 text-orange-500 font-bold text-xs sm:text-sm">
+                                                <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
+                                                Streak Restored! 🔥
+                                            </div>
+                                        </div>
+                                    )
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 )}
