@@ -1,5 +1,5 @@
 import { createConfig, http } from "wagmi";
-import { base } from "wagmi/chains";
+import { base, hardhat } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 import { Attribution } from "ox/erc8021";
 
@@ -9,10 +9,11 @@ export const DATA_SUFFIX = Attribution.toDataSuffix({
 });
 
 export const config = createConfig({
-  chains: [base],
+  chains: [base, hardhat],
   connectors: [injected()],
   transports: {
     [base.id]: http(),
+    [hardhat.id]: http(),
   },
   // @ts-ignore - dataSuffix is not in wagmi types but supported by the runtime
   dataSuffix: DATA_SUFFIX,

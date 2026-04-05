@@ -55,6 +55,7 @@ import { AIAssistant } from './components/AIAssistant';
 import { WeeklyBaseQuiz } from './components/WeeklyBaseQuiz';
 import { BaseLearning } from './components/BaseLearning';
 import { BaseAIAssistant } from './components/BaseAIAssistant';
+import { NFTModal } from './components/NFTModal';
 import { useGsapButtons } from './hooks/useGsapButtons';
 
 // --- Farcaster SDK ---
@@ -173,6 +174,7 @@ export default function JSQuizApp() {
   const [activeTab, setActiveTab] = useState<'quiz' | 'daily' | 'learn' | 'dashboard' | 'leaderboard' | 'base'>('quiz');
   const [baseSubTab, setBaseSubTab] = useState<'quiz' | 'learn' | 'ai'>('quiz');
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const [showNFTModal, setShowNFTModal] = useState(false);
   const [learningLevel, setLearningLevel] = useState(1);
   
   const [dailyPaymentStatus, setDailyPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -834,6 +836,7 @@ export default function JSQuizApp() {
             MAX_FREE_ATTEMPTS={MAX_FREE_ATTEMPTS}
             farcasterUser={farcasterUser}
             onOpenAiChat={() => setIsAiOpen(true)}
+            onOpenNFTs={() => setShowNFTModal(true)}
           />
         );
       case 'daily':
@@ -1178,6 +1181,15 @@ export default function JSQuizApp() {
           </>
         )}
       </AnimatePresence>
+
+      <NFTModal
+        isOpen={showNFTModal}
+        onClose={() => setShowNFTModal(false)}
+        isDarkMode={isDarkMode}
+        userLevel={globalStats.highestLevel}
+        userStreak={dailyStreak}
+        userWeeksBase={Object.keys(baseQuizScores || {}).length}
+      />
     </div>
   );
 }

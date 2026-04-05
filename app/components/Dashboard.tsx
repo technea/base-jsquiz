@@ -15,6 +15,7 @@ interface DashboardProps {
     MAX_FREE_ATTEMPTS: number;
     farcasterUser?: any;
     onOpenAiChat?: () => void;
+    onOpenNFTs?: () => void;
 }
 
 export const Dashboard = ({
@@ -27,7 +28,8 @@ export const Dashboard = ({
     onLevelSelect,
     MAX_FREE_ATTEMPTS,
     farcasterUser,
-    onOpenAiChat
+    onOpenAiChat,
+    onOpenNFTs
 }: DashboardProps) => {
     return (
         <motion.div
@@ -71,7 +73,7 @@ export const Dashboard = ({
             </div>
 
             {/* Feature Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Wallet Section */}
                 <motion.div
                     whileHover={{ y: -5 }}
@@ -151,6 +153,40 @@ export const Dashboard = ({
                         >
                             <Sparkles className="w-4 h-4 text-primary" />
                             Ask Assistant
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </div>
+                </motion.div>
+
+                {/* NFT Rewards Section */}
+                <motion.div
+                    whileHover={{ y: -5 }}
+                    className="glass-card p-6 text-left relative overflow-hidden flex flex-col justify-between h-full border-primary/20 bg-primary/[0.02]"
+                >
+                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-primary/10 rounded-full blur-[60px]" />
+                    
+                    <div className="relative z-10 flex flex-col h-full">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="p-2.5 rounded-xl bg-primary text-white shadow-xl shadow-primary/20">
+                                <Trophy className="w-6 h-6" />
+                            </div>
+                            <div className="px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[9px] font-bold uppercase tracking-widest">
+                                Live
+                            </div>
+                        </div>
+
+                        <div className="flex-1 space-y-1.5 mb-4">
+                            <h3 className="font-extrabold text-lg sm:text-xl tracking-tight">NFT Rewards</h3>
+                            <p className="text-[11px] sm:text-sm font-medium text-muted-foreground leading-relaxed">
+                                Claim exclusive 3D NFTs for your JavaScript progress and daily streaks.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={onOpenNFTs}
+                            className="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-[13px] flex items-center justify-center gap-2 hover:opacity-90 transition-opacity group"
+                        >
+                            View & Claim
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>

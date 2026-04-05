@@ -1,0 +1,21 @@
+{
+  "name": "jazzmini-contracts",
+  "version": "1.0.0",
+  "description": "Gamified Reward NFT Smart Contract for Jazzmini",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy:testnet": "npx hardhat run scripts/deploy.cjs --network baseSepolia",
+    "deploy:mainnet": "npx hardhat run scripts/deploy.cjs --network baseMainnet",
+    "verify": "npx hardhat verify --network baseMainnet"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "erc721a": "^4.3.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "dotenv": "^16.4.0",
+    "hardhat": "^2.22.0"
+  }
+}
