@@ -260,7 +260,7 @@ export const BASE_LESSONS: BaseLesson[] = [
     ]
   },
   {
-    id: 7,L
+    id: 7,
     title: "Identity & Social",
     emoji: "👤",
     subtitle: "Build your onchain reputation and social presence",
