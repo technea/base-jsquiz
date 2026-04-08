@@ -23,6 +23,22 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
         localStorage.setItem('baseLearningRead', JSON.stringify(updated));
     };
 
+    const [now, setNow] = useState(new Date());
+    useEffect(() => {
+        const t = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(t);
+    }, []);
+
+    const getCountdown = (date: Date) => {
+        const diff = date.getTime() - now.getTime();
+        if (diff <= 0) return 'Unlocked';
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / 1000 / 60) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+        return `${d}d ${h}h ${m}m ${s}s`;
+    };
+
     const totalModules = BASE_LESSONS.reduce((a, l) => a + l.modules.length, 0);
     const totalPoints = BASE_LESSONS.reduce((a, l) => a + l.modules.reduce((b, m) => b + m.points.length, 0), 0);
     const readCount = Object.keys(readLessons).length;
@@ -67,8 +83,10 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {BASE_LESSONS.map((lesson, idx) => {
                         const isRead = readLessons[lesson.id];
-                        const isUnlocked = lesson.id === 1;
+                        const isUnlocked = lesson.id === 1 || (readLessons[lesson.id - 1] && currentWeek >= lesson.id);
                         const dateRange = formatWeekDates(lesson.id);
+                        const weekStart = getWeekStartDate(lesson.id);
+                        const isTimeLocked = currentWeek < lesson.id && (lesson.id === 1 || readLessons[lesson.id - 1]);
 
                         return (
                             <motion.button
@@ -91,7 +109,11 @@ export const BaseLearning = ({ isDarkMode }: BaseLearningProps) => {
                                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-2xl">
                                         <div className="flex flex-col items-center gap-1">
                                             <Lock className="w-6 h-6 text-muted-foreground" />
-                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Unlocks on {getWeekStartDate(lesson.id).toLocaleDateString()}</span>
+                                            {isTimeLocked ? (
+                                                <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider tabular-nums">Unlocks in {getCountdown(weekStart)}</span>
+                                            ) : (
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Complete Week {lesson.id - 1}</span>
+                                            )}
                                         </div>
                                     </div>
                                 )}

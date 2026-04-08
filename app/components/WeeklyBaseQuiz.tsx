@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, CheckCircle2, XCircle, Trophy, ArrowLeft, Zap, Star, Clock, BookOpen, Wallet, RefreshCw, Lock, Calendar } from 'lucide-react';
-import { BASE_QUIZ_DATA, WEEK_THEMES, getCurrentWeek, getQuizByWeek, isWeekUnlocked, isWeekActive, getDaysRemaining, formatWeekDates, BaseQuizQuestion } from '../baseQuizData';
+import { BASE_QUIZ_DATA, WEEK_THEMES, getCurrentWeek, getWeekStartDate, getQuizByWeek, isWeekUnlocked, isWeekActive, getDaysRemaining, formatWeekDates, BaseQuizQuestion } from '../baseQuizData';
 
 interface WeeklyBaseQuizProps {
     isDarkMode: boolean;
@@ -39,6 +39,22 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
     const currentWeek = getCurrentWeek();
     const questions = selectedWeek ? getQuizByWeek(selectedWeek) : [];
     const currentQuestion = questions[currentIdx];
+
+    const [now, setNow] = useState(new Date());
+    useEffect(() => {
+        const t = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(t);
+    }, []);
+
+    const getCountdown = (date: Date) => {
+        const diff = date.getTime() - now.getTime();
+        if (diff <= 0) return 'Unlocked';
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / 1000 / 60) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+        return `${d}d ${h}h ${m}m ${s}s`;
+    };
 
     // 30-second timer
     const [timeLeft, setTimeLeft] = useState(30);
@@ -110,6 +126,16 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
         }
     }, [pendingWeek, onPayment, paidWeeks, startQuiz]);
 
+    const handleFreeUnlock = useCallback(() => {
+        if (!pendingWeek) return;
+        const updated = { ...paidWeeks, [pendingWeek]: true };
+        setPaidWeeks(updated);
+        localStorage.setItem('baseQuizPaid', JSON.stringify(updated));
+        setShowPayment(false);
+        setPaymentStatus('idle');
+        startQuiz(pendingWeek);
+    }, [pendingWeek, paidWeeks, startQuiz]);
+
     const handleNext = useCallback(() => {
         if (currentIdx === questions.length - 1) {
             const actualScore = selectedOpt === currentQuestion.answer ? score + 10 : score;
@@ -168,21 +194,30 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
                             <div>
                                 <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Attempts Used</h2>
                                 <p className="text-muted-foreground font-medium text-sm mt-1">
-                                    You've used 2 free attempts. Unlock unlimited retries for <strong className="text-blue-500">$0.03 USDC</strong>.
+                                    You've used 2 free attempts. Support the creator with <strong className="text-blue-500">$0.03 USDC</strong> for unlimited retries, or continue for free.
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleUnlock}
-                            disabled={paymentStatus === 'pending'}
-                            className="w-full py-4 rounded-xl bg-blue-600 text-white font-black text-xs uppercase tracking-[0.15em] shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 hover:bg-blue-700 disabled:opacity-50 transition-all"
-                        >
-                            {paymentStatus === 'pending' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
-                            {paymentStatus === 'pending' ? 'Processing...' : paymentStatus === 'success' ? '✓ Unlocked!' : 'Pay $0.03 USDC'}
-                        </button>
-                        <button onClick={() => { setShowPayment(false); setPaymentStatus('idle'); }} className="w-full text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">
-                            Cancel
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleUnlock}
+                                disabled={paymentStatus === 'pending'}
+                                className="w-full py-4 rounded-xl bg-blue-600 text-white font-black text-xs uppercase tracking-[0.15em] shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 hover:bg-blue-700 disabled:opacity-50 transition-all"
+                            >
+                                {paymentStatus === 'pending' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
+                                {paymentStatus === 'pending' ? 'Processing...' : paymentStatus === 'success' ? '✓ Unlocked!' : 'Support with $0.03 USDC'}
+                            </button>
+                            <button 
+                                onClick={handleFreeUnlock}
+                                disabled={paymentStatus === 'pending'}
+                                className="w-full py-4 rounded-xl bg-muted/50 border border-border text-foreground font-black text-xs uppercase tracking-[0.15em] hover:bg-muted/80 transition-colors"
+                            >
+                                Continue for Free
+                            </button>
+                            <button onClick={() => { setShowPayment(false); setPaymentStatus('idle'); }} className="w-full text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mt-1">
+                                Cancel
+                            </button>
+                        </div>
                     </motion.div>
                 </div>
             )}
@@ -214,6 +249,8 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
                             const bestScore = completedWeeks[theme.week];
                             const isCompleted = bestScore !== undefined;
                             const isPerfect = bestScore === 100;
+                            const isTimeLocked = currentWeek < theme.week && (theme.week === 1 || completedWeeks[theme.week - 1] !== undefined);
+                            const weekStart = getWeekStartDate(theme.week);
                             const weekAttempts = attempts[theme.week] || 0;
                             const daysLeft = active ? getDaysRemaining(theme.week) : 0;
                             const dateRange = formatWeekDates(theme.week);
@@ -238,7 +275,11 @@ export const WeeklyBaseQuiz = ({ isDarkMode, onPayment, onScoreUpdate }: WeeklyB
                                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-2xl">
                                             <div className="flex flex-col items-center gap-1">
                                                 <Lock className="w-6 h-6 text-muted-foreground" />
-                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Complete Week {theme.week - 1}</span>
+                                                {isTimeLocked ? (
+                                                    <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider tabular-nums">Unlocks in {getCountdown(weekStart)}</span>
+                                                ) : (
+                                                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Complete Week {theme.week - 1}</span>
+                                                )}
                                             </div>
                                         </div>
                                     )}

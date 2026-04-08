@@ -144,10 +144,9 @@ export const WEEK_THEMES = [
   { week: 10, title: "Future & Advanced", emoji: "🚀", description: "What's next for Base" },
 ];
 
-// ── Week System: Starts Monday, 7 days per week ──
-// Week 1 starts on this Monday. Each subsequent week is +7 days.
-// Change this to your desired start date (must be a Monday).
-export const WEEK_START_DATE = new Date('2025-03-31T00:00:00'); // Monday March 31, 2025
+// ── Week System: 7 days per week in real time ──
+// Setting start date exactly 7 days before tonight's midnight to extend Week 1
+export const WEEK_START_DATE = new Date('2026-04-02T00:00:00+05:00'); 
 
 // Get the current active week number (1-10)
 export function getCurrentWeek(): number {
@@ -178,7 +177,9 @@ export function getWeekEndDate(week: number): Date {
 
 // Check if a week has been unlocked (all previous weeks must be completed)
 export function isWeekUnlocked(week: number, completedWeeks: Record<number, number>): boolean {
-  return week === 1; // Only week 1 is open
+  if (week === 1) return true;
+  // Unlock if previous week is completed and current time has reached this week
+  return completedWeeks[week - 1] !== undefined && getCurrentWeek() >= week;
 }
 
 // Get days remaining in the current week

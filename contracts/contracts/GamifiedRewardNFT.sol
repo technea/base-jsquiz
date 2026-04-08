@@ -16,19 +16,19 @@ contract GamifiedRewardNFT is ERC721A, Ownable, ReentrancyGuard, Pausable {
     
     uint256 public constant MAX_SUPPLY = 10000;
     
-    // IMMEDIATE REWARDS (2,000 NFTs)
+    // IMMEDIATE REWARDS (2,500 NFTs)
     uint256 public constant LEVEL_10_REWARD = 500;      // 500 NFTs for JS level 10
     uint256 public constant WEEKLY_TASK_REWARD = 1000;  // 1,000 NFTs for 5+ weeks
-    uint256 public constant GM_STREAK_REWARD = 500;     // 500 NFTs for 7-day GM streak
+    uint256 public constant GM_STREAK_REWARD = 1000;    // 1,000 NFTs for 2-day GM streak
     
-    // FUTURE CAMPAIGNS (8,000 NFTs - Reserved)
-    uint256 public constant FUTURE_CAMPAIGNS_RESERVE = 8000;
+    // FUTURE CAMPAIGNS (7,500 NFTs - Reserved)
+    uint256 public constant FUTURE_CAMPAIGNS_RESERVE = 7500;
     
     // Token ID ranges
     uint256 public constant LEVEL_10_START_ID = 1;           // IDs 1-500
     uint256 public constant WEEKLY_START_ID = 501;           // IDs 501-1500
-    uint256 public constant GM_STREAK_START_ID = 1501;       // IDs 1501-2000
-    uint256 public constant FUTURE_CAMPAIGNS_START_ID = 2001; // IDs 2001-10000
+    uint256 public constant GM_STREAK_START_ID = 1501;       // IDs 1501-2500
+    uint256 public constant FUTURE_CAMPAIGNS_START_ID = 2501; // IDs 2501-10000
     
     // =============================================================
     //                         STRUCTS
@@ -89,7 +89,7 @@ contract GamifiedRewardNFT is ERC721A, Ownable, ReentrancyGuard, Pausable {
     // Campaign requirements
     uint256 public constant MIN_WEEKS_REQUIRED = 5;
     uint256 public constant WEEK_IN_SECONDS = 7 days;
-    uint256 public constant GM_STREAK_REQUIRED = 7;
+    uint256 public constant GM_STREAK_REQUIRED = 2;
     
     // =============================================================
     //                    PAYMENT SETTINGS
